@@ -2,24 +2,21 @@ name: egoal
 channels:
   - conda-forge
   - pytorch
-
 dependencies:
-  - python >= 3.9
+  - python
   - pip
-  #- cudf
-
   - numpy
   - pandas
-  
+  - ipykernel
+  - tqdm
+  ## GraphBLAS python wrapper 
+  - python-graphblas
+  ## For GPU support
   - cudatoolkit
   - pytorch=*=*cuda*
-  - cupy
-
-  - tqdm
-  - openpyxl
-  - ipykernel
-  - cobra
-  - torch-geometric
-  - rdflib
+  ## for data analysis and visualisation
   - scikit-learn
-  #- zoopt
+  - matplotlib
+  - rdflib
+  - pip:
+    - zoopt
