@@ -1,29 +1,24 @@
 import torch
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
-from scipy.sparse import coo_matrix, save_npz, load_npz
 
 def print_log(s: str):
     with open('out.txt', 'a') as f:
         f.write(s+'\n')
 
 def exp_soft(X,t):
-    #t1 = .1 / torch.min(X.detach()[X.detach()!=0])
-    t1 = 100
-    return 1 - torch.exp(-t1 * X)
+    return 1 - torch.exp(-t * X)
 
 def exp_power(X, k, t):
     #return torch.matrix_power(1 - torch.exp(-t * X), k)
-    Xk = torch.matrix_power(X, k)
-    #t1 = .1 / torch.min(X.detach()[X.detach()!=0])
-    return 1 - torch.exp(-t * Xk)
+    return 1 - torch.exp(-t * torch.matrix_power(X, k))
 
 def tanh_power(X, k):
     #return torch.matrix_power(1 - torch.exp(-t * X), k)
     return 1 - torch.tanh(torch.matrix_power(X, k))
 
 
-def optimize_X(Y, X0, Omega, C, k, t, init_lr=1e-3, max_iter=1000, tol=1e-3, decay_rate=0.995, device=torch.device('cpu'), verbose=False):
+def optimize_X(Y, X0, Omega, C, k, t, init_lr=1e-3, max_iter=1000, tol=1e-4, decay_rate=0.995, device=torch.device('cpu'), verbose=False):
     """
     Solve the optimization problem:
     min_X ||X^k - Y||_F^2 + C * ||X - X0||_F^2
@@ -70,7 +65,6 @@ def optimize_X(Y, X0, Omega, C, k, t, init_lr=1e-3, max_iter=1000, tol=1e-3, dec
         #print()
 
         Xk = exp_power(X, k, t)
-        #print(exp_soft(X,t), Xk)
         loss1 = torch.norm((Xk - Y)[Omega], p='fro') ** 2
         #loss1 = torch.norm((tanh_power(X, k) - Y)[Omega], p='fro') ** 2
         loss2 = torch.norm(exp_soft(X, t) - X0, p=1)# ** 2
@@ -78,12 +72,6 @@ def optimize_X(Y, X0, Omega, C, k, t, init_lr=1e-3, max_iter=1000, tol=1e-3, dec
         loss_round = torch.count_nonzero((torch.round(Xk)-Y)[Omega])
         f1 = f1_score(
                 torch.round(Xk[Omega]).flatten().detach().cpu().numpy(),
-                Y[Omega].flatten().detach().cpu().numpy())
-
-        Xk_ = torch.clamp(torch.matrix_power(torch.round(exp_soft(X,t)),k),0,1)
-        loss_round_ = torch.count_nonzero((torch.round(Xk_)-Y)[Omega])
-        f1_ = f1_score(
-                torch.round(Xk_[Omega]).flatten().detach().cpu().numpy(),
                 Y[Omega].flatten().detach().cpu().numpy())
         #loss_round = torch.count_nonzero((torch.round(tanh_power(X,k))-Y)[Omega])
         
@@ -106,8 +94,7 @@ def optimize_X(Y, X0, Omega, C, k, t, init_lr=1e-3, max_iter=1000, tol=1e-3, dec
         #if verbose and (epoch % 20 == 0 or epoch == max_iter - 1):
         print(f"Iteration {epoch}: Loss = {loss.item():.6f}")
         print(f'|Xk-Y|_F: {loss1.item(): .6f}, |X-X0|: {loss2.item(): .6f}')
-        print(f'rounded |X_k-Y|_0 = {loss_round}, f1 = {f1: .6f}, approx slack: {torch.count_nonzero(Xk_ - torch.round(exp_power(X,k,t)))}')
-        print(f'rounded before pow |X_k-Y|_0 = {loss_round_}, f1 = {f1_: .6f}\n')
+        print(f'rounded |X_k-Y|_0 = {loss_round}, f1 = {f1: .6f}\n')
     
     return X.detach(), losses
 
@@ -120,7 +107,7 @@ if __name__ == "__main__":
     n = 100  # Matrix size (n x n)
     k = 5  # Power of X
     t = 1 # Coeff in exp surrogate func
-    C = 1  # Regularization strength
+    C = .1  # Regularization strength
     
     ## Generate random Y and X0
     #X0 = torch.tensor(np.random.choice([0., 1.], size=(n,n), p=[.9, .1]).astype(np.float32))
@@ -143,9 +130,7 @@ if __name__ == "__main__":
         (as supervision for mat compl) '''
     X_l = np.load('dataset/precise1k/X_label.npy')
     Y_l = np.load('dataset/precise1k/Y_label.npy')
-    print(Y_l.shape)
     connectv_sup = np.clip(np.abs(X_l).T @ np.abs(Y_l), 0,1)
-    print(connectv_sup.shape)
     
     ''' align with precise1k genome '''
     gene_idx = pd.read_csv('dataset/gene_idx.csv', index_col=0)
@@ -166,8 +151,8 @@ if __name__ == "__main__":
     X0.to(device)
     Omega.to(device)
 
-    print(f'check X0^k == 1-exp(X0^k): {torch.count_nonzero(torch.clamp(torch.matrix_power(X0,k),0,1) - torch.round(exp_power(X0,k,t)))}')
-    print(f'check X0^k == tanh(X0^k): {torch.count_nonzero(torch.clamp(torch.matrix_power(X0,k),0,1) - torch.round(tanh_power(X0,k)))}')
+    print(f'check X0^k == 1-exp(X0^k): {torch.count_nonzero(torch.clamp(torch.matrix_power(X0,k),0,1) - torch.round(exp_power(X0,k,t))) == 0}')
+    print(f'check X0^k == tanh(X0^k): {torch.count_nonzero(torch.clamp(torch.matrix_power(X0,k),0,1) - torch.round(tanh_power(X0,k))) == 0}')
     
     #print(f'init loss = {torch.norm((torch.clip(torch.matrix_power(X0, k),0,1)-Y)[Omega],p="fro") ** 2}')
     print(f'init Xk-Y diff = {torch.count_nonzero((torch.clip(torch.matrix_power(X0, k),0,1)-Y)[Omega])}')
@@ -192,6 +177,3 @@ if __name__ == "__main__":
     X_opt_round = torch.round(exp_soft(X_opt, t))
     print(f'X rounded = \n{X_opt_round}')
     print(f'|X-X0|_1 = {torch.norm(X_opt_round-X0, p=1)}')
-
-    save_npz('scripts/klg_refine/X_opt.npz', coo_matrix(exp_soft(X_opt,t).detach().cpu().numpy()))
-    save_npz('scripts/klg_refine/X_opt_k.npz', coo_matrix(X_opt_k.detach().cpu().numpy()))
