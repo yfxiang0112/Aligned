@@ -3,14 +3,14 @@ import torch
 from scipy.sparse import load_npz
 from sklearn.metrics import confusion_matrix, f1_score
 
-def closure(R_P_0, R_N_0, T, device):
+def closure(R_P_0, R_N_0, T=None, device='cpu'):
     cnt = 1
     R_P_0, R_N_0 = R_P_0.to(device), R_N_0.to(device)
     I = torch.eye(R_P_0.shape[0]).to(device)
     
     R_P, R_N = R_P_0+I, R_N_0
     while True:
-        if cnt >= T:
+        if T!=None and cnt >= T:
             break
 
         R_P_, R_N_ = R_P, R_N
@@ -18,9 +18,9 @@ def closure(R_P_0, R_N_0, T, device):
         R_P = R_P_0 @ R_P_ + R_N_0 @ R_N_
         R_N = R_P_0 @ R_N_ + R_N_0 @ R_P_
     
-        #R_P, R_N = torch.clamp(R_P,-1,1), torch.clamp(R_N,-1,1)
-        R_P /= torch.min(R_P[R_P!=0])
-        R_N /= torch.min(R_N[R_N!=0])
+        R_P, R_N = torch.clamp(R_P,0,1), torch.clamp(R_N,0,1)
+        #R_P /= torch.min(R_P[R_P!=0])
+        #R_N /= torch.min(R_N[R_N!=0])
     
         if torch.all(R_P == R_P_) and torch.all(R_N == R_N_):
             break
@@ -37,6 +37,18 @@ R_N_0 = torch.tensor(load_npz('rules/regu_neg.npz').toarray()).to(device)
 ' k=5 closure & k=2 closure'
 R_P, R_N = closure(R_P_0, R_N_0, T=5, device=device)
 R_P_2, R_N_2 = closure(R_P_0, R_N_0, T=2, device=device)
+
+R_P_3, R_N_3 = closure(R_P_0, R_N_0, T=3, device=device)
+R_P_k, R_N_k = closure(R_P_0, R_N_0, device=device)
+
+print(torch.count_nonzero(R_P_k - R_P))
+print(torch.count_nonzero(R_P - R_P_3))
+print(torch.count_nonzero(R_P_3 - R_P_2))
+
+print(torch.count_nonzero(R_N_k - R_N))
+print(torch.count_nonzero(R_N - R_N_3))
+print(torch.count_nonzero(R_N_3 - R_N_2))
+exit()
 
 print(f'max in R_P: {torch.max(R_P)}, R_N: {torch.max(R_N)}')
 
