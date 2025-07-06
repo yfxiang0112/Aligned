@@ -18,9 +18,9 @@ def closure(R_P_0, R_N_0, T=None, device='cpu'):
         R_P = R_P_0 @ R_P_ + R_N_0 @ R_N_
         R_N = R_P_0 @ R_N_ + R_N_0 @ R_P_
     
-        R_P, R_N = torch.clamp(R_P,0,1), torch.clamp(R_N,0,1)
-        #R_P /= torch.min(R_P[R_P!=0])
-        #R_N /= torch.min(R_N[R_N!=0])
+        #R_P, R_N = torch.clamp(R_P,0,1), torch.clamp(R_N,0,1)
+        R_P /= torch.min(R_P[R_P!=0])
+        R_N /= torch.min(R_N[R_N!=0])
     
         if torch.all(R_P == R_P_) and torch.all(R_N == R_N_):
             break
@@ -38,17 +38,16 @@ R_N_0 = torch.tensor(load_npz('rules/regu_neg.npz').toarray()).to(device)
 R_P, R_N = closure(R_P_0, R_N_0, T=5, device=device)
 R_P_2, R_N_2 = closure(R_P_0, R_N_0, T=2, device=device)
 
-R_P_3, R_N_3 = closure(R_P_0, R_N_0, T=3, device=device)
-R_P_k, R_N_k = closure(R_P_0, R_N_0, device=device)
+#R_P_3, R_N_3 = closure(R_P_0, R_N_0, T=3, device=device)
+#R_P_k, R_N_k = closure(R_P_0, R_N_0, device=device)
 
-print(torch.count_nonzero(R_P_k - R_P))
-print(torch.count_nonzero(R_P - R_P_3))
-print(torch.count_nonzero(R_P_3 - R_P_2))
-
-print(torch.count_nonzero(R_N_k - R_N))
-print(torch.count_nonzero(R_N - R_N_3))
-print(torch.count_nonzero(R_N_3 - R_N_2))
-exit()
+#print(torch.count_nonzero(R_P_k - R_P))
+#print(torch.count_nonzero(R_P - R_P_3))
+#print(torch.count_nonzero(R_P_3 - R_P_2))
+#
+#print(torch.count_nonzero(R_N_k - R_N))
+#print(torch.count_nonzero(R_N - R_N_3))
+#print(torch.count_nonzero(R_N_3 - R_N_2))
 
 print(f'max in R_P: {torch.max(R_P)}, R_N: {torch.max(R_N)}')
 

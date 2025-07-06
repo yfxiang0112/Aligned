@@ -62,6 +62,9 @@ def train(
     KB = KB.to(device)
 
     for epoch in range(num_epochs):
+        loss_y = 0.
+        loss_r = 0.
+        running_reward = 0.
         for x, y_true in data_loader:  # x: input, y_true: class labels
             x,y_true = x.to(device),y_true.to(device)
 
@@ -97,8 +100,12 @@ def train(
             total_loss.backward()
             optimizer.step()
 
+            loss_y += ce_loss.item()
+            loss_r += r_loss.item()
+            running_reward += reward.item()
+
         if (epoch+1)%100 == 0:
-            print(f"Epoch {epoch+1}, CE Loss: {ce_loss.item():.3f}, REINFORCE Loss: {r_loss.item():.3f}, Reward: {reward.item():.4f}")
+            print(f"Epoch {epoch+1}, CE Loss: {loss_y:.3f}, REINFORCE Loss: {loss_r:.3f}, Reward: {running_reward:.4f}")
 
 if __name__ == '__main__':
 
@@ -116,7 +123,7 @@ if __name__ == '__main__':
     input_dim = X_train.shape[1]
     output_dim = Y_train.shape[1]
     hidden_dim = 128
-    batch_size = 512
+    batch_size = 64
     
     # Initialize model
     model = ReflNetwork(input_dim, hidden_dim, output_dim)

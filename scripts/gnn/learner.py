@@ -208,7 +208,7 @@ class GnnLearner():
 
         ' GNN hidden dim & layers '
         hidden_dim = 64
-        num_layers = 5
+        num_layers = 3
 
         ' 241 output genes '
         output_dim = 623
@@ -252,9 +252,6 @@ class GnnLearner():
         X_test = [torch.tensor(x) if len(x)>0 else torch.tensor([[0,0]]) for x in X_test_lst]
 
 
-
-        print(len(X_train), len(Y_train))
-        print(len(X_test), len(Y_test))
         train_dataset = PertDataset(X_train, Y_train)
         test_dataset = PertDataset(X_test, Y_test)
         
@@ -325,7 +322,7 @@ class GnnLearner():
             if self.log_path != '':# and (epoch+1) % 10 == 0:
                 with open(self.log_path,'a') as f:
                     f.write(f"Epoch [{epoch+1}/{epochs}], Loss: {running_loss / len(self.train_loader):.4f}\n")
-                    print(f"Epoch [{epoch+1}/{epochs}], Loss: {running_loss / len(self.train_loader):.4f}\n")
+                    #print(f"Epoch [{epoch+1}/{epochs}], Loss: {running_loss / len(self.train_loader):.4f}\n")
 
         ' move model back to cpu '
         if use_gpu:
@@ -348,7 +345,6 @@ class GnnLearner():
 
             for X_batch, Y_batch in self.test_loader:
                 outputs = self.model.predict(X_batch)
-                print(outputs.shape)
 
                 Y_test.append(Y_batch)
                 Y_pred.append(outputs)
@@ -363,7 +359,6 @@ class GnnLearner():
             ''' compute total confusion matrix '''
             flat_y_t = Y_test.flatten()
             flat_y_p = Y_pred.flatten()
-            print(flat_y_p.shape, flat_y_t.shape)
             confusion = confusion_matrix(flat_y_t, flat_y_p, labels=[-1, 0,1])
             confusion = confusion / confusion.sum().sum()
             f1_macro = f1_score(flat_y_t, flat_y_p, average='macro') # micro on labels, macro on classes
@@ -480,6 +475,8 @@ if __name__ == '__main__':
     learner = GnnLearner(adj_matrix=adj_matrix,  log_path=log_file)
 
     learner.load_data(X_train, Y_train, X_test, Y_test)
-    learner.eval()
-    learner.train(epochs=50, use_gpu=True)
-    learner.eval()
+    f1 = learner.eval()
+    print(f'before f1: {f1}')
+    learner.train(epochs=50, lr= 1e-3, use_gpu=True)
+    f1 = learner.eval()
+    print(f'after f1: {f1}')

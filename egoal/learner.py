@@ -343,6 +343,7 @@ if __name__ == '__main__':
     ''' add logger & training '''
     learner = BaseLearner(log_path='log.txt')
     learner.load_data(X_train, Y_train, X_test, Y_test)
-    learner.train(epochs=100, lr=0.01)
-    learner.eval()
-    # learner.save('models/model_prec1k.pt')
+    print(learner.eval())
+    learner.train(epochs=50, lr=1e-3)
+    print(learner.eval())
+    #learner.save('models/model_prec1k.pt')

@@ -316,7 +316,7 @@ if __name__ == "__main__":
            max_modify=20,
            budget=5000,
            pretrain_epc=50,
-           pretrain_lr=0.001,
+           pretrain_lr=1e-3,
            #subset_threshold=[1.,.9,.9],
            subset_threshold = 1.,
            retrain_epc=50,
