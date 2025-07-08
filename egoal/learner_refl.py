@@ -6,6 +6,8 @@ from sklearn.metrics import confusion_matrix, f1_score
 import numpy as np
 from torch.distributions import Bernoulli
 
+from egoal.reasoner import RegualtoryKB
+
 class ReflectNN(nn.Module):
     """ Network Structure of Base Learner with Reflect Output (RL) """
 
@@ -52,17 +54,12 @@ class ReflectNN(nn.Module):
         output_y, _ = self.forward(x)
         return torch.argmax(output_y, dim=-1) -1
 
-    def predict_prob(self,x):
-        output_y, _ = self.forward(x)
-        return output_y
-
     def reflection(self, x):
         _, output_r = self.forward(x)
         return torch.round(output_r)
 
 class ReflectLearner():
     def __init__(self,
-        KB: torch.Tensor,
         use_gpu = False,
         log_path = '',
     ) -> None:
@@ -81,7 +78,6 @@ class ReflectLearner():
         self.clf_weight = torch.Tensor([.4,.2,.4])
 
         self.model = ReflectNN(input_dim, hidden_dim,  output_dim)
-        self.KB = KB
         self.train_loader = None
         self.test_loader = None
 
@@ -91,24 +87,40 @@ class ReflectLearner():
         if self.use_gpu:
             self.model = self.model.to(self.device)
             self.clf_weight = self.clf_weight.to(self.device)
-            self.KB = self.KB.to(self.device)
 
         self.log_path = log_path
 
 
-    def consistency_reward(self, x, y_probs, r_binary):
+    def consistency_reward(self,
+                           KB: RegualtoryKB,
+                           x: torch.Tensor,
+                           y_probs: torch.Tensor,
+                           r_binary: torch.Tensor):
+        '''
+        KB:
+        x:
+        y_probs:
+        r_binary:
+        Reward = count_nonzero(y_binary & r_actions - x_binary)
+        '''
+
         # TODO
-        """Reward = count_nonzero(y_binary & r_actions - x_binary)"""
         y = torch.abs(torch.argmax(y_probs, dim=-1) -1)
-        r_binary = r_binary.to(bool)
+        r_binary = r_binary.bool()
         
-        reward = - torch.count_nonzero((y == torch.clamp(x @ self.KB,-1,1))[~r_binary], dim=-1).float()
-        #reward /= torch.count_nonzero(~r_binary)
-        return reward
+        violated = - KB.violated(Y=y, X=x, mask=~r_binary)
+        #violated /= torch.count_nonzero(~r_binary)
+        return violated
     
 
-    def load_data(self, X_train, Y_train, X_test, Y_test, batch_size=64):
+    def load_data(self,
+                  X_train: torch.Tensor,
+                  Y_train: torch.Tensor,
+                  X_test: torch.Tensor,
+                  Y_test: torch.Tensor,
+                  batch_size=64):
         ''' define train & test data loader '''
+
         assert len(X_train) > 0
         assert len(X_test) > 0
         assert len(Y_train) > 0
@@ -119,7 +131,7 @@ class ReflectLearner():
         self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         self.test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-        ''' reset classification loss weight with new Y_train '''
+        ' reset classification loss weight with new Y_train '
         flat_y = Y_train.flatten()
         weights = [1/(torch.sum(flat_y==-1).item() + 1e-6),
                    1/(torch.sum(flat_y==0).item() + 1e-6),
@@ -131,7 +143,9 @@ class ReflectLearner():
 
     def train(
         self, 
+        KB: RegualtoryKB,
         epochs= 10, 
+        C= 100,
         lr= 1e-3, 
         gamma= 0.99
     ):
@@ -163,7 +177,7 @@ class ReflectLearner():
                 r_actions = dist.sample()  # Shape: (batch_size, output_dim)
                 r_actions_batch.append(r_actions)
 
-                violated += self.consistency_reward(X_batch, output_y, r_actions).detach().item()
+                violated += self.consistency_reward(KB, X_batch, output_y, r_actions).detach().item()
                 r_nonzero += torch.count_nonzero(1-r_actions).detach().item()
 
             reward = violated / (r_nonzero + 1e-6)
@@ -172,9 +186,10 @@ class ReflectLearner():
             loss_y, loss_r = 0.,0.
             for (X_batch, Y_batch), r_actions in zip(self.train_loader, r_actions_batch):
                 output_y, output_r = self.model(X_batch)
+                Y_batch = Y_batch.to(int)+1
 
                 ' CE loss '
-                loss_y += criterion(output_y.view(-1,3), (Y_batch+1).view(-1))
+                loss_y += criterion(output_y.view(-1,3), Y_batch.view(-1))
 
                 ' RL for discrete action opt '
                 ' sample from Ber distribution, '
@@ -189,7 +204,7 @@ class ReflectLearner():
     
     
             ' backprop '
-            total_loss = loss_y + 0.1 * loss_r  # Scale REINFORCE loss to balance
+            total_loss = loss_y + C * loss_r  # Scale REINFORCE loss to balance
             optimizer.zero_grad()
             total_loss.backward()
             optimizer.step()
@@ -292,6 +307,16 @@ class ReflectLearner():
                 print(f'Average Per-label Acc: {np.mean(np.array(per_label_accuracy))*100:.2f}%\n')
 
             return f1_macro
+
+    def forward(self, x: torch.Tensor):
+        return self.model(x)
+
+    def predict(self, x: torch.Tensor):
+        return self.model.predict(x)
+
+    def predict_prob(self, x: torch.Tensor):
+        outputs, _ = self.model(x)
+        return outputs
 
 
 
