@@ -34,7 +34,7 @@ class RegualtoryKB():
         #self.KB_P, self.KB_N, self.T = self.closure(Regu_P, Regu_N, T=T)
 
         ' filter output genes from cols (align with Y) '
-        label_set = pd.read_csv('dataset/ncbi-sra/label_set.csv')
+        label_set = pd.read_csv('dataset/label_set_iml.csv')
         self.idx_list = list(label_set['matrix_idx'])
 
         ' initialize pos & neg KB '
@@ -45,6 +45,16 @@ class RegualtoryKB():
 
     def closure_(self, T=None):
         ''' Inplace & Nonstatic Ver of KB Closure '''
+        R_P, R_N ,_ = self.closure(self.Regu_P_0, self.Regu_N_0, T=5, device=self.device)
+        R_P_2, R_N_2,_ = self.closure(self.Regu_P_0, self.Regu_N_0, T=2, device=self.device)
+        self.KB_P, self.KB_N = R_P, R_N
+
+        R_diff = R_P - R_N
+        R_P, R_N = R_P.bool(), R_N.bool()
+        self.KB = torch.where(R_P & R_N,
+                     torch.where(R_P_2.bool()&R_N_2.bool(), 
+                                 torch.clamp(self.Regu_P_0-self.Regu_N_0,-1,1),
+                                 torch.clamp(R_P_2-R_N_2,-1,1)), R_diff)
 
         self.KB_P, self.KB_N, self.T = self.closure(self.Regu_P_0, self.Regu_N_0, T, self.device)
         self.KB_P, self.KB_N  = self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]

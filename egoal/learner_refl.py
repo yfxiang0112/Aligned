@@ -60,6 +60,9 @@ class ReflectNN(nn.Module):
 
 class ReflectLearner():
     def __init__(self,
+        input_dim,
+        output_dim,
+        hidden_dim = 64,
         use_gpu = False,
         log_path = '',
     ) -> None:
@@ -70,14 +73,14 @@ class ReflectLearner():
         '''
 
         ' 4639 genes of whole genome, 241 output genes '
-        input_dim = 4639
-        hidden_dim = 64
-        output_dim = 623
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.output_dim = output_dim
 
         ' weight of classes for CE loss '
         self.clf_weight = torch.Tensor([.4,.2,.4])
 
-        self.model = ReflectNN(input_dim, hidden_dim,  output_dim)
+        self.model = ReflectNN(self.input_dim, self.hidden_dim,  self.output_dim)
         self.train_loader = None
         self.test_loader = None
 
@@ -108,7 +111,8 @@ class ReflectLearner():
         y = torch.abs(torch.argmax(y_probs, dim=-1) -1)
         r_binary = r_binary.bool()
         
-        violated = - KB.violated(Y=y, X=x, mask=~r_binary)
+        #violated = - KB.violated(Y=y, X=x, mask=~r_binary)
+        violated = KB.violated(Y=y, X=x, mask=r_binary) #- torch.count_nonzero(r_binary)
         #violated /= torch.count_nonzero(~r_binary)
         return violated
     
@@ -147,7 +151,7 @@ class ReflectLearner():
         epochs= 10, 
         C= 100,
         lr= 1e-3, 
-        gamma= 0.99
+        gamma= 0.95
     ):
         '''
         Train the Clf + Refl Model
@@ -204,7 +208,12 @@ class ReflectLearner():
     
     
             ' backprop '
-            total_loss = loss_y + C * loss_r  # Scale REINFORCE loss to balance
+            if epoch % 100 == 0:
+                C1, C2 = 1, 100
+            else:
+                C1, C2 = 0, 100
+
+            total_loss = C1 * loss_y + C2 * loss_r  # Scale REINFORCE loss to balance
             optimizer.zero_grad()
             total_loss.backward()
             optimizer.step()

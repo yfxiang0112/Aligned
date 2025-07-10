@@ -33,8 +33,14 @@ def abduce(X_unlabel: torch.Tensor,
 
 
     ''' init base learner & reasoner  '''
-    learner = ReflectLearner(use_gpu=use_gpu, log_path=log_file)
-    reasoner = RegualtoryKB(pos_trn_pth, neg_trn_pth, use_gpu=use_gpu)#, T=4)
+    learner = ReflectLearner(input_dim= X_test.shape[1],
+                             output_dim= Y_test.shape[1],
+                             hidden_dim= 64,
+                             use_gpu=use_gpu,
+                             log_path=log_file)
+    reasoner = RegualtoryKB(pos_trn_pth= pos_trn_pth,
+                            neg_trn_pth= neg_trn_pth,
+                            use_gpu=use_gpu)#, T=4)
     reasoner.closure_()
 
     ########################################
@@ -81,6 +87,9 @@ def abduce(X_unlabel: torch.Tensor,
         Y_deduction = reasoner.deduce(X_unlabel)
 
         Y_modified = torch.where(R_binary, Y_deduction, Y_pseudo)
+
+        np.save(f'R_ABL{t}.npy', R_binary.cpu().numpy())
+        np.save(f'Y_ABL{t}.npy', (Y_pseudo - Y_deduction).cpu().numpy())
 
         ####################
 
@@ -224,12 +233,16 @@ if __name__ == "__main__":
     log_file = f'log/EGOAL-{datetime.now()}.txt'.replace(' ','-')
 
     X_train = torch.tensor(np.load('dataset/precise1k/X_label.npy'), dtype = torch.float32)
-    Y_train = torch.tensor(np.load('dataset/precise1k/Y_train.npy'), dtype = int)
+    Y_train = torch.tensor(np.load('dataset/precise1k/Y_label.npy'), dtype = int)
 
     X_test = torch.tensor(np.load('dataset/ncbi-sra/X_label.npy'), dtype = torch.float32)
-    Y_test = torch.tensor(np.load('dataset/ncbi-sra/Y_train.npy'), dtype = int)
+    Y_test = torch.tensor(np.load('dataset/ncbi-sra/Y_label.npy'), dtype = int)
 
-    X_unlabel = torch.tensor(np.load('dataset/X_unlabel.npy'), dtype = torch.float32)
+    X_unlabel = torch.tensor(np.load('dataset/X_regulators.npy'), dtype = torch.float32)
+
+    label_set = pd.read_csv('dataset/label_set_iml.csv', index_col=0)
+    Y_train = Y_train[:,list(label_set['precise1k_idx'])]
+    Y_test = Y_test[:,list(label_set['matrix_idx'])]
     #z_groundtruth = torch.tensor(pd.read_csv('dataset/X_semisup.csv')['growth'], dtype=torch.float32)
 
     #print(f'Y_train: {Y_train.shape}, Y_test: {Y_test.shape}')
@@ -284,5 +297,5 @@ if __name__ == "__main__":
            #subset_threshold=[1.,.9,.9],
            subset_threshold = 1.,
            retrain_epc=500,
-           retrain_lr=0.01,
+           retrain_lr=1e-3,
            seed=42, log_file=log_file)
