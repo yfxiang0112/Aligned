@@ -32,6 +32,7 @@ def abduce(X_unlabel: torch.Tensor,
        np.random.seed(seed)
 
 
+
     ''' init base learner & reasoner  '''
     learner = ReflectLearner(input_dim= X_test.shape[1],
                              output_dim= Y_test.shape[1],
@@ -41,7 +42,7 @@ def abduce(X_unlabel: torch.Tensor,
     reasoner = RegualtoryKB(pos_trn_pth= pos_trn_pth,
                             neg_trn_pth= neg_trn_pth,
                             use_gpu=use_gpu)#, T=4)
-    reasoner.closure_()
+    reasoner.closure_(T=5, closure_type='combined')
 
     ########################################
 
@@ -78,6 +79,11 @@ def abduce(X_unlabel: torch.Tensor,
         Y_prob, R = learner.forward(X_unlabel)
         Y_pseudo = torch.argmax(Y_prob, dim=-1) -1
         R_binary = torch.round(R).bool()
+
+        #R_mask = torch.zeros_like(R_binary, dtype=torch.bool).to(device)
+        #labels = [3, 13, 57, 60, 70, 93, 114, 119, 142, 160, 162, 164, 173, 175, 179, 193, 197, 198, 209, 213, 218, 228, 262, 263, 265, 274, 284, 285, 289, 291, 315, 320, 339, 341, 344, 353, 361, 369, 370, 374, 385, 405, 414, 425, 430, 436, 437, 439, 443, 445, 446, 467, 481, 482, 485, 503, 504, 507, 514, 518, 521, 530, 531, 540, 541, 549, 551, 552, 555, 561, 570, 578, 579, 583, 596, 601, 608, 641, 643, 645, 652, 662, 663, 668, 670, 672, 673, 674, 685, 689, 690, 702, 703, 705, 706, 708, 712, 723, 724, 727, 732, 733, 734, 737, 738, 747, 748, 751, 752, 782, 801, 807, 808, 823, 826, 854, 873, 882, 884, 905, 909, 912, 915, 917, 919, 921, 945, 953, 965, 968, 975, 983, 997, 998, 999, 1013, 1029, 1030, 1031, 1039, 1040, 1046, 1055, 1064, 1066, 1077, 1119, 1133, 1148, 1162, 1173, 1174, 1177, 1178, 1180, 1181, 1182, 1206, 1212, 1219, 1220, 1221, 1224, 1229, 1233, 1237, 1239, 1251, 1275, 1276, 1277, 1278, 1282, 1315, 1342, 1347, 1351, 1352, 1353, 1362, 1363, 1364, 1367, 1380, 1400, 1403, 1407, 1426, 1431, 1432, 1443, 1444, 1445, 1466, 1478, 1487, 1506]
+        #R_mask[:,labels] = True
+
         #print(R)
         #print(R_binary)
         print(torch.count_nonzero(R_binary) / (R.shape[0]*R.shape[1]))
@@ -86,10 +92,14 @@ def abduce(X_unlabel: torch.Tensor,
 
         Y_deduction = reasoner.deduce(X_unlabel)
 
-        Y_modified = torch.where(R_binary, Y_deduction, Y_pseudo)
+        Y_modified = torch.where(R_binary , Y_deduction, Y_pseudo)
+        #Y_modified = Y_deduction
 
-        np.save(f'R_ABL{t}.npy', R_binary.cpu().numpy())
-        np.save(f'Y_ABL{t}.npy', (Y_pseudo - Y_deduction).cpu().numpy())
+        print(torch.count_nonzero(Y_deduction))
+        #exit()
+        np.save(f'data_anal/abduction_results/R_ABL{t}.npy', R_binary.cpu().numpy())
+        np.save(f'data_anal/abduction_results/Yp_ABL{t}.npy', Y_pseudo.cpu().numpy())
+        np.save(f'data_anal/abduction_results/Yd_ABL{t}.npy', Y_deduction.cpu().numpy())
 
         ####################
 
@@ -238,7 +248,26 @@ if __name__ == "__main__":
     X_test = torch.tensor(np.load('dataset/ncbi-sra/X_label.npy'), dtype = torch.float32)
     Y_test = torch.tensor(np.load('dataset/ncbi-sra/Y_label.npy'), dtype = int)
 
+    test_idx = [37,38,39,40,41,42,43,44,45,46,47,48, 49,50,51,52,53,54, 55,56,57, 28,29,30,58,59,60,61]
+    # arcZ, gcvB, micA, ryhB
+    X_test, Y_test = X_test[test_idx], Y_test[test_idx]
+
     X_unlabel = torch.tensor(np.load('dataset/X_regulators.npy'), dtype = torch.float32)
+
+    #NOTE tmp
+    #X_unlabel = torch.zeros(size=(len(test_idx), X_train.shape[1]), dtype=torch.float32)
+    #for i in range(0,12):
+    #    X_unlabel[i,3373] = 1.
+    #for i in range(12,18):
+    #    X_unlabel[i,2961] = 1.
+    #for i in range(18,21):
+    #    X_unlabel[i,2837] = 1.
+    #for i in range(21,28):
+    #    X_unlabel[i,2606] = 1.
+    #print(X_unlabel.shape)
+    #print(torch.nonzero(X_unlabel))
+
+    #X_unlabel = X_train
 
     label_set = pd.read_csv('dataset/label_set_iml.csv', index_col=0)
     Y_train = Y_train[:,list(label_set['precise1k_idx'])]
@@ -288,14 +317,14 @@ if __name__ == "__main__":
            neg_trn_pth='rules/regu_neg.npz',
            X_label = X_train,
            Y_label = Y_train,
-           T=5,
+           T=1,
            max_modify=20,
            budget=1000,
-           pretrain_epc=2000,
+           pretrain_epc=10000,
            pretrain_lr=1e-3,
            use_gpu=True,
            #subset_threshold=[1.,.9,.9],
            subset_threshold = 1.,
-           retrain_epc=500,
-           retrain_lr=1e-3,
+           retrain_epc=30000,
+           retrain_lr=1e-4,
            seed=42, log_file=log_file)

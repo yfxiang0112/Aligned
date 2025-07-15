@@ -5,21 +5,15 @@ import pandas as pd
 import matplotlib.colors as mcolors
 from matplotlib.patches import Patch
 
-def diff_matrix(data_matrix, p_matrix, n_matrix, row_idx=None,col_idx=None):
-    diff = np.where((np.all(p_matrix==0,axis=1)[:,np.newaxis])
-                    & (np.all(n_matrix==0,axis=1)[:,np.newaxis]), -1,
-           np.where((data_matrix[:,:]==0)
-                & (p_matrix[:,:]==0)
-                & (n_matrix[:,:]==0), 0,
-           np.where(data_matrix[:,:]==0,
-                    np.where((p_matrix==0)|(n_matrix==0), 6, 2),
-           np.where((n_matrix[:,:]==0)
-                    & (p_matrix[:,:]==0), 5,
-           np.where((n_matrix[:,:]!=0)
-                    & (p_matrix[:,:]!=0), np.where(data_matrix>0, 3,4),
-           np.where((data_matrix[:,:]==p_matrix[:,:])
-                          | (test[:,:]==n_matrix[:,:]), 1, 7
-            ))))))
+def diff_matrix(true_matrix, predict_matrix, row_idx=None,col_idx=None):
+    diff = np.where(
+                (true_matrix[:,:]==0) & (predict_matrix[:,:]==0), 0,
+            np.where(
+                (true_matrix[:,:]!=0) & (predict_matrix[:,:]==0), 1,
+            np.where(
+                (true_matrix[:,:]==0) & (predict_matrix[:,:]!=0), 2,
+            np.where(
+                (true_matrix[:,:]!=0) & (predict_matrix[:,:]==true_matrix), 3, 4))))
     if row_idx:
         diff = diff[row_idx,:]
     if col_idx:
@@ -27,118 +21,140 @@ def diff_matrix(data_matrix, p_matrix, n_matrix, row_idx=None,col_idx=None):
     return diff
 
 ' load test labels & TRN closure results '
-df_trn = pd.read_csv('data_anal/incons_trn.tsv', sep='\t')
-df_trn = df_trn[df_trn['locus']!='WT']
+test_idx = [37,38,39,40,41,42,43,44,45,46,47,48, 49,50,51,52,53,54, 55,56,57, 28,29,30,58,59,60,61]
+label_set = pd.read_csv('dataset/label_set_iml.csv', index_col=0)
+#Y_test = np.load('dataset/ncbi-sra/Y_label.npy')[test_idx][:,list(label_set['matrix_idx'])]
+Y_test = np.load('dataset/precise1k/Y_label.npy')[:,list(label_set['precise1k_idx'])]
+Y_deduction = np.load('data_anal/abduction_results/Yd_ABL0.npy')
+Y_pseudo = np.load('data_anal/abduction_results/Yp_ABL0.npy')
 
-gene_idx = pd.read_csv('dataset/gene_idx.csv',index_col=0)
+diff_deduction = diff_matrix(Y_test, Y_deduction)
+diff_pseudo = diff_matrix(Y_test, Y_pseudo)
 
-test = df_trn.loc[df_trn['type']=='test',:].iloc[:,4:].to_numpy()
-trn_p = df_trn.loc[df_trn['type']=='kb+',:].iloc[:,4:].to_numpy()
-trn_n = df_trn.loc[df_trn['type']=='kb-',:].iloc[:,4:].to_numpy()
-
-#' load predicted labels '
-#df_pred = pd.read_csv('data_anal/cross_val.tsv', sep='\t').sort_values('data_idx').reset_index().dropna(axis=0)
-#df_pred['data_idx'] = df_pred['data_idx'].astype(int)
-#pred = df_pred.loc[df_pred['type']=='pred', 'b0002':].to_numpy()
-
-#' load FBA result '
-#df_fba = pd.read_csv('data_anal/incons_fba.tsv', sep='\t')
-#df_fba = df_fba[df_fba['locus']!='WT']
-#fba_p = df_fba.loc[df_fba['type']=='kb+',:].iloc[:,4:].to_numpy()
-#fba_n = df_fba.loc[df_fba['type']=='kb-',:].iloc[:,4:].to_numpy()
-
-#diff_test = diff_matrix(test)
-diff_trn = diff_matrix(test, trn_p, trn_n)
-                        #col_idx =[0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 24, 25, 27, 28, 30, 31, 32, 35, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 56, 57, 58, 59, 60, 61, 62, 63, 65, 66, 67, 68, 69, 71, 72, 74, 75, 76, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 91, 92, 93, 95, 96, 97, 98, 100, 105, 106, 108, 111, 112, 114, 116, 118, 119, 120, 121, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 135, 136, 137, 138, 141, 142, 143, 144, 145, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 160, 161, 162, 163, 164, 165, 166, 167, 168, 170, 171, 172, 174, 175, 176, 177, 178, 179, 180, 181, 183, 184, 187, 188, 189, 190, 191, 192, 194, 196, 197, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 212, 214, 215, 216, 217, 218, 219, 222, 223, 225, 226, 229, 230, 233, 234, 235, 236, 237, 239, 240, 241, 242, 243, 244, 246, 247, 248, 249, 250, 251, 252, 253, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 266, 267, 268, 269, 270, 271, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 284, 285, 286, 287, 288, 289, 290, 291, 292, 294, 296, 297, 299, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 316, 318, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 344, 345, 346, 347, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 392, 393, 396, 397, 400, 401, 402, 403, 404, 405, 409, 412, 414, 415, 416, 417, 419, 422, 423, 424, 425, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 440, 441, 442, 443, 445, 448, 449, 450, 451, 452, 453, 454, 455, 456, 459, 460, 462, 463, 465, 467, 468, 471, 472, 473, 474, 475, 476, 477, 479, 480, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 496, 497, 498, 499, 502, 505, 506, 507, 510, 512, 513, 516, 519, 520, 521, 522, 523, 524, 525, 526, 529, 531, 532, 533, 534, 536, 538, 539, 540, 542, 544, 545, 546, 547, 548, 549, 551, 552, 553, 554, 555, 556, 557, 565, 566, 571, 572, 573, 574, 575, 576, 577, 578, 579, 580, 581, 582, 583, 585, 586, 588, 589, 590, 593, 594, 595, 596, 597, 598, 599, 600, 603, 606, 607, 609, 610, 611, 612, 613, 614, 617, 618, 619, 620, 621, 622]) 
-                        #col_idx =[0, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 24, 25, 28, 30, 31, 32, 33, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 53, 56, 59, 60, 61, 62, 63, 65, 66, 67, 68, 69, 71, 72, 75, 76, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 91, 92, 95, 96, 97, 98, 100, 103, 104, 105, 106, 108, 111, 112, 114, 116, 118, 119, 120, 121, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 134, 135, 136, 139, 141, 142, 143, 144, 145, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 161, 162, 163, 164, 165, 166, 167, 170, 171, 172, 174, 175, 176, 177, 178, 179, 180, 181, 183, 184, 187, 188, 189, 190, 192, 194, 196, 197, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225, 226, 230, 233, 235, 236, 237, 239, 240, 241, 242, 243, 244, 246, 247, 248, 249, 250, 251, 252, 253, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 266, 267, 268, 269, 270, 271, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 287, 288, 289, 290, 291, 292, 294, 295, 296, 297, 301, 302, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 318, 319, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 344, 345, 346, 347, 350, 351, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 387, 388, 397, 400, 401, 402, 403, 404, 405, 409, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 429, 430, 432, 433, 434, 435, 440, 441, 442, 443, 445, 448, 449, 450, 451, 452, 453, 454, 455, 456, 459, 462, 465, 466, 467, 468, 469, 471, 472, 473, 474, 475, 476, 477, 479, 480, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 493, 496, 497, 498, 499, 502, 505, 506, 507, 508, 510, 513, 516, 517, 519, 520, 522, 523, 524, 525, 526, 527, 529, 531, 532, 533, 536, 537, 538, 539, 541, 542, 544, 545, 546, 547, 548, 549, 551, 552, 553, 554, 555, 556, 557, 560, 561, 562, 563, 565, 566, 567, 569, 570, 571, 572, 573, 574, 575, 576, 577, 578, 579, 580, 581, 582, 583, 585, 586, 588, 589, 590, 593, 594, 595, 596, 597, 598, 599, 600, 601, 603, 605, 606, 607, 609, 610, 611, 612, 613, 614, 618, 619, 620, 621, 622]) 
-
-                        #row_idx=[37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48],
-                        #col_idx=[6, 15, 16, 17, 18, 31, 32, 38, 41, 49, 54, 55, 58, 60, 61, 65, 68, 70, 72, 74, 97, 99, 103, 104, 114, 117, 129, 131, 135, 136, 137, 138, 145, 153, 154, 155, 157, 161, 162, 165, 166, 168, 169, 175, 176, 177, 183, 186, 189, 191, 193, 195, 197, 207, 226, 229, 234, 236])
-#diff_pred = diff_matrix(pred)
-
-#diff_fba = diff_matrix(test, fba_p, fba_n)
-
-
-' TMP. dataset mask with inconsistency '
-#iml_idx = gene_idx['iml1515_idx']
-#filter_out = np.nonzero((np.sum((diff_trn==6)|(diff_trn==5)|(diff_trn==4), axis=0)>10)\
-#        & (np.sum(diff_trn==1,axis=0)<5))[0]
-#print(df_trn.columns[4:][list(filter_out)])
-#mask = [i for i in range(test.shape[1]) if i not in filter_out and iml_idx[i]!=-1]
-#label_set_df = pd.DataFrame({'locus':(df_trn.columns[4:])[mask], 'matrix_idx':mask})
-#label_set_df.to_csv('dataset/label_set.csv')
-#print(len(mask))
-#print(len(filter_out))
-
-#mask = pd.read_csv('dataset/label_set.csv',index_col=0)['matrix_idx']
-
-#mask = mask[[1, 2, 6, 7, 10, 14, 17, 18, 20, 21, 28, 31, 32, 39, 44, 45, 46, 49, 51, 52, 53, 59, 61, 70, 73, 79, 88, 99, 105, 109, 110, 112, 113, 125, 126, 129, 134, 146, 174, 182, 183, 187, 188, 203, 204, 208, 209, 215, 216, 223, 228, 248, 249, 250, 253, 254, 257, 261, 264, 282, 290, 313, 317, 319, 320, 322, 326, 327, 335, 344, 357, 360, 361, 373, 375, 420, 426, 429, 447, 451, 454, 460, 462, 468, 469, 470, 471, 480, 488, 493, 502, 507, 531, 534, 539, 540, 560, 581, 582, 585, 587, 591, 592, 593, 594, 596, 597, 600, 602, 610, 611, 612, 616, 623, 626, 628, 629, 630, 641, 642, 646, 653, 658, 669, 670, 671, 674, 675, 676, 684, 693, 694, 699, 703, 706, 714, 722, 736, 737, 741, 742, 744, 753, 754, 755, 766, 769, 770, 777, 781, 782, 786, 787, 788, 789, 790, 791, 796, 798, 802, 804, 813, 829, 854, 859, 863, 867, 870, 872, 877, 884, 892, 895, 899, 900, 903, 914, 917, 930, 931, 934, 935, 936, 937, 939, 942, 945, 948, 949, 950, 951, 955, 962, 963, 967, 968, 969, 976, 981, 985, 987, 1001, 1015, 1016, 1021, 1025, 1036, 1041, 1048, 1060, 1065, 1074, 1075, 1078, 1083, 1085, 1102, 1112]]
-
-#diff_trn = diff_trn[:,mask]
-#print(np.nonzero(np.sum(diff_fba==6, axis=0)>5))
-
-print(np.nonzero(np.sum((diff_trn==1)[37:49],axis=0)>5)[0])
-#exit()
 
 ' init color mapping '
+#cmap_colors = [
+#    'white',    # -1
+#    'lightgray',      # 0
+#    'yellowgreen',      # 1
+#    'lightblue',      # 2
+#    'teal',      # 3
+#    'cyan', # 4
+#    'red',      # 6
+#    'violet',      # 5
+#    'maroon'       # 7
+#]
 cmap_colors = [
-    'white',    # -1
-    'lightgray',      # 0
-    'yellowgreen',      # 1
-    'lightblue',      # 2
+    'lightgreen',      # 0
+    'violet',      # 1
+    'red',      # 2
     'teal',      # 3
-    'cyan', # 4
-    'red',      # 6
-    'violet',      # 5
-    'maroon'       # 7
+    'maroon', # 4
 ]
 cmap = mcolors.ListedColormap(cmap_colors)
 print(cmap.N)
-bounds = [-1.5, -0.5, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]
+bounds = [-0.5, 0.5, 1.5, 2.5, 3.5, 4.5]
 norm = mcolors.BoundaryNorm(bounds, cmap.N)
 
-metadata = pd.read_csv('dataset/metadata.csv')
+legend_labels = {
+    0: 'true==0 & pred==true',
+    1: 'true!=0 & pred==0',
+    2: 'true==0 & pred!=0',
+    3: 'true!=0 & pred==true',
+    4: 'true!=0 & pred!=true',
+}
 
+
+test_genes = ['arcZ']*12 + ['gcvB']*6 + ['micA']*3 + ['ryhB']*7
 
 ' heatmap 1 '
-for s, matrix in [('trn_test',diff_trn)]:#, ('fba_test',diff_fba)]:#, ('pred',diff_pred)]:
-    plt.figure(figsize=(12, 8))
-    heatmap = sns.heatmap(matrix, 
-                         cmap=cmap, 
-                         norm=norm,
-                         annot=False, 
-                         #linecolor='white',
-                         #linewidths=.2,
-                         fmt="d",
-                         cbar=False)
-    heatmap.set_yticklabels([v for i,v in enumerate(metadata['overexpression']) if i%2==0], rotation=0)
-    
-    # Create custom legend
-    legend_labels = {
-        -1: 'Not a Regulator',
-        0: 'Not regulated',
-        1: 'Consistent with KB',
-        2: 'Dual Regulation (0 in data)',
-        3: 'Dual Regulation (1 in Data)',
-        4: 'Dual Regulation (-1 in Data)',
-        5: 'Inconsist (Missing in KB)',
-        6: 'Inconsist (Missing in Data)',
-        7: 'Inconsist (Reversed)'
-    }
-    patches = [Patch(color=cmap_colors[i+1], label=legend_labels[i]) for i in range(-1, 8)]
-    plt.legend(handles=patches, 
-               bbox_to_anchor=(1.05, 1),
-               loc='upper left', 
-               title='Value Meanings')
-    
-    
-    #sns.heatmap(jiff_matrix, annot=False, cmap='viridis')
-    plt.title('Inconsistency with Regulation')
-    plt.xlabel('Genes')
-    plt.ylabel('Overexpression')
-    plt.tight_layout()
-    
-    
-    plt.savefig(f'data_anal/heatmap_{s}.png', dpi=600)
-    plt.show()
+#for s, matrix in [('KB_deduction',diff_deduction), ('neural_pred',diff_pseudo)]:#, ('pred',diff_pred)]:
+#    plt.figure(figsize=(12, 8))
+#    heatmap = sns.heatmap(matrix, 
+#                         cmap=cmap, 
+#                         norm=norm,
+#                         annot=False, 
+#                         #linecolor='white',
+#                         #linewidths=.2,
+#                         fmt="d",
+#                         cbar=False)
+#    heatmap.set_yticklabels([v for i,v in enumerate(test_genes)], rotation=0)
+#    
+#    # Create custom legend
+#    #legend_labels = {
+#    #    -1: 'Not a Regulator',
+#    #    0: 'Not regulated',
+#    #    1: 'Consistent with KB',
+#    #    2: 'Dual Regulation (0 in data)',
+#    #    3: 'Dual Regulation (1 in Data)',
+#    #    4: 'Dual Regulation (-1 in Data)',
+#    #    5: 'Inconsist (Missing in KB)',
+#    #    6: 'Inconsist (Missing in Data)',
+#    #    7: 'Inconsist (Reversed)'
+#    #}
+#    patches = [Patch(color=cmap_colors[i], label=legend_labels[i]) for i in range(0, 5)]
+#    plt.legend(handles=patches, 
+#               bbox_to_anchor=(1.05, 1),
+#               loc='upper left', 
+#               title='Value Meanings')
+#    
+#    
+#    #sns.heatmap(jiff_matrix, annot=False, cmap='viridis')
+#    plt.title('Inconsistency with Regulation')
+#    plt.xlabel('Genes')
+#    plt.ylabel('Overexpression')
+#    plt.tight_layout()
+#    
+#    
+#    plt.savefig(f'data_anal/heatmap_{s}.png', dpi=600)
+#    plt.show()
 
+from matplotlib.patches import Polygon
+from matplotlib.collections import PatchCollection
+
+plt.figure(figsize=(20, 16))
+
+# 创建上三角元素
+patches_upper = []
+values_upper = []
+for i in range(diff_deduction.shape[0]):
+    for j in range(diff_deduction.shape[1]):
+        triangle = Polygon([[j, i], [j+1, i], [j+1, i+1]], closed=True)
+        patches_upper.append(triangle)
+        values_upper.append(diff_deduction[i,j])
+
+# 创建下三角元素
+patches_lower = []
+values_lower = []
+for i in range(diff_deduction.shape[0]):
+    for j in range(diff_deduction.shape[1]):
+        triangle = Polygon([[j, i], [j, i+1], [j+1, i+1]], closed=True)
+        patches_lower.append(triangle)
+        values_lower.append(diff_pseudo[i,j])
+
+# 添加上三角
+pc_upper = PatchCollection(patches_upper, cmap=cmap, norm=norm, alpha=0.8)
+pc_upper.set_array(np.array(values_upper))
+plt.gca().add_collection(pc_upper)
+
+# 添加下三角
+pc_lower = PatchCollection(patches_lower, cmap=cmap, norm=norm, alpha=0.8)
+pc_lower.set_array(np.array(values_lower))
+plt.gca().add_collection(pc_lower)
+
+plt.xlim(0, Y_deduction.shape[1])
+plt.ylim(0, Y_deduction.shape[0])
+plt.gca().invert_yaxis()
+#plt.colorbar(pc_upper, label='Upper Triangle Values')
+#plt.colorbar(pc_lower, label='Lower Triangle Values')
+plt.title("Triangle Patch Heatmap")
+
+patches = [Patch(color=cmap_colors[i], label=legend_labels[i]) for i in range(0, 5)]
+plt.legend(handles=patches, 
+           bbox_to_anchor=(1.05, 1),
+           loc='upper left', 
+           title='Value Meanings')
+
+
+#plt.savefig(f'data_anal/heatmap_sra_deduce_vs_pseudo.png', dpi=600)
+plt.show()

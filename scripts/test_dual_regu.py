@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from scipy.sparse import load_npz
 from sklearn.metrics import confusion_matrix, f1_score
+import pandas as pd
 
 def closure(R_P_0, R_N_0, T=None, device='cpu'):
     cnt = 1
@@ -80,15 +81,19 @@ R_comb = torch.where(R_P & R_N,
 
 
 X_train = torch.tensor(np.load('dataset/precise1k/X_label.npy')).to(device).double()
-Y_train = torch.tensor(np.load('dataset/precise1k/Y_train.npy'))
+Y_train = torch.tensor(np.load('dataset/precise1k/Y_label.npy'))
 X_test = torch.tensor(np.load('dataset/ncbi-sra/X_label.npy')).to(device).double()
-Y_test = torch.tensor(np.load('dataset/ncbi-sra/Y_train.npy'))
+Y_test = torch.tensor(np.load('dataset/ncbi-sra/Y_label.npy'))
+test_idx = [37,38,39,40,41,42,43,44,45,46,47,48, 49,50,51,52,53,54, 55,56,57, 28,29,30,58,59,60,61]
+X_test, Y_test = X_test[test_idx], Y_test[test_idx]
 
 
 #NOTE tmp: load 623 gene indices
 import pandas as pd
-label_set = pd.read_csv('dataset/ncbi-sra/label_set.csv')
+label_set = pd.read_csv('dataset/label_set_iml.csv')
 idx_list = list(label_set['matrix_idx'])
+Y_train = Y_train[:,list(label_set['precise1k_idx'])]
+Y_test = Y_test[:,list(label_set['matrix_idx'])]
 
 ' in precise1k '
 deduction_weight = (X_train @ R_weight).detach().cpu()[:,idx_list]
@@ -109,6 +114,14 @@ naive diff:\n{confusion_matrix(torch.flatten(Y_train[dual_idx]), torch.flatten(d
 weighted:\n{confusion_matrix(torch.flatten(Y_train[dual_idx]), torch.flatten(deduction_weight[dual_idx]), labels=[-1, 0,1])}\n\
 combined:\n{confusion_matrix(torch.flatten(Y_train[dual_idx]), torch.flatten(deduction_comb[dual_idx]), labels=[-1, 0,1])}')
 
+' get label-wise f1 '
+f1_diff_p1k, f1_weighted_p1k, f1_comb_p1k = [],[],[]
+for i in range(len(idx_list)):
+    f1_diff_p1k.append(f1_score(deduction_diff[:,i], Y_train[:,i], average='macro'))
+    f1_weighted_p1k.append(f1_score(deduction_diff[:,i], Y_train[:,i], average='macro'))
+    f1_comb_p1k.append(f1_score(deduction_comb[:,i], Y_train[:,i], average='macro'))
+
+
 ' in ncbi-sra '
 deduction_weight = (X_test @ R_weight).detach().cpu()[:,idx_list]
 deduction_diff = (X_test @ R_diff).detach().cpu()[:,idx_list]
@@ -127,3 +140,13 @@ print(f'\nconfusion on ncbi-sra\n\
 naive diff:\n{confusion_matrix(torch.flatten(Y_test[dual_idx]), torch.flatten(deduction_diff[dual_idx]), labels=[-1, 0,1])}\n\
 weighted:\n{confusion_matrix(torch.flatten(Y_test[dual_idx]), torch.flatten(deduction_weight[dual_idx]), labels=[-1, 0,1])}\n\
 combined:\n{confusion_matrix(torch.flatten(Y_test[dual_idx]), torch.flatten(deduction_comb[dual_idx]), labels=[-1, 0,1])}')
+
+' get label-wise f1 '
+f1_diff_sra, f1_weighted_sra, f1_comb_sra = [],[],[]
+for i in range(len(idx_list)):
+    f1_diff_sra.append(f1_score(deduction_diff[:,i], Y_test[:,i], average='macro'))
+    f1_weighted_sra.append(f1_score(deduction_diff[:,i], Y_test[:,i], average='macro'))
+    f1_comb_sra.append(f1_score(deduction_comb[:,i], Y_test[:,i], average='macro'))
+
+label_f1 = pd.DataFrame({'diff_p1k':f1_diff_p1k, 'diff_sra':f1_diff_sra, 'weighted_p1k':f1_weighted_p1k, 'weighted_sra':f1_weighted_sra, 'comb_p1k':f1_comb_p1k, 'comb_sra':f1_comb_sra})
+label_f1.to_csv('data_anal/deduction_f1.csv')

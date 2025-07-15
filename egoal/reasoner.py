@@ -6,12 +6,17 @@ from cupyx.scipy.sparse import coo_matrix as cp_coo_matrix
 import pandas as pd
 import time
 
+def exp_soft(X,t):
+    return 1 - torch.exp(-t * X)
+
+def exp_power(X, k, t):
+    Xk = torch.matrix_power(X, k)
+    return 1 - torch.exp(-t * Xk)
 
 class RegualtoryKB():
     def __init__(self,
                  pos_trn_pth: str,
                  neg_trn_pth: str,
-                 T=None,
                  use_gpu=False) -> None:
         '''
         Class for Regulatory Network Knowledgebase
@@ -43,23 +48,53 @@ class RegualtoryKB():
         self.KB = torch.clamp(self.KB_P - self.KB_N, -1.,1.)
 
 
-    def closure_(self, T=None):
-        ''' Inplace & Nonstatic Ver of KB Closure '''
-        R_P, R_N ,_ = self.closure(self.Regu_P_0, self.Regu_N_0, T=5, device=self.device)
-        R_P_2, R_N_2,_ = self.closure(self.Regu_P_0, self.Regu_N_0, T=2, device=self.device)
+    def closure_(self, T=None, closure_type='naive'):
+        '''
+        Inplace & Nonstatic Ver of KB Closure
+
+        Args
+            T:
+            closure_type:
+
+        Return Values
+            self.KB_P:
+            self.KB_N:
+            self.T:
+        '''
+        boolean = False if closure_type=='weighted' else True
+
+        R_P, R_N, self.T = self.closure(self.Regu_P_0, self.Regu_N_0, T=5, boolean=boolean, device=self.device)
+        R_P_2, R_N_2,_ = self.closure(self.Regu_P_0, self.Regu_N_0, T=2, boolean=boolean, device=self.device)
         self.KB_P, self.KB_N = R_P, R_N
 
         R_diff = R_P - R_N
-        R_P, R_N = R_P.bool(), R_N.bool()
-        self.KB = torch.where(R_P & R_N,
-                     torch.where(R_P_2.bool()&R_N_2.bool(), 
-                                 torch.clamp(self.Regu_P_0-self.Regu_N_0,-1,1),
-                                 torch.clamp(R_P_2-R_N_2,-1,1)), R_diff)
 
-        self.KB_P, self.KB_N, self.T = self.closure(self.Regu_P_0, self.Regu_N_0, T, self.device)
-        self.KB_P, self.KB_N  = self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
+        if closure_type == 'combined':
+            self.KB = torch.where(R_P.bool() & R_N.bool(),
+                         torch.where(R_P_2.bool()&R_N_2.bool(),
+                                     torch.clamp(self.Regu_P_0-self.Regu_N_0,-1,1),
+                                     torch.clamp(R_P_2-R_N_2,-1,1)), R_diff)
 
-        self.KB = torch.clamp(self.KB_P - self.KB_N, -1.,1.)
+        elif closure_type == 'weighted':
+            self.KB = torch.clamp(
+                    torch.mul(torch.sign(R_diff),
+                              torch.max(torch.abs(R_diff)-5,
+                                        torch.zeros_like(R_diff))
+                              ),-1,1)
+
+        else:
+            self.KB = torch.clamp(R_diff, -1,1)
+
+        #self.KB_P, self.KB_N, self.T = self.closure(self.Regu_P_0, self.Regu_N_0, T, self.device)
+        #self.KB_P, self.KB_N  = self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
+        #self.KB = torch.clamp(self.KB_P - self.KB_N, -1.,1.)
+
+        self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
+        #print(self.KB, self.KB.shape, torch.count_nonzero(self.KB))
+        #print(torch.count_nonzero(torch.sum(self.KB,dim=1)))
+        #print(torch.count_nonzero(torch.sum(self.KB,dim=1)>100))
+        #print(torch.count_nonzero(R_diff))
+        #exit()
         return self.KB_P, self.KB_N, self.T
 
 
@@ -79,7 +114,7 @@ class RegualtoryKB():
         #        and (mask.shape[1]!=1 or mask.shape[0]!=Y.shape[0]))):
         #    raise(Exception('All matrices should be in same shape'))
 
-        deduction = torch.clamp(X @ self.KB, -1.,1.)
+        deduction = torch.clamp(X @ self.KB, -1.,1.).int()
         if mask != None:
             vio_cnt = torch.count_nonzero(deduction != Y)
         else:
@@ -98,13 +133,14 @@ class RegualtoryKB():
 
     def deduce(self, X: torch.Tensor):
         ''' deduction result (multiplication) '''
-        return X @ self.KB
+        return torch.clamp(X @ self.KB, -1.,1.).int()
 
 
     @staticmethod
     def closure(R_P_0: torch.Tensor,
                 R_N_0: torch.Tensor,
                 T=None,
+                boolean=True,
                 device=torch.device('cpu')):
         '''
         Transitive Closure of Regulatory Matrix
@@ -113,6 +149,7 @@ class RegualtoryKB():
             R_P_0:
             R_N_0:
             T:
+            boolean:
             device:
 
         Return Values:
@@ -135,9 +172,11 @@ class RegualtoryKB():
             R_P = R_P_0 @ R_P_ + R_N_0 @ R_N_
             R_N = R_P_0 @ R_N_ + R_N_0 @ R_P_
         
-            R_P, R_N = torch.clamp(R_P,0,1), torch.clamp(R_N,0,1)
-            #R_P /= torch.min(R_P[R_P!=0])
-            #R_N /= torch.min(R_N[R_N!=0])
+            if boolean:
+                R_P, R_N = torch.clamp(R_P,0,1), torch.clamp(R_N,0,1)
+            else:
+                R_P /= torch.min(R_P[R_P!=0])
+                R_N /= torch.min(R_N[R_N!=0])
         
             if torch.all(R_P == R_P_) and torch.all(R_N == R_N_):
                 break
@@ -146,6 +185,91 @@ class RegualtoryKB():
         R_N = torch.where(I.bool(), 0, R_N)
         return R_P, R_N, cnt
 
+
+
+    @staticmethod
+    def sparse_opt(Y, X0, Omega, C, k, t, t0, init_lr=1e-3, max_iter=1000, tol=1e-3, decay_rate=0.995, device=torch.device('cpu'), verbose=False):
+        """
+        Optimization for Matrix Knowledge Refinement:
+        min_X ||X^k - Y||_F^2 + C * ||X - X0||_F^2
+    
+        Args:
+            Y: torch.Tensor, supervised data
+            X0: torch.Tensor, original KB
+            C: float, regularization strength
+            k: int, power of X
+            learning_rate: float, learning rate for gradient descent
+            max_iter: int, maximum number of iterations
+            tol: float, tolerance for convergence
+            verbose: bool, whether to print progress
+    
+        Returns:
+            X: torch.Tensor, the optimized matrix
+            losses: list, loss values over iterations
+        """
+    
+        X = X0.clone().detach().requires_grad_(True)
+        X.to(device)
+    
+        # Use Adam optimizer for better convergence
+        optimizer = torch.optim.Adam([X], lr=init_lr)
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=decay_rate)
+        
+        losses = []
+        for epoch in range(max_iter):
+            optimizer.zero_grad()
+    
+            Xk = exp_power(X, k, t)
+            loss1 = torch.norm((Xk - Y)[Omega], p='fro') ** 2
+            loss2 = torch.norm(exp_soft(X, t0) - X0, p=1)# ** 2
+            loss = loss1 + C * loss2
+            loss_round = torch.count_nonzero((torch.round(Xk)-Y)[Omega])
+            #f1 = f1_score(
+            #        torch.round(Xk[Omega]).flatten().detach().cpu().numpy(),
+            #        Y[Omega].flatten().detach().cpu().numpy())
+    
+            Xk_ = torch.clamp(torch.matrix_power(torch.round(exp_soft(X,t0)),k),0,1)
+            loss_round_ = torch.count_nonzero((torch.round(Xk_)-Y)[Omega])
+            #f1_ = f1_score(
+            #        torch.round(Xk_[Omega]).flatten().detach().cpu().numpy(),
+            #        Y[Omega].flatten().detach().cpu().numpy())
+            #loss_round = torch.count_nonzero((torch.round(tanh_power(X,k))-Y)[Omega])
+            
+            # Backpropagate
+            loss.backward()
+            optimizer.step()
+            scheduler.step()
+    
+            with torch.no_grad():
+                X.data = X.data.clamp(min=0)
+            
+            losses.append(loss.item())
+            
+            # Check for convergence
+            if epoch > 0 and abs(losses[-1] - losses[-2]) < tol:
+                if verbose:
+                    print(f"Converged at iteration {epoch}")
+                break
+            
+            if verbose and (epoch % 20 == 0 or epoch == max_iter - 1):
+                print(f"Iteration {epoch}: Loss = {loss.item():.6f}")
+                print(f'|Xk-Y|_F: {loss1.item(): .6f}, |X-X0|: {loss2.item(): .6f}')
+                print(f'rounded |X_k-Y|_0 = {loss_round}, f1 = {f1: .6f}, approx slack: {torch.count_nonzero(Xk_ - torch.round(exp_power(X,k,t)))}')
+                print(f'rounded before pow |X_k-Y|_0 = {loss_round_}, f1 = {f1_: .6f}\n')
+
+        return X.detach(), losses
+
+    def refine(self,
+               X_label,
+               Y_label,
+               t0,
+               t,
+               C,
+               k=None):
+        KB0 = torch.clamp(torch.abs(self.Regu_P_0)+torch.abs(self.Regu_N_0), 0,1)
+        data = X_label @ Y_label
+        KB, loss = self.sparse_opt(data, KB0, Omega, C, k, t, t0)
+        pass
 
 
 #class MetabolicKB():
