@@ -17,13 +17,14 @@ class RegualtoryKB():
     def __init__(self,
                  pos_trn_pth: str,
                  neg_trn_pth: str,
+                 output_idx_list=None,
                  use_gpu=False) -> None:
         '''
         Class for Regulatory Network Knowledgebase
         Args:
             pos_trn_pth:
             neg_trn_pth:
-            T:
+            output_idx_list:
             use_gpu:
         '''
 
@@ -39,8 +40,8 @@ class RegualtoryKB():
         #self.KB_P, self.KB_N, self.T = self.closure(Regu_P, Regu_N, T=T)
 
         ' filter output genes from cols (align with Y) '
-        label_set = pd.read_csv('dataset/label_set_iml.csv')
-        self.idx_list = list(label_set['matrix_idx'])
+        self.idx_list = output_idx_list if output_idx_list!=None\
+                else list(range(self.Regu_P_0.shape[1]))
 
         ' initialize pos & neg KB '
         self.KB_P = self.Regu_P_0[:,self.idx_list]

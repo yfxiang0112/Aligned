@@ -21,6 +21,7 @@ def abduce(X_unlabel: torch.Tensor,
            neg_trn_pth: str,
            X_label = None | torch.Tensor,
            Y_label = None | torch.Tensor,
+           output_idx_list = None,
            use_gpu = False,
            T = 10, max_modify=1, budget=100, pretrain_epc=100, pretrain_lr=0.01,
            subset_threshold=0.95, retrain_epc=20, retrain_lr=0.01,
@@ -41,8 +42,9 @@ def abduce(X_unlabel: torch.Tensor,
                              log_path=log_file)
     reasoner = RegualtoryKB(pos_trn_pth= pos_trn_pth,
                             neg_trn_pth= neg_trn_pth,
+                            output_idx_list= output_idx_list,
                             use_gpu=use_gpu)#, T=4)
-    reasoner.closure_(T=5, closure_type='combined')
+    reasoner.closure_(T=5, closure_type='weighted')
 
     ########################################
 
@@ -255,23 +257,28 @@ if __name__ == "__main__":
     X_unlabel = torch.tensor(np.load('dataset/X_regulators.npy'), dtype = torch.float32)
 
     #NOTE tmp
-    #X_unlabel = torch.zeros(size=(len(test_idx), X_train.shape[1]), dtype=torch.float32)
-    #for i in range(0,12):
-    #    X_unlabel[i,3373] = 1.
-    #for i in range(12,18):
-    #    X_unlabel[i,2961] = 1.
-    #for i in range(18,21):
-    #    X_unlabel[i,2837] = 1.
-    #for i in range(21,28):
-    #    X_unlabel[i,2606] = 1.
+    X_unlabel = torch.zeros(size=(len(test_idx), X_train.shape[1]), dtype=torch.float32)
+    for i in range(0,12):
+        X_unlabel[i,3373] = 1.
+    for i in range(12,18):
+        X_unlabel[i,2961] = 1.
+    for i in range(18,21):
+        X_unlabel[i,2837] = 1.
+    for i in range(21,28):
+        X_unlabel[i,2606] = 1.
     #print(X_unlabel.shape)
     #print(torch.nonzero(X_unlabel))
 
     #X_unlabel = X_train
 
     label_set = pd.read_csv('dataset/label_set_iml.csv', index_col=0)
-    Y_train = Y_train[:,list(label_set['precise1k_idx'])]
-    Y_test = Y_test[:,list(label_set['matrix_idx'])]
+    #labels = [1, 2, 23, 43, 48, 50, 82, 83, 84, 97, 107, 134, 135, 136, 137, 143, 149, 159, 160, 161, 162, 163, 165, 166, 180, 181, 182, 184, 185, 186, 191, 192, 222, 223, 224, 225, 226, 227, 238, 243, 246, 255, 258, 259, 263, 264, 265, 266, 267, 268, 269, 270, 272, 275, 284, 286, 287, 301, 302, 303, 318, 328, 331, 337, 338, 342, 343, 348, 353, 357, 359, 360, 362, 363, 386, 387, 389, 402, 403, 407, 411, 417, 418, 423, 424, 432, 436, 443, 444, 448, 449, 452, 457, 458, 464, 471, 472, 473, 478, 479, 480, 488, 501, 542, 549, 550, 558, 560, 561, 562, 564, 570, 572, 573, 579, 584, 585, 586, 587, 588, 589, 593, 594, 595, 600, 605, 606, 621, 622, 624, 627, 630, 632, 633, 634, 641, 648, 650, 657, 659, 661, 683, 694, 695, 696, 697, 698, 700, 705, 709, 710, 719, 720, 728, 734, 739, 741, 748, 752, 753, 755, 762, 763, 764, 765, 766, 767, 775, 776, 799, 809, 811, 813, 818, 832, 833, 850, 851, 862, 863, 864, 865, 870, 892, 893, 894, 895, 903, 904, 911, 925, 927, 934, 936, 945, 946, 950, 951, 952, 953, 954, 955, 963, 965, 977, 978, 986, 987, 989, 990, 991, 992, 996, 997, 998, 999, 1003, 1005, 1006, 1007, 1008, 1011, 1012, 1013, 1014, 1015, 1016, 1029, 1030, 1031, 1032, 1033, 1043, 1047, 1052, 1053, 1058, 1059, 1060, 1061, 1066, 1071, 1079, 1083, 1091, 1094, 1095, 1101, 1102, 1103, 1108, 1111, 1121, 1123, 1132, 1133, 1134, 1136, 1140, 1141, 1142, 1161, 1171, 1172, 1175, 1178, 1183, 1202, 1203, 1204, 1209, 1213, 1215, 1231, 1240, 1245, 1246, 1248, 1250, 1251, 1252, 1262, 1274, 1307, 1316, 1318, 1320, 1321, 1322, 1323, 1324, 1325, 1326, 1328, 1329, 1339, 1340, 1342, 1347, 1348, 1349, 1357, 1358, 1359, 1366, 1371, 1372, 1377, 1381, 1382, 1388, 1389, 1391, 1392, 1396, 1402, 1403, 1409, 1410, 1411, 1412, 1429, 1430, 1434, 1437, 1438, 1439, 1442, 1443, 1452, 1461, 1462, 1468, 1474, 1475, 1495, 1497, 1498, 1502, 1507, 1511]
+    idx_list_p1k = list(label_set['precise1k_idx'])
+    idx_list_sra = list(label_set['matrix_idx'])
+
+    Y_train = Y_train[:,idx_list_p1k]
+    Y_test = Y_test[:,idx_list_sra]
+
     #z_groundtruth = torch.tensor(pd.read_csv('dataset/X_semisup.csv')['growth'], dtype=torch.float32)
 
     #print(f'Y_train: {Y_train.shape}, Y_test: {Y_test.shape}')
@@ -320,11 +327,12 @@ if __name__ == "__main__":
            T=1,
            max_modify=20,
            budget=1000,
-           pretrain_epc=10000,
+           pretrain_epc=5000,
            pretrain_lr=1e-3,
+           output_idx_list=idx_list_sra,
            use_gpu=True,
            #subset_threshold=[1.,.9,.9],
            subset_threshold = 1.,
-           retrain_epc=30000,
+           retrain_epc=10000,
            retrain_lr=1e-4,
            seed=42, log_file=log_file)
