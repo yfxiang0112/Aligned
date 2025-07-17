@@ -18,21 +18,21 @@ class RegualtoryKB():
                  pos_trn_pth: str,
                  neg_trn_pth: str,
                  output_idx_list=None,
-                 use_gpu=False) -> None:
+                 device='cpu') -> None:
         '''
         Class for Regulatory Network Knowledgebase
         Args:
             pos_trn_pth:
             neg_trn_pth:
             output_idx_list:
-            use_gpu:
+            device:
         '''
 
         self.Regu_P_0 = torch.tensor(load_npz(pos_trn_pth).toarray(), dtype=torch.float)
         self.Regu_N_0 = torch.tensor(load_npz(neg_trn_pth).toarray(), dtype=torch.float)
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        if use_gpu:
+        self.device = device
+        if self.device != 'cpu':
             self.Regu_P_0 = self.Regu_P_0.to(self.device)
             self.Regu_N_0 = self.Regu_N_0.to(self.device) 
 

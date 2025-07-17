@@ -65,7 +65,7 @@ class ReflectLearner():
         input_dim,
         output_dim,
         hidden_dim = 64,
-        use_gpu = False,
+        device = 'cpu',
         log_path = '',
     ) -> None:
         '''
@@ -86,10 +86,9 @@ class ReflectLearner():
         self.train_loader = None
         self.test_loader = None
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device
         print(f'cuda availability: {torch.cuda.is_available()}')
-        self.use_gpu = use_gpu
-        if self.use_gpu:
+        if self.device != 'cpu':
             self.model = self.model.to(self.device)
             self.clf_weight = self.clf_weight.to(self.device)
 
@@ -119,9 +118,9 @@ class ReflectLearner():
         #labels = set([6, 18, 19, 47, 109, 114, 146, 149, 166, 172, 177, 197, 296, 305, 312, 313, 323, 335, 389, 401, 409, 422, 440, 448, 472, 475, 480, 509, 527, 557, 569, 578, 647, 654, 659, 690, 700, 707, 765, 768, 770, 776, 791, 797, 828, 846, 871, 907, 977, 987, 1048, 1076, 1095, 1125, 1138, 1227, 1230, 1242, 1342, 1357, 1382, 1456, 1473, 1486, 1490, 1499])
         #labels = set([66, 70, 160, 162, 163, 169, 213, 220, 262, 264, 265, 385, 414, 421, 426, 444, 501, 541, 561, 578, 616, 633, 684, 689, 702, 707, 752, 873, 887, 904, 920, 966, 997, 999, 1024, 1029, 1030, 1031, 1032, 1036, 1038, 1062, 1066, 1132, 1211, 1273, 1277, 1285, 1399, 1444])
         label_restriction = torch.count_nonzero(r_binary[:,[i for i in range(r_binary.shape[1]) if i not in labels]])
-        violated = - label_restriction
+        #violated = - label_restriction
         #violated = - KB.violated(Y=y, X=x, mask=~r_binary)
-        #violated = - .1 * KB.violated(Y=y, X=x, mask=~r_binary) - label_restriction#torch.count_nonzero(r_binary) - label_restriction
+        violated = - KB.violated(Y=y, X=x, mask=~r_binary) - label_restriction#torch.count_nonzero(r_binary) - label_restriction
         #violated /= torch.count_nonzero(~r_binary)
         return violated
     
@@ -149,9 +148,9 @@ class ReflectLearner():
         weights = [1/(torch.sum(flat_y==-1).item() + 1e-6),
                    1/(torch.sum(flat_y==0).item() + 1e-6),
                    1/(torch.sum(flat_y==1).item() + 1e-6)]
-        #self.clf_weight = torch.Tensor(weights) / sum(weights)
-        #if self.use_gpu:
-        #    self.clf_weight = self.clf_weight.to(self.device)
+        self.clf_weight = torch.Tensor(weights) / sum(weights)
+        if self.device != 'cpu':
+            self.clf_weight = self.clf_weight.to(self.device)
 
 
     def train(
@@ -185,6 +184,9 @@ class ReflectLearner():
             for X_batch, _ in self.train_loader:
 
                 output_y, output_r = self.model(X_batch)
+
+                output_r = torch.clamp(output_r.detach(), .2, .8)
+                # NOTE test
 
                 dist = Bernoulli(output_r)
                 r_actions = dist.sample()  # Shape: (batch_size, output_dim)
@@ -232,16 +234,19 @@ class ReflectLearner():
                 print(f"Epoch {epoch+1}, Total loss: {total_loss.item():.4f}, CE loss: {loss_y.item():.4f}, RL loss: {loss_r.item():.4f}, Reward: {reward:.4f}")
 
                 #NOTE tmp
+                if epoch < 10000:
+                    continue
                 for X_batch, _ in self.train_loader:
                     output_y, output_r = self.model(X_batch)
                     y = torch.argmax(output_y, dim=-1) -1
                     r = torch.round(output_r)
-                    print(f'    full cols: {torch.count_nonzero(torch.sum(r,dim=0)==len(r))}, non-full cols: {torch.count_nonzero((torch.sum(r,dim=0)<len(r)) & (torch.sum(r,dim=0)>0))}, r= {output_r}')
+                    print(f'    full cols: {torch.count_nonzero(torch.sum(r,dim=0)==len(r))}, non-full cols: {torch.count_nonzero((torch.sum(r,dim=0)<len(r)) & (torch.sum(r,dim=0)>0))}')
+                    #print(f'r={output_r}')
                     
                     labels = [1, 2, 23, 82, 83, 84, 97, 107, 159, 160, 161, 162, 163, 243, 246, 263, 264, 265, 266, 267, 268, 269, 272, 284, 286, 301, 302, 303, 328, 337, 338, 342, 343, 348, 353, 362, 363, 418, 432, 436, 443, 444, 448, 458, 471, 501, 549, 550, 558, 561, 562, 570, 579, 584, 585, 586, 587, 588, 589, 621, 622, 632, 633, 634, 641, 661, 683, 705, 719, 720, 734, 748, 752, 753, 762, 763, 764, 765, 766, 799, 833, 904, 925, 934, 945, 950, 951, 952, 953, 954, 955, 965, 997, 998, 999, 1003, 1011, 1012, 1013, 1029, 1030, 1031, 1032, 1043, 1052, 1066, 1071, 1091, 1094, 1095, 1132, 1133, 1136, 1140, 1141, 1142, 1175, 1178, 1183, 1204, 1209, 1213, 1215, 1251, 1252, 1262, 1320, 1321, 1322, 1339, 1342, 1347, 1348, 1349, 1366, 1381, 1382, 1388, 1389, 1391, 1392, 1402, 1403, 1429, 1430, 1438, 1439, 1442, 1443, 1452, 1462, 1474, 1475, 1497, 1498, 1507]
                     r_idx = torch.nonzero(torch.sum(r,dim=0)).squeeze(-1).cpu().detach().numpy().tolist()
                     print(f'   r - labels: {len(set(r_idx)-set(labels))}, labels - r: {len(set(labels) - set(r_idx))}')
-                    print(f'    r-labels: {output_r[0,list(set(r_idx)-set(labels))]}\n    labels-r: {output_r[0,list(set(labels)-set(r_idx))]}')
+                    #print(f'    r-labels: {output_r[0,list(set(r_idx)-set(labels))]}\n    labels-r: {output_r[0,list(set(labels)-set(r_idx))]}')
                     break
 
 
@@ -271,7 +276,7 @@ class ReflectLearner():
             Y_test = torch.concat(Y_test, dim=0)
             Y_pred = torch.concat(Y_pred, dim=0)
 
-            if self.use_gpu:
+            if self.device != 'cpu':
                 Y_test = Y_test.cpu()
                 Y_pred = Y_pred.cpu()
                 correct = correct.cpu()
@@ -386,8 +391,8 @@ if __name__ == '__main__':
     #learner.train_loader = data_loader
 
     # Train
-    learner = ReflectLearner(input_dim=X_train.shape[1], output_dim=Y_train.shape[1], use_gpu=True, log_path='log.txt')
-    regulatory_kb = RegualtoryKB(pos_trn_pth= 'rules/regu_pos.npz', neg_trn_pth='rules/regu_neg.npz', output_idx_list=idx_list_sra, use_gpu=True)
+    learner = ReflectLearner(input_dim=X_train.shape[1], output_dim=Y_train.shape[1], device=device, log_path='log.txt')
+    regulatory_kb = RegualtoryKB(pos_trn_pth= 'rules/regu_pos.npz', neg_trn_pth='rules/regu_neg.npz', output_idx_list=idx_list_sra, device=device)
     regulatory_kb.closure_(T=5, closure_type='weighted')
 
     learner.load_data(X_train, Y_train, X_test, Y_test, batch_size=batch_size)

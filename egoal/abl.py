@@ -22,7 +22,7 @@ def abduce(X_unlabel: torch.Tensor,
            X_label = None | torch.Tensor,
            Y_label = None | torch.Tensor,
            output_idx_list = None,
-           use_gpu = False,
+           device = cpu,
            T = 10, max_modify=1, budget=100, pretrain_epc=100, pretrain_lr=0.01,
            subset_threshold=0.95, retrain_epc=20, retrain_lr=0.01,
            test_idx=[], test_size=0.2, kb_weight=[],
@@ -38,12 +38,12 @@ def abduce(X_unlabel: torch.Tensor,
     learner = ReflectLearner(input_dim= X_test.shape[1],
                              output_dim= Y_test.shape[1],
                              hidden_dim= 64,
-                             use_gpu=use_gpu,
+                             device=device,
                              log_path=log_file)
     reasoner = RegualtoryKB(pos_trn_pth= pos_trn_pth,
                             neg_trn_pth= neg_trn_pth,
                             output_idx_list= output_idx_list,
-                            use_gpu=use_gpu)#, T=4)
+                            device=device)#, T=4)
     reasoner.closure_(T=5, closure_type='weighted')
 
     ########################################
@@ -330,7 +330,7 @@ if __name__ == "__main__":
            pretrain_epc=50000,
            pretrain_lr=1e-4,
            output_idx_list=idx_list_sra,
-           use_gpu=True,
+           device=device,
            #subset_threshold=[1.,.9,.9],
            subset_threshold = 1.,
            retrain_epc=30000,
