@@ -66,10 +66,16 @@ mask = np.zeros_like(Y_test, dtype=bool)
 idx = list(set(labels_p1k_deduc).intersection(set(labels_sra_deduc)))
 #print(sorted(idx))
 mask[:,idx] = True
-y = np.where(mask, Y_deduction, Y_pseudo)
+y_mask = np.where(mask, Y_deduction, Y_pseudo)
+
+#R = np.load('R_ABL0.npy')
+R = np.load('data_anal/abduction_results/R_ABL0.npy')
+y_r = np.where(R, Y_deduction, Y_pseudo)
+
 print(f1_score(Y_test.flatten(), Y_pseudo.flatten(), average='macro'))
 print(f1_score(Y_test.flatten(), Y_deduction.flatten(), average='macro'))
-print(f1_score(Y_test.flatten(), y.flatten(), average='macro'))
+print(f1_score(Y_test.flatten(), y_mask.flatten(), average='macro'))
+print(f1_score(Y_test.flatten(), y_r.flatten(), average='macro'))
 
 R = np.load('data_anal/abduction_results/R_ABL0.npy')
 labels_r = np.nonzero(np.sum(R, axis=0) > 5)[0].tolist()
