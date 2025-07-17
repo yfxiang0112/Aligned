@@ -257,15 +257,15 @@ if __name__ == "__main__":
     X_unlabel = torch.tensor(np.load('dataset/X_regulators.npy'), dtype = torch.float32)
 
     #NOTE tmp
-    X_unlabel = torch.zeros(size=(len(test_idx), X_train.shape[1]), dtype=torch.float32)
-    for i in range(0,12):
-        X_unlabel[i,3373] = 1.
-    for i in range(12,18):
-        X_unlabel[i,2961] = 1.
-    for i in range(18,21):
-        X_unlabel[i,2837] = 1.
-    for i in range(21,28):
-        X_unlabel[i,2606] = 1.
+    #X_unlabel = torch.zeros(size=(len(test_idx), X_train.shape[1]), dtype=torch.float32)
+    #for i in range(0,12):
+    #    X_unlabel[i,3373] = 1.
+    #for i in range(12,18):
+    #    X_unlabel[i,2961] = 1.
+    #for i in range(18,21):
+    #    X_unlabel[i,2837] = 1.
+    #for i in range(21,28):
+    #    X_unlabel[i,2606] = 1.
     #print(X_unlabel.shape)
     #print(torch.nonzero(X_unlabel))
 
@@ -327,12 +327,12 @@ if __name__ == "__main__":
            T=1,
            max_modify=20,
            budget=1000,
-           pretrain_epc=5000,
-           pretrain_lr=1e-3,
+           pretrain_epc=50000,
+           pretrain_lr=1e-4,
            output_idx_list=idx_list_sra,
            use_gpu=True,
            #subset_threshold=[1.,.9,.9],
            subset_threshold = 1.,
-           retrain_epc=10000,
+           retrain_epc=30000,
            retrain_lr=1e-4,
            seed=42, log_file=log_file)
