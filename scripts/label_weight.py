@@ -34,8 +34,8 @@ print(np.count_nonzero(np.sum((Y_deduction != 0) & (Y_pseudo != 0), axis=0) / to
 
 Y_test = np.load('dataset/ncbi-sra/Y_label.npy')[test_idx][:,list(label_set['matrix_idx'])]
 
-Y_deduction = np.load('data_anal/abduction_results/Yd_ABL0.npy')
-Y_pseudo = np.load('data_anal/abduction_results/Yp_ABL0.npy')
+Y_deduction = np.load('data_anal/abduction_results/Yd_ABL0_regulator.npy')
+Y_pseudo = np.load('data_anal/abduction_results/Yp_ABL0_regulator.npy')
 
 total = len(Y_test)
 
@@ -69,7 +69,7 @@ mask[:,idx] = True
 y_mask = np.where(mask, Y_deduction, Y_pseudo)
 
 #R = np.load('R_ABL0.npy')
-R = np.load('data_anal/abduction_results/R_ABL0.npy')
+R = np.load('data_anal/abduction_results/R_ABL0_regulator.npy')
 y_r = np.where(R, Y_deduction, Y_pseudo)
 
 print(f1_score(Y_test.flatten(), Y_pseudo.flatten(), average='macro'))
@@ -77,10 +77,15 @@ print(f1_score(Y_test.flatten(), Y_deduction.flatten(), average='macro'))
 print(f1_score(Y_test.flatten(), y_mask.flatten(), average='macro'))
 print(f1_score(Y_test.flatten(), y_r.flatten(), average='macro'))
 
-R = np.load('data_anal/abduction_results/R_ABL0.npy')
 labels_r = np.nonzero(np.sum(R, axis=0) > 5)[0].tolist()
 print(len(labels_r))
 print(len(idx))
 
 print(len(set(labels_r) - set(idx)))
 print(len(set(idx) - set(labels_r)))
+
+print(np.count_nonzero(np.sum(Y_deduction, axis=1) / total > .5))
+
+weights = np.full(shape=Y_test.shape[1], fill_value=-1., dtype=np.float32)
+weights[idx] = 1.
+np.save('rules/label_weight.npy', weights)

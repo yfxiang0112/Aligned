@@ -21,6 +21,7 @@ def abduce(X_unlabel: torch.Tensor,
            pos_trn_pth: str,
            neg_trn_pth: str,
            output_idx_list = None,
+           label_weight = None | torch.Tensor,
 
            X_label = None | torch.Tensor,
            Y_label = None | torch.Tensor,
@@ -102,7 +103,7 @@ def abduce(X_unlabel: torch.Tensor,
         f1 = learner.eval()
         print(f'Before pretrain: macro f1 {f1:.4f}')
 
-        learner.train(KB=reasoner, epochs=pretrain_epc, reinforce_epochs=100, C=10, lr=pretrain_lr)
+        learner.train(KB=reasoner, label_weight=label_weight, epochs=pretrain_epc, reinforce_epochs=100, C=10, lr=pretrain_lr)
         learner.save('models/pretrained.pt' if model_save_pth==None else model_save_pth)
 
     else:
@@ -155,7 +156,7 @@ def abduce(X_unlabel: torch.Tensor,
 
         ' retrain base learner '
         learner.load_data(X_unlabel, Y_modified, X_test, Y_test, update_weight=True)
-        learner.train(KB = reasoner, epochs=retrain_epc, reinforce_epochs=1, C=0, lr=retrain_lr)
+        learner.train(KB = reasoner, label_weight=label_weight, epochs=retrain_epc, reinforce_epochs=10, C=100, lr=retrain_lr)
         f1 = learner.eval()
         print(f'ABL loop {t}: macro f1 {f1:.4f}')
 
@@ -199,6 +200,8 @@ if __name__ == "__main__":
     Y_train = Y_train[:,idx_list_p1k]
     Y_test = Y_test[:,idx_list_sra]
 
+    label_weight = torch.tensor(np.load('rules/label_weight.npy'))
+
     #print(f'Y_train: {Y_train.shape}, Y_test: {Y_test.shape}')
 
     ##X_unlabel = X_unlabel[2860:2880] # yicR
@@ -230,6 +233,7 @@ if __name__ == "__main__":
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
+    label_weight = label_weight.to(device)
 
     abduce(X_unlabel= X_unlabel,
            X_test= X_test,
@@ -238,12 +242,13 @@ if __name__ == "__main__":
            pos_trn_pth='rules/regu_pos.npz',
            neg_trn_pth='rules/regu_neg.npz',
            output_idx_list=idx_list_sra,
+           label_weight=label_weight,
 
            #X_label = X_train,
            #Y_label = Y_train,
-           pretrained_model_pth= 'models/pretrained_7.17_R_restricted.pt',
+           pretrained_model_pth= 'models/pretrained.pt',
 
-           T=5,
+           T=1,
            pretrain_epc=300,
            pretrain_lr=1e-3,
            retrain_epc=500,
