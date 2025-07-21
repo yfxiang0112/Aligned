@@ -5,6 +5,7 @@ import cupy as cp
 from cupyx.scipy.sparse import coo_matrix as cp_coo_matrix
 import pandas as pd
 import time
+from sklearn.metrics import f1_score
 
 def exp_soft(X,t):
     return 1 - torch.exp(-t * X)
@@ -189,7 +190,20 @@ class RegualtoryKB():
 
 
     @staticmethod
-    def sparse_opt(Y, X0, Omega, C, k, t, t0, init_lr=1e-3, max_iter=1000, tol=1e-3, decay_rate=0.995, device=torch.device('cpu'), verbose=False):
+    def sparse_opt(Y,
+                   X0,
+                   Omega,
+                   C,
+                   k,
+                   t,
+                   t0,
+                   label_set=None,
+                   init_lr=1e-3,
+                   epochs=1000,
+                   tol=1e-3,
+                   decay_rate=0.995,
+                   device=torch.device('cpu'),
+                   verbose=False):
         """
         Optimization for Matrix Knowledge Refinement:
         min_X ||X^k - Y||_F^2 + C * ||X - X0||_F^2
@@ -208,6 +222,9 @@ class RegualtoryKB():
             X: torch.Tensor, the optimized matrix
             losses: list, loss values over iterations
         """
+
+        if label_set == None:
+            label_set = list(range(X0.shape[1]))
     
         X = X0.clone().detach().requires_grad_(True)
         X.to(device)
@@ -217,23 +234,27 @@ class RegualtoryKB():
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=decay_rate)
         
         losses = []
-        for epoch in range(max_iter):
+        for epoch in range(epochs):
             optimizer.zero_grad()
     
             Xk = exp_power(X, k, t)
-            loss1 = torch.norm((Xk - Y)[Omega], p='fro') ** 2
+            loss1 = torch.norm((Xk[:,label_set] - Y)[Omega], p='fro') ** 2
+
             loss2 = torch.norm(exp_soft(X, t0) - X0, p=1)# ** 2
             loss = loss1 + C * loss2
-            loss_round = torch.count_nonzero((torch.round(Xk)-Y)[Omega])
-            #f1 = f1_score(
-            #        torch.round(Xk[Omega]).flatten().detach().cpu().numpy(),
-            #        Y[Omega].flatten().detach().cpu().numpy())
+
+            loss_round = torch.count_nonzero((torch.round(Xk[:,label_set])-Y)[Omega])
+
+            f1 = f1_score(
+                    torch.round(Xk[:,label_set][Omega]).flatten().detach().cpu().numpy(),
+                    Y[Omega].flatten().detach().cpu().numpy())
     
             Xk_ = torch.clamp(torch.matrix_power(torch.round(exp_soft(X,t0)),k),0,1)
-            loss_round_ = torch.count_nonzero((torch.round(Xk_)-Y)[Omega])
-            #f1_ = f1_score(
-            #        torch.round(Xk_[Omega]).flatten().detach().cpu().numpy(),
-            #        Y[Omega].flatten().detach().cpu().numpy())
+            loss_round_ = torch.count_nonzero((torch.round(Xk_)[:,label_set]-Y)[Omega])
+
+            f1_ = f1_score(
+                    torch.round(Xk_[:,label_set][Omega]).flatten().detach().cpu().numpy(),
+                    Y[Omega].flatten().detach().cpu().numpy())
             #loss_round = torch.count_nonzero((torch.round(tanh_power(X,k))-Y)[Omega])
             
             # Backpropagate
@@ -252,7 +273,7 @@ class RegualtoryKB():
                     print(f"Converged at iteration {epoch}")
                 break
             
-            if verbose and (epoch % 20 == 0 or epoch == max_iter - 1):
+            if verbose and (epoch % 20 == 0 or epoch == epochs - 1):
                 print(f"Iteration {epoch}: Loss = {loss.item():.6f}")
                 print(f'|Xk-Y|_F: {loss1.item(): .6f}, |X-X0|: {loss2.item(): .6f}')
                 print(f'rounded |X_k-Y|_0 = {loss_round}, f1 = {f1: .6f}, approx slack: {torch.count_nonzero(Xk_ - torch.round(exp_power(X,k,t)))}')
@@ -267,11 +288,39 @@ class RegualtoryKB():
                t,
                C,
                k=None):
-        KB0 = torch.clamp(torch.abs(self.Regu_P_0)+torch.abs(self.Regu_N_0), 0,1)
-        data = X_label @ Y_label
-        KB, loss = self.sparse_opt(data, KB0, Omega, C, k, t, t0)
-        pass
+        '''
+        knowledge refinement via sparse learning
 
+        Args
+            self:
+            X_label:
+            Y_label:
+            t0:
+            t:
+            C:
+            k:
+        '''
+
+        if k == None:
+            k = self.T
+
+        KB0 = torch.clamp(torch.abs(self.Regu_P_0)+torch.abs(self.Regu_N_0), 0,1)
+        #TODO O=?, arc weight
+        data = torch.abs(X_label.T @ Y_label.float())
+        Omega = torch.any((data!=0), axis=1)
+
+        KB_opt, loss = self.sparse_opt(data, KB0, Omega, label_set=self.idx_list, C=C, k=k, t=t, t0=t0, verbose=True)
+
+        KB_opt_k = exp_power(KB_opt, k-1, t)
+        KB_opt = exp_soft(KB_opt, t0)
+
+        self.KB_P = torch.round(self.Regu_P_0 @ KB_opt_k + KB_opt_k @ self.Regu_P_0)
+        self.KB_N = torch.round(self.Regu_N_0 @ KB_opt_k + KB_opt_k @ self.Regu_N_0)
+
+        # TODO weighted / comb?
+        self.KB = torch.clamp(self.KB_P - self.KB_N, -1,1)
+
+        self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
 
 #class MetabolicKB():
 #    def __init__(self, pos_gem_pth, neg_gem_pth, annotation_pth, T=None) -> None:

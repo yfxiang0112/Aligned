@@ -33,20 +33,20 @@ device = 'cuda'
 R_P_0 = torch.tensor(load_npz('rules/regu_pos.npz').toarray()).to(device)
 R_N_0 = torch.tensor(load_npz('rules/regu_neg.npz').toarray()).to(device)
 
-R_P, R_N = closure(R_P_0, R_N_0, T=5, device=device)
+R_P, R_N = closure(R_P_0, R_N_0, T=8, device=device)
 
 R_C_0 = torch.clamp(torch.abs(R_P_0)+torch.abs(R_N_0), 0,1)
-R_C = torch.matrix_power(R_C_0, 4)
+R_C = torch.matrix_power(R_C_0, 7)
 R_P_C = torch.clamp(R_P_0 @ R_C + R_C @ R_P_0, 0,1)
-R_N_C = torch.clamp(R_N_0 @ R_C + R_C @ R_N_0, 0,1)
+R_N_C = torch.clamp(R_N_0 @ R_C + R_C @ R_N_0 + R_C_0 @ R_N_0 @ torch.matrix_power(R_C_0,6) + torch.matrix_power(R_C_0,6) @ R_N_0 @ R_C_0, 0,1)
 
-R_C_5 = torch.clamp(torch.matrix_power(R_C_0, 5), 0,1)
+R_C_5 = torch.clamp(torch.matrix_power(R_C_0, 8), 0,1)
 
 total = R_P.shape[0] * R_P.shape[1]
-print(torch.count_nonzero(R_P != R_P_C) / total)
-print(torch.count_nonzero(R_N != R_N_C) / total)
-print(torch.count_nonzero(R_C_5 != R_P) / total)
-print(torch.count_nonzero(R_C_5 != R_N) / total)
+print(f'connectivity KB_P ternary closure: FP={torch.count_nonzero(R_P - R_P_C <0) / total}, FN={torch.count_nonzero(R_P - R_P_C >0) / total}')
+print(f'connectivity KB_N ternary closure: FP={torch.count_nonzero(R_N - R_N_C <0) / total}, FN={torch.count_nonzero(R_N - R_N_C >0) / total}')
+
+print(f'connectivity binary closure FP+FN, KB_P: {torch.count_nonzero(R_C_5 != R_P) / total}, KB_N: {torch.count_nonzero(R_C_5 != R_N) / total}')
 
 print(torch.count_nonzero(R_C_5 != torch.clamp(R_P + R_N, 0,1)) / total)
 

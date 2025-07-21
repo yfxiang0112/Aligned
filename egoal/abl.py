@@ -153,6 +153,8 @@ def abduce(X_unlabel: torch.Tensor,
         #print(Y_modified.shape, Y_test.shape)
         #print(f'Y_modified f1: {f1_score(y_t_flat, y_m_flat, average="macro")}')
 
+        # TODO KB update before RL training?
+        reasoner.refine(X_unlabel, Y_modified, t0=1, t=100, C=1, k=5)
 
         ' retrain base learner '
         learner.load_data(X_unlabel, Y_modified, X_test, Y_test, update_weight=True)
@@ -246,7 +248,7 @@ if __name__ == "__main__":
 
            #X_label = X_train,
            #Y_label = Y_train,
-           pretrained_model_pth= 'models/pretrained.pt',
+           pretrained_model_pth= 'models/pretrained_7.17_R_restricted.pt',
 
            T=1,
            pretrain_epc=300,
