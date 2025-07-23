@@ -35,7 +35,8 @@ def abduce(X_unlabel: torch.Tensor,
            retrain_lr=0.01,
            device = 'cpu',
            seed=None,
-           log_file=''):
+           log_file='',
+           verbose=False):
     '''
     Abductive Learning Main Loop
 
@@ -103,7 +104,7 @@ def abduce(X_unlabel: torch.Tensor,
         f1 = learner.eval()
         print(f'Before pretrain: macro f1 {f1:.4f}')
 
-        learner.train(KB=reasoner, label_weight=label_weight, epochs=pretrain_epc, reinforce_epochs=100, C=10, lr=pretrain_lr)
+        learner.train(KB=reasoner, label_weight=label_weight, epochs=pretrain_epc, reinforce_epochs=100, C=10, lr=pretrain_lr, verbose=verbose)
         learner.save('models/pretrained.pt' if model_save_pth==None else model_save_pth)
 
     else:
@@ -144,21 +145,35 @@ def abduce(X_unlabel: torch.Tensor,
         #Y_modified = Y_deduction
 
         #print(torch.count_nonzero(Y_deduction))
-        #np.save(f'data_anal/abduction_results/R_ABL{t}.npy', R_binary.cpu().numpy())
-        #np.save(f'data_anal/abduction_results/Yp_ABL{t}.npy', Y_pseudo.cpu().numpy())
-        #np.save(f'data_anal/abduction_results/Yd_ABL{t}.npy', Y_deduction.cpu().numpy())
 
-        #y_m_flat = Y_modified.detach().cpu().numpy().flatten()
-        #y_t_flat = Y_test.detach().cpu().numpy().flatten()
+        #NOTE tmp ########################################
+        Y_pred, R_pred = learner.forward(X_test)
+        Y_pred = torch.argmax(Y_pred, dim=-1) -1
+        R_pred = torch.round(R_pred).bool()
+        Y_deduction_test = reasoner.deduce(X_test)
+
+        np.save(f'data_anal/abduction_results/R_ABL{t}.npy', R_pred.cpu().numpy())
+        np.save(f'data_anal/abduction_results/Yp_ABL{t}.npy', Y_pred.cpu().numpy())
+        np.save(f'data_anal/abduction_results/Yd_ABL{t}.npy', Y_deduction_test.cpu().numpy())
+
+        Y_pred = torch.where(R_pred, Y_deduction_test, Y_pred)
+
+        y_p_flat = Y_pred.detach().cpu().numpy().flatten()
+        y_t_flat = Y_test.detach().cpu().numpy().flatten()
         #print(Y_modified.shape, Y_test.shape)
-        #print(f'Y_modified f1: {f1_score(y_t_flat, y_m_flat, average="macro")}')
+        print(f'Y_modified f1: {f1_score(y_t_flat, y_p_flat, average="macro")}')
+        if t == 1:
+            exit()
+        #NOTE ###########################################
 
         # TODO KB update before RL training?
-        reasoner.refine(X_unlabel, Y_modified, t0=1, t=100, C=1, k=5)
+        np.save('KB_before.npy', reasoner.KB.detach().cpu().numpy())
+        reasoner.refine(X_unlabel, Y_modified, t0=100, t=1, C=1, k=5, verbose=verbose)
+        np.save('KB_after.npy', reasoner.KB.detach().cpu().numpy())
 
         ' retrain base learner '
         learner.load_data(X_unlabel, Y_modified, X_test, Y_test, update_weight=True)
-        learner.train(KB = reasoner, label_weight=label_weight, epochs=retrain_epc, reinforce_epochs=10, C=100, lr=retrain_lr)
+        learner.train(KB = reasoner, label_weight=label_weight, epochs=retrain_epc, reinforce_epochs=10, C=100, lr=retrain_lr, verbose=verbose)
         f1 = learner.eval()
         print(f'ABL loop {t}: macro f1 {f1:.4f}')
 
@@ -180,18 +195,6 @@ if __name__ == "__main__":
 
     X_unlabel = torch.tensor(np.load('dataset/X_regulators.npy'), dtype = torch.float32)
 
-    #NOTE tmp
-    #X_unlabel = torch.zeros(size=(len(test_idx), X_train.shape[1]), dtype=torch.float32)
-    #for i in range(0,12):
-    #    X_unlabel[i,3373] = 1.
-    #for i in range(12,18):
-    #    X_unlabel[i,2961] = 1.
-    #for i in range(18,21):
-    #    X_unlabel[i,2837] = 1.
-    #for i in range(21,28):
-    #    X_unlabel[i,2606] = 1.
-    #print(X_unlabel.shape)
-    #print(torch.nonzero(X_unlabel))
 
     #X_unlabel = X_train
 
@@ -248,9 +251,9 @@ if __name__ == "__main__":
 
            #X_label = X_train,
            #Y_label = Y_train,
-           pretrained_model_pth= 'models/pretrained_7.17_R_restricted.pt',
+           pretrained_model_pth= 'models/pretrained_7.18_label_weight.pt',
 
-           T=1,
+           T=2,
            pretrain_epc=300,
            pretrain_lr=1e-3,
            retrain_epc=500,

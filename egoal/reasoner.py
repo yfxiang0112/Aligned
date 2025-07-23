@@ -287,7 +287,8 @@ class RegualtoryKB():
                t0,
                t,
                C,
-               k=None):
+               k=None,
+               verbose=False):
         '''
         knowledge refinement via sparse learning
 
@@ -299,6 +300,7 @@ class RegualtoryKB():
             t:
             C:
             k:
+            verbose:
         '''
 
         if k == None:
@@ -306,10 +308,10 @@ class RegualtoryKB():
 
         KB0 = torch.clamp(torch.abs(self.Regu_P_0)+torch.abs(self.Regu_N_0), 0,1)
         #TODO O=?, arc weight
-        data = torch.abs(X_label.T @ Y_label.float())
+        data = torch.clamp(torch.abs(X_label.T @ Y_label.float()), 0,1)
         Omega = torch.any((data!=0), axis=1)
 
-        KB_opt, loss = self.sparse_opt(data, KB0, Omega, label_set=self.idx_list, C=C, k=k, t=t, t0=t0, verbose=True)
+        KB_opt, loss = self.sparse_opt(data, KB0, Omega, label_set=self.idx_list, C=C, k=k, t=t, t0=t0, epochs=2000, verbose=verbose)
 
         KB_opt_k = exp_power(KB_opt, k-1, t)
         KB_opt = exp_soft(KB_opt, t0)

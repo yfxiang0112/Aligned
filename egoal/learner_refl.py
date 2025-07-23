@@ -71,7 +71,10 @@ class ReflectLearner():
     ) -> None:
         '''
         Args:
-            KB:
+            input_dim:
+            output_dim:
+            hidden_dim:
+            device:
             log_path (optional):
         '''
 
@@ -137,7 +140,17 @@ class ReflectLearner():
                   Y_test: torch.Tensor,
                   update_weight = False,
                   batch_size=64):
-        ''' define train & test data loader '''
+        '''
+        define train & test data loader
+
+        Args:
+            X_train:
+            Y_train:
+            X_test:
+            Y_test:
+            update_weight:
+            batch_size=64:
+        '''
 
         assert len(X_test) > 0
         assert len(Y_test) > 0
@@ -171,7 +184,8 @@ class ReflectLearner():
         reinforce_epochs= 100,
         C= 1,
         lr= 1e-3, 
-        gamma= 0.95
+        gamma= 0.95,
+        verbose= False
     ):
         '''
         Train the Clf + Refl Model
@@ -183,6 +197,7 @@ class ReflectLearner():
             C:
             lr:
             gamma:          discount factor for RL baseline reward
+            verbose:
         '''
 
         ''' Training loop '''
@@ -247,7 +262,7 @@ class ReflectLearner():
             total_loss.backward()
             optimizer.step()
 
-            if (epoch+1)%100 == 0:
+            if (epoch+1)%100 == 0 and verbose:
                 print(f"Epoch {epoch+1}, Total loss: {total_loss.item():.4f}, CE loss: {loss_y.item():.4f}, RL loss: {loss_r.item():.4f}, Reward: {reward:.4f}")
 
                 #NOTE tmp
