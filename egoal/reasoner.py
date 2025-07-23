@@ -31,6 +31,7 @@ class RegualtoryKB():
 
         self.Regu_P_0 = torch.tensor(load_npz(pos_trn_pth).toarray(), dtype=torch.float)
         self.Regu_N_0 = torch.tensor(load_npz(neg_trn_pth).toarray(), dtype=torch.float)
+        self.Regu_0 = torch.clamp(torch.abs(self.Regu_P_0)+torch.abs(self.Regu_N_0), 0,1)
 
         self.device = device
         if self.device != 'cpu':
@@ -306,12 +307,12 @@ class RegualtoryKB():
         if k == None:
             k = self.T
 
-        KB0 = torch.clamp(torch.abs(self.Regu_P_0)+torch.abs(self.Regu_N_0), 0,1)
-        #TODO O=?, arc weight
+        #TODO  arc weight?
+
         data = torch.clamp(torch.abs(X_label.T @ Y_label.float()), 0,1)
         Omega = torch.any((data!=0), axis=1)
 
-        KB_opt, loss = self.sparse_opt(data, KB0, Omega, label_set=self.idx_list, C=C, k=k, t=t, t0=t0, epochs=2000, verbose=verbose)
+        KB_opt, _ = self.sparse_opt(data, self.Regu_0, Omega, label_set=self.idx_list, C=C, k=k, t=t, t0=t0, epochs=2000, verbose=verbose)
 
         KB_opt_k = exp_power(KB_opt, k-1, t)
         KB_opt = exp_soft(KB_opt, t0)
@@ -323,6 +324,8 @@ class RegualtoryKB():
         self.KB = torch.clamp(self.KB_P - self.KB_N, -1,1)
 
         self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
+
+        self.Regu_0 = torch.clamp(torch.round(KB_opt), 0,1)
 
 #class MetabolicKB():
 #    def __init__(self, pos_gem_pth, neg_gem_pth, annotation_pth, T=None) -> None:
