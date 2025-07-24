@@ -162,8 +162,8 @@ def abduce(X_unlabel: torch.Tensor,
         y_t_flat = Y_test.detach().cpu().numpy().flatten()
         #print(Y_modified.shape, Y_test.shape)
         print(f'Y_modified f1: {f1_score(y_t_flat, y_p_flat, average="macro")}')
-        if t == 1:
-            exit()
+        #if t == 1:
+        #    exit()
         #NOTE ###########################################
 
         # TODO KB update before RL training?
@@ -253,11 +253,12 @@ if __name__ == "__main__":
            #Y_label = Y_train,
            pretrained_model_pth= 'models/pretrained_7.18_label_weight.pt',
 
-           T=2,
+           T=3,
            pretrain_epc=300,
            pretrain_lr=1e-3,
            retrain_epc=500,
            retrain_lr=1e-3,
            device=device,
            seed=42,
-           log_file=log_file)
+           log_file=log_file,
+           verbose=True)

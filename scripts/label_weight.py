@@ -28,9 +28,9 @@ labels_kb_con_p1k = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y_tr
 
 test_idx = [37,38,39,40,41,42,43,44,45,46,47,48, 49,50,51,52,53,54, 55,56,57, 28,29,30,58,59,60,61]
 Y_true = np.load('dataset/ncbi-sra/Y_label.npy')[test_idx][:,list(label_set['matrix_idx'])]
-Y_deduction = np.load('data_anal/abduction_results/Yd_ABL1.npy')
-Y_pseudo = np.load('data_anal/abduction_results/Yp_ABL1.npy')
-R = np.load('data_anal/abduction_results/R_ABL1.npy')
+Y_deduction = np.load('data_anal/abduction_results/Yd_ABL2.npy')
+Y_pseudo = np.load('data_anal/abduction_results/Yp_ABL2.npy')
+R = np.load('data_anal/abduction_results/R_ABL2.npy')
 total = len(Y_true)
 
 labels_gt_con_sra = (np.nonzero(np.sum((Y_deduction != Y_true) | (Y_pseudo != Y_true), axis=0) / total < .2)[0].tolist())

@@ -31,12 +31,13 @@ class RegualtoryKB():
 
         self.Regu_P_0 = torch.tensor(load_npz(pos_trn_pth).toarray(), dtype=torch.float)
         self.Regu_N_0 = torch.tensor(load_npz(neg_trn_pth).toarray(), dtype=torch.float)
-        self.Regu_0 = torch.clamp(torch.abs(self.Regu_P_0)+torch.abs(self.Regu_N_0), 0,1)
 
         self.device = device
         if self.device != 'cpu':
             self.Regu_P_0 = self.Regu_P_0.to(self.device)
             self.Regu_N_0 = self.Regu_N_0.to(self.device) 
+
+        self.Regu_0 = torch.clamp(torch.abs(self.Regu_P_0)+torch.abs(self.Regu_N_0), 0,1)
 
         #' transitive closure '
         #self.KB_P, self.KB_N, self.T = self.closure(Regu_P, Regu_N, T=T)
