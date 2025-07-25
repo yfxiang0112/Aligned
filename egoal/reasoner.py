@@ -286,10 +286,13 @@ class RegualtoryKB():
     def refine(self,
                X_label,
                Y_label,
-               t0,
-               t,
-               C,
+               C=1,
                k=None,
+               t=1,
+               t0=100,
+               epochs= 1000,
+               init_lr= 1e-3,
+               decay_rate= 0.995,
                verbose=False):
         '''
         knowledge refinement via sparse learning
@@ -298,10 +301,13 @@ class RegualtoryKB():
             self:
             X_label:
             Y_label:
-            t0:
-            t:
             C:
             k:
+            t0:
+            t:
+            epochs:
+            init_lr:
+            decay_rate:
             verbose:
         '''
 
@@ -313,7 +319,18 @@ class RegualtoryKB():
         data = torch.clamp(torch.abs(X_label.T @ Y_label.float()), 0,1)
         Omega = torch.any((data!=0), axis=1)
 
-        KB_opt, _ = self.sparse_opt(data, self.Regu_0, Omega, label_set=self.idx_list, C=C, k=k, t=t, t0=t0, epochs=2000, verbose=verbose)
+        KB_opt, _ = self.sparse_opt(Y = data,
+                                    X0 = self.Regu_0,
+                                    Omega = Omega,
+                                    label_set = self.idx_list,
+                                    C = C,
+                                    k = k,
+                                    t = t,
+                                    t0 = t0,
+                                    init_lr = init_lr,
+                                    epochs = epochs,
+                                    decay_rate = decay_rate,
+                                    verbose = verbose)
 
         KB_opt_k = exp_power(KB_opt, k-1, t)
         KB_opt = exp_soft(KB_opt, t0)
