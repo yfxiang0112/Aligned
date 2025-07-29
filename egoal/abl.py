@@ -28,15 +28,22 @@ def abduce(X_unlabel: torch.Tensor,
            pretrained_model_pth = None,
            model_save_pth = None,
 
-           T = 5,
-           pretrain_epc=100,
-           pretrain_lr=0.01,
-           retrain_epc=20,
-           retrain_lr=0.01,
-           device = 'cpu',
-           seed=None,
-           log_file='',
-           verbose=False):
+           T= 5,
+
+           pretrain_epc= 300,
+           pretrain_rl_epc= 100,
+           pretrain_lr= 1e-3,
+
+           retrain_epc= 500,
+           retrain_lr= 1e-3,
+           retrain_rl_epc= 10,
+           refine_epc= 2000,
+           refine_lr= 1e-4,
+
+           device= 'cpu',
+           seed= None,
+           log_file= '',
+           verbose= False):
     '''
     Abductive Learning Main Loop
 
@@ -104,7 +111,13 @@ def abduce(X_unlabel: torch.Tensor,
         f1 = learner.eval()
         print(f'Before pretrain: macro f1 {f1:.4f}')
 
-        learner.train(KB=reasoner, label_weight=label_weight, epochs=pretrain_epc, reinforce_epochs=100, C=10, lr=pretrain_lr, verbose=verbose)
+        learner.train(KB= reasoner,
+                      label_weight= label_weight,
+                      epochs= pretrain_epc,
+                      reinforce_epochs= pretrain_rl_epc,
+                      C=10,
+                      lr=pretrain_lr,
+                      verbose=verbose)
         learner.save('models/pretrained.pt' if model_save_pth==None else model_save_pth)
 
     else:
@@ -141,7 +154,7 @@ def abduce(X_unlabel: torch.Tensor,
 
         Y_deduction = reasoner.deduce(X_unlabel)
 
-        Y_modified = torch.where(R_binary , Y_deduction, Y_pseudo)
+        Y_modified = torch.where(R_binary, Y_deduction, Y_pseudo)
         #Y_modified = Y_deduction
 
         #print(torch.count_nonzero(Y_deduction))
@@ -168,14 +181,27 @@ def abduce(X_unlabel: torch.Tensor,
 
         # TODO KB update before RL training?
         np.save('KB_before.npy', reasoner.KB.detach().cpu().numpy())
-        reasoner.refine(X_unlabel, Y_modified, k=5, epochs=2000, init_lr=1e-4, verbose=verbose)
+        reasoner.refine(X= X_unlabel,
+                        Y= Y_modified,
+                        k=T,
+                        epochs=refine_epc,
+                        init_lr=refine_lr,
+                        verbose=verbose)
         np.save('KB_after.npy', reasoner.KB.detach().cpu().numpy())
 
         ' retrain base learner '
         learner.load_data(X_unlabel, Y_modified, X_test, Y_test, update_weight=True)
-        learner.train(KB = reasoner, label_weight=label_weight, epochs=retrain_epc, reinforce_epochs=10, C=100, lr=retrain_lr, verbose=verbose)
+        learner.train(KB= reasoner,
+                      label_weight= label_weight,
+                      epochs= retrain_epc,
+                      reinforce_epochs= retrain_rl_epc,
+                      C= 100,
+                      lr= retrain_lr,
+                      verbose= verbose)
+
         f1 = learner.eval()
         print(f'ABL loop {t}: macro f1 {f1:.4f}')
+        
 
 
 ####################
@@ -249,16 +275,23 @@ if __name__ == "__main__":
            output_idx_list=idx_list_sra,
            label_weight=label_weight,
 
-           #X_label = X_train,
-           #Y_label = Y_train,
-           pretrained_model_pth= 'models/pretrained_7.18_label_weight.pt',
+           X_label = X_train,
+           Y_label = Y_train,
+           #pretrained_model_pth= 'models/pretrained_7.18_label_weight.pt',
 
-           T=2,
-           pretrain_epc=300,
-           pretrain_lr=1e-3,
-           retrain_epc=500,
-           retrain_lr=1e-3,
-           device=device,
-           seed=42,
-           log_file=log_file,
-           verbose=True)
+           T= 5,
+
+           pretrain_epc= 30,
+           pretrain_rl_epc= 10,
+           pretrain_lr= 1e-3,
+
+           retrain_epc= 50,
+           retrain_lr= 1e-3,
+           retrain_rl_epc= 10,
+           refine_epc= 20,
+           refine_lr= 1e-4,
+
+           device= device,
+           seed= 42,
+           log_file= log_file,
+           verbose= True)

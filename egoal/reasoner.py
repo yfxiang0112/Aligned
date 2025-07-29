@@ -284,8 +284,8 @@ class RegualtoryKB():
         return X.detach(), losses
 
     def refine(self,
-               X_label,
-               Y_label,
+               X,
+               Y,
                C=1,
                k=None,
                t=1,
@@ -299,8 +299,8 @@ class RegualtoryKB():
 
         Args
             self:
-            X_label:
-            Y_label:
+            X:
+            Y:
             C:
             k:
             t0:
@@ -316,7 +316,7 @@ class RegualtoryKB():
 
         #TODO  arc weight?
 
-        data = torch.clamp(torch.abs(X_label.T @ Y_label.float()), 0,1)
+        data = torch.clamp(torch.abs(X.T @ Y.float()), 0,1)
         Omega = torch.any((data!=0), axis=1)
 
         KB_opt, _ = self.sparse_opt(Y = data,
