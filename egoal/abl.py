@@ -11,7 +11,6 @@ from egoal.learner import BaseLearner
 from egoal.learner_refl import ReflectLearner
 from egoal.reasoner import RegualtoryKB#, MetabolicKB
 from egoal.utils import optvec2matrix
-#from egoal.utils import xor, negation, matrix2pgb, pgb2ternary, optvec2pgb
 
 # TODO
 def abduce(X_unlabel: torch.Tensor,
@@ -30,6 +29,7 @@ def abduce(X_unlabel: torch.Tensor,
 
            T= 5,
 
+           closure= 5,
            pretrain_epc= 300,
            pretrain_rl_epc= 100,
            pretrain_lr= 1e-3,
@@ -80,13 +80,14 @@ def abduce(X_unlabel: torch.Tensor,
     learner = ReflectLearner(input_dim= X_test.shape[1],
                              output_dim= Y_test.shape[1],
                              hidden_dim= 64,
+                             base_learner_type= 'GNN',
                              device=device,
                              log_path=log_file)
     reasoner = RegualtoryKB(pos_trn_pth= pos_trn_pth,
                             neg_trn_pth= neg_trn_pth,
                             output_idx_list= output_idx_list,
                             device=device)#, T=4)
-    reasoner.closure_(T=5, closure_type='weighted')
+    reasoner.closure_(T=closure, closure_type='weighted')
 
     ########################################
 
@@ -165,9 +166,9 @@ def abduce(X_unlabel: torch.Tensor,
         R_pred = torch.round(R_pred).bool()
         Y_deduction_test = reasoner.deduce(X_test)
 
-        np.save(f'data_anal/abduction_results/R_ABL{t}.npy', R_pred.cpu().numpy())
-        np.save(f'data_anal/abduction_results/Yp_ABL{t}.npy', Y_pred.cpu().numpy())
-        np.save(f'data_anal/abduction_results/Yd_ABL{t}.npy', Y_deduction_test.cpu().numpy())
+        #np.save(f'data_anal/abduction_results/R_ABL{t}.npy', R_pred.cpu().numpy()) #NOTE tmp
+        #np.save(f'data_anal/abduction_results/Yp_ABL{t}.npy', Y_pred.cpu().numpy()) #NOTE tmp
+        #np.save(f'data_anal/abduction_results/Yd_ABL{t}.npy', Y_deduction_test.cpu().numpy()) #NOTE tmp
 
         Y_pred = torch.where(R_pred, Y_deduction_test, Y_pred)
 
@@ -175,19 +176,19 @@ def abduce(X_unlabel: torch.Tensor,
         y_t_flat = Y_test.detach().cpu().numpy().flatten()
         #print(Y_modified.shape, Y_test.shape)
         print(f'Y_modified f1: {f1_score(y_t_flat, y_p_flat, average="macro")}')
-        #if t == 1:
+        #if t == 1: # tmp
         #    exit()
         #NOTE ###########################################
 
         # TODO KB update before RL training?
-        np.save('KB_before.npy', reasoner.KB.detach().cpu().numpy())
+        #np.save('KB_before.npy', reasoner.KB.detach().cpu().numpy()) #NOTE tmp
         reasoner.refine(X= X_unlabel,
                         Y= Y_modified,
-                        k=T,
-                        epochs=refine_epc,
-                        init_lr=refine_lr,
-                        verbose=verbose)
-        np.save('KB_after.npy', reasoner.KB.detach().cpu().numpy())
+                        k= closure,
+                        epochs= refine_epc,
+                        init_lr= refine_lr,
+                        verbose= verbose)
+        #np.save('KB_after.npy', reasoner.KB.detach().cpu().numpy()) #NOTE tmp
 
         ' retrain base learner '
         learner.load_data(X_unlabel, Y_modified, X_test, Y_test, update_weight=True)
@@ -279,16 +280,16 @@ if __name__ == "__main__":
            Y_label = Y_train,
            #pretrained_model_pth= 'models/pretrained_7.18_label_weight.pt',
 
-           T= 5,
+           T= 2,
 
-           pretrain_epc= 30,
-           pretrain_rl_epc= 10,
+           pretrain_epc= 300,
+           pretrain_rl_epc= 100,
            pretrain_lr= 1e-3,
 
-           retrain_epc= 50,
+           retrain_epc= 500,
+           retrain_rl_epc= 100,
            retrain_lr= 1e-3,
-           retrain_rl_epc= 10,
-           refine_epc= 20,
+           refine_epc= 2000,
            refine_lr= 1e-4,
 
            device= device,

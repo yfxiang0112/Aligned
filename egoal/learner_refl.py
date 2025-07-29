@@ -1,126 +1,27 @@
 import torch
 import torch.nn as nn
+from torch_geometric.nn import SGConv
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset, Dataset
-from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import DataLoader, TensorDataset
 from sklearn.metrics import confusion_matrix, f1_score
 import numpy as np
 from torch.distributions import Bernoulli
+from torch_geometric.utils import dense_to_sparse
+from scipy.sparse import load_npz
 
 from egoal.reasoner import RegualtoryKB
-
-class PertDataset(Dataset):
-    ' define dataset for GNN pert data '
-    def __init__(self, X, Y):
-        assert len(X) == len(Y), "Input and output must have same length"
-        self.X, self.Y = X,Y
-
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        return self.X[idx], self.Y[idx]
-
-def collate_fn(batch):
-    """Custom collate function to handle variable-length inputs"""
-    inputs = [item[0] for item in batch]
-    outputs = torch.stack([item[1] for item in batch])
-
-    # Pad variable-length input sequences
-    padded_inputs = pad_sequence(inputs, batch_first=True, padding_value=0)
-    return padded_inputs, outputs
 
 class ReflectMLP(nn.Module):
     """ Network Structure of Base Learner with Reflect Output (RL) """
 
-    def __init__(self, input_dim, hidden_dim, output_dim, device='cpu'):
+    def __init__(self, input_dim, hidden_dim, output_dim):
         """
         Args:
             input_dim:
             hidden_dim:
             output_dim:
-            device:
         """
         super(ReflectMLP, self).__init__()
-        self.input_dim = input_dim
-        self.hidden_dim = hidden_dim
-        self.output_dim = output_dim
-        self.device = device
-
-        self.input_emb = nn.Embedding(self.input_dim, self.hidden_dim, max_norm=True)
-
-        self.fc = nn.Sequential(
-            #nn.Linear(input_dim, hidden_dim),
-            #nn.ReLU(),
-            nn.Linear(self.hidden_dim, self.hidden_dim),
-            nn.ReLU(),
-            nn.Linear(self.hidden_dim, self.hidden_dim),
-            nn.ReLU(),
-        )
-
-        self.relu = nn.ReLU()
-
-        ' Head 1: Classification (y) '
-        self.y_head = nn.Linear(self.hidden_dim, self.output_dim*3)
-        self.softmax = nn.Softmax(dim=-1)
-
-        ' Head 2: REINFORCE (r): Logits for binary actions '
-        self.fc = nn.Linear(self.hidden_dim, self.hidden_dim)
-        self.r_head = nn.Linear(self.hidden_dim, self.output_dim)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
-        if len(x.shape) == 3:
-            batch_size = x.shape[0]
-        elif len(x.shape) == 2:
-            batch_size = 1
-            x = x.unsqueeze(0)
-        else:
-            raise RuntimeError("Input dimension error")
-
-        ' MLP forward '
-        input_arr = torch.LongTensor(list(range(self.input_dim))).to(self.device)
-        emb = self.relu(self.input_emb(input_arr))
-        emb = self.fc(emb)
-
-        out_emb = torch.zeros((batch_size, self.hidden_dim)).to(self.device)
-        for i in range(batch_size):
-            for item in x[i]:
-                out_emb[i] = out_emb[i] + emb[item[0]] * item[1]
-        #TODO
-
-        ' clf head '
-        output_y = self.y_head(out_emb)
-        output_y = self.softmax(output_y.view(output_y.shape[0], -1, 3))
-
-        ' action head '
-        #output_r = self.r_head(self.relu(self.fc(emb)))
-        output_r = self.r_head(out_emb)
-        output_r = self.sigmoid(output_r)
-
-        return output_y, output_r
-
-    def predict(self,x):
-        output_y, _ = self.forward(x)
-        return torch.argmax(output_y, dim=-1) -1
-
-    def reflection(self, x):
-        _, output_r = self.forward(x)
-        return torch.round(output_r)
-
-
-class ReflectGNN(nn.Module):
-    """ Network Structure of Base Learner with Reflect Output (RL) """
-
-    def __init__(self, input_dim, hidden_dim, output_dim, device='cpu'):
-        """
-        Args:
-            input_dim:
-            hidden_dim:
-            output_dim:
-            device:
-        """
-        super(ReflectGNN, self).__init__()
         self.embedding = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.ReLU(),
@@ -163,6 +64,132 @@ class ReflectGNN(nn.Module):
         _, output_r = self.forward(x)
         return torch.round(output_r)
 
+################################################################################
+
+class ReflectGNN(nn.Module):
+    """ Network Structure of Base Learner with Reflect Output (RL) """
+
+    def __init__(self, input_dim, hidden_dim, num_layers, output_dim, device='cpu', label_mask=None):
+        '''
+        Network Struct of GNN
+        Args:
+            input_dim: 
+            hidden_dim:
+            num_layers:
+            output_dim:
+            device:
+            label_mask:
+        '''
+        super(ReflectGNN, self).__init__()
+
+        self.input_dim = input_dim
+        self.num_layers = num_layers
+        self.hidden_dim = hidden_dim
+        self.output_dim = output_dim
+        self.device = device
+
+        self.input_emb = nn.Embedding(self.input_dim, hidden_dim, max_norm=True)
+        
+        'edge idx & weight as buffers'
+        self.register_buffer('edge_index', None)
+        self.register_buffer('edge_weight', None)
+
+        'GNN layers'
+        self.graph_layers = torch.nn.ModuleList()
+        for _ in range(1, self.num_layers + 1):
+            self.graph_layers.append(SGConv(hidden_dim, hidden_dim, 1))
+    
+        self.bn= nn.BatchNorm1d(hidden_dim)
+        self.relu = nn.ReLU()
+
+        ' Head 1: Classification (y) '
+        self.y_head = nn.Sequential(
+                nn.Linear(hidden_dim, hidden_dim*2),
+                nn.ReLU(),
+                nn.Linear(hidden_dim*2, 3 * self.output_dim),
+                )
+        self.softmax = nn.Softmax(dim=-1)
+
+        ' Head 2: REINFORCE (r): Logits for binary actions '
+        self.r_head = nn.Sequential(
+                nn.Linear(hidden_dim, hidden_dim*2),
+                nn.ReLU(),
+                nn.Linear(hidden_dim*2, output_dim),
+                )
+        self.sigmoid = nn.Sigmoid()
+
+    def set_weighted_adjacency(self, adj_matrix):
+        """
+        Set the weighted adjacency matrix for the fixed graph.
+        Args:
+            adj_matrix: [input_dim, input_dim] weighted adjacency matrix
+        """
+        self.edge_index, self.edge_weight = dense_to_sparse(adj_matrix)
+        
+        row, col = self.edge_index
+        deg = torch.sparse_coo_tensor(
+            torch.stack([row, row]), 
+            self.edge_weight, 
+            (self.input_dim, self.input_dim)
+        ).to_dense().sum(1)
+        deg_inv_sqrt = torch.abs(deg).pow(-0.5)
+        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+        #deg_inv_sqrt *= torch.sign(deg)
+        norm = deg_inv_sqrt[row] * self.edge_weight * deg_inv_sqrt[col]
+
+        self.edge_weight = torch.abs(norm) #NOTE no negative weights
+
+    def forward(self, x):
+        """
+        Args:
+            x: One-hot encoded node features [batch_size, input_dim, input_dim]
+                     or [input_dim, input_dim] if single graph
+        Returns:
+            logits: Classification logits [batch_size, output_dim, 3] or [output_dim, 3]
+        """
+        if self.edge_index is None:
+            raise RuntimeError("Adjacency matrix not set. Call set_weighted_adjacency() first.")
+        if len(x.shape) == 2:
+            batch_size = x.shape[0]
+        elif len(x.shape) == 1:
+            batch_size = 1
+            x = x.unsqueeze(0)
+        else:
+            raise RuntimeError("Input dimension error")
+
+        ' init embeddings '
+        emb = self.input_emb(torch.LongTensor(list(range(self.input_dim))).to(self.device))
+        emb = self.relu(self.bn(emb))
+
+        ' apply GNN layers '
+        for i, layer in enumerate(self.graph_layers):
+            emb = layer(emb, self.edge_index, self.edge_weight)
+            if i < self.num_layers - 1:
+                emb = self.relu(emb)
+
+        ' add GNN embedding to corresponding input '
+        emb = x @ emb
+
+        ' clf head '
+        output_y = self.y_head(emb)
+        output_y = self.softmax(output_y.view(output_y.shape[0], -1, 3))
+
+        ' action head '
+        output_r = self.r_head(emb)
+        output_r = self.sigmoid(output_r)
+
+        return output_y, output_r
+
+    def predict(self,x):
+        output_y, _ = self.forward(x)
+        return torch.argmax(output_y, dim=-1) -1
+
+    def reflection(self, x):
+        _, output_r = self.forward(x)
+        return torch.round(output_r)
+
+################################################################################
+################################################################################
 
 class ReflectLearner():
     def __init__(self,
@@ -181,6 +208,10 @@ class ReflectLearner():
             device:
             log_path (optional):
         '''
+        self.device = device
+        if device != 'cpu':
+            print(f'cuda availability: {torch.cuda.is_available()}')
+            assert torch.cuda.is_available()
 
         ' 4639 genes of whole genome, 241 output genes '
         self.input_dim = input_dim
@@ -191,26 +222,22 @@ class ReflectLearner():
         self.clf_weight = torch.Tensor([.4,.2,.4])
 
         if base_learner_type == 'MLP':
-            self.model = ReflectMLP(input_dim = self.input_dim,
-                                    hidden_dim = self.hidden_dim,
-                                    output_dim = self.output_dim,
-                                    device = device)
+            self.model = ReflectMLP(self.input_dim, self.hidden_dim,  self.output_dim)
         elif base_learner_type == 'GNN':
-            self.model = ReflectGNN(input_dim = self.input_dim,
-                                    hidden_dim = self.hidden_dim,
-                                    output_dim = self.output_dim,
-                                    device = device)
+            self.model = ReflectGNN(self.input_dim, self.hidden_dim, 3, self.output_dim, self.device)
+            #TODO tmp
+            r_pos, r_neg = load_npz('rules/regu_pos_clo.npz').toarray(), load_npz('rules/regu_neg_clo.npz').toarray()
+            adj_matrix = np.abs(np.clip(r_pos+r_neg, -1,1))
+            adj_matrix = torch.tensor(adj_matrix).to(self.device)
+            self.model.set_weighted_adjacency(adj_matrix)
         else:
             raise Exception('Invalid Base Learner Type')
 
         self.train_loader = None
         self.test_loader = None
 
-        self.device = device
-        print(f'cuda availability: {torch.cuda.is_available()}')
-        if self.device != 'cpu':
-            self.model = self.model.to(self.device)
-            self.clf_weight = self.clf_weight.to(self.device)
+        self.model = self.model.to(self.device)
+        self.clf_weight = self.clf_weight.to(self.device)
 
         self.log_path = log_path
 
@@ -250,9 +277,9 @@ class ReflectLearner():
     
 
     def load_data(self,
-                  X_train,
+                  X_train: None | torch.Tensor,
                   Y_train: None | torch.Tensor,
-                  X_test,
+                  X_test: torch.Tensor,
                   Y_test: torch.Tensor,
                   update_weight = False,
                   batch_size=64):
@@ -268,44 +295,28 @@ class ReflectLearner():
             batch_size=64:
         '''
 
-        #NOTE tmp
-        import pandas as pd
-        gene_idx = pd.read_csv('dataset/gene_idx.csv', index_col=0)
-        gene_idx['index'] = gene_idx.index
-        train_metadata = pd.read_csv('dataset/precise1k/metadata.csv', index_col=0)
-        gene_idx_locus = gene_idx.set_index('locus')
-        #assert len(X_test) > 0
+        assert len(X_test) > 0
         assert len(Y_test) > 0
-        #test_dataset = TensorDataset(X_test, Y_test)
-        #self.test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-        X_test_lst = [[] for _ in range(len(X_test))]
-        for item in torch.nonzero(X_test):
-            X_test_lst[item[0]].append([item[1],1])
-        X_test = [torch.tensor(x) if len(x)>0 else torch.tensor([[0,0]]) for x in X_test_lst]
-        test_dataset = PertDataset(X_test, Y_test)
-        self.test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
+        test_dataset = TensorDataset(X_test, Y_test)
+        self.test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
         if X_train != None and Y_train != None:
-            #assert len(X_train) > 0
+            assert len(X_train) > 0
             assert len(Y_train) > 0
-            X_train = [torch.tensor([[int(gene_idx_locus.loc[k,'index']),int(v)] for k,v in eval(d).items()]) for d in train_metadata['perturbation']]
-            train_dataset = PertDataset(X_train, Y_train)
+            train_dataset = TensorDataset(X_train, Y_train)
                     
-            #self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-            self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
+            self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-            #' reset classification loss weight with new Y_train '
-            #if update_weight:
-            #    flat_y = Y_train.flatten()
-            #    weights = [1/(torch.sum(flat_y==-1).item() + 1e-6),
-            #               1/(torch.sum(flat_y==0).item() + 1e-6),
-            #               1/(torch.sum(flat_y==1).item() + 1e-6)]
+            ' reset classification loss weight with new Y_train '
+            if update_weight:
+                flat_y = Y_train.flatten()
+                weights = [1/(torch.sum(flat_y==-1).item() + 1e-6),
+                           1/(torch.sum(flat_y==0).item() + 1e-6),
+                           1/(torch.sum(flat_y==1).item() + 1e-6)]
 
-            #    self.clf_weight = torch.Tensor(weights) / sum(weights)
-            #    if self.device != 'cpu':
-            #        self.clf_weight = self.clf_weight.to(self.device)
-
-        
+                self.clf_weight = torch.Tensor(weights) / sum(weights)
+                if self.device != 'cpu':
+                    self.clf_weight = self.clf_weight.to(self.device)
 
 
     def train(
@@ -356,12 +367,7 @@ class ReflectLearner():
                 r_actions = dist.sample()  # Shape: (batch_size, output_dim)
                 r_actions_batch.append(r_actions)
 
-                X_matrix = torch.zeros(size=(len(X_batch), self.input_dim)).to(self.device)
-                for i, x_batch in enumerate(X_batch):
-                    for item in x_batch:
-                        X_matrix[i, item[0]] = item[1]
-
-                reward += self.consistency_reward(KB, X_matrix, output_y, r_actions, label_weight).detach().item()
+                reward += self.consistency_reward(KB, X_batch, output_y, r_actions, label_weight).detach().item()
                 #r_nonzero += torch.count_nonzero(1-r_actions).detach().item()
 
             #reward = violated / (r_nonzero + 1e-6)
@@ -402,7 +408,9 @@ class ReflectLearner():
             if (epoch+1)%100 == 0 and verbose:
                 print(f"Epoch {epoch+1}, Total loss: {total_loss.item():.4f}, CE loss: {loss_y.item():.4f}, RL loss: {loss_r.item():.4f}, Reward: {reward:.4f}")
 
-                #NOTE tmp
+
+
+                #NOTE TMP #############################
                 for X_batch, _ in self.train_loader:
                     output_y, output_r = self.model(X_batch)
                     y = torch.argmax(output_y, dim=-1) -1
@@ -414,12 +422,8 @@ class ReflectLearner():
                     r_idx = torch.nonzero(torch.sum(r,dim=0)).squeeze(-1).cpu().detach().numpy().tolist()
                     print(f'   r - labels: {len(set(r_idx)-set(labels))}, labels - r: {len(set(labels) - set(r_idx))}')
                     #print(f'    r-labels: {output_r[0,list(set(r_idx)-set(labels))]}\n    labels-r: {output_r[0,list(set(labels)-set(r_idx))]}')
-                    X_matrix = torch.zeros(size=(len(X_batch), self.input_dim)).to(self.device)
-                    for i, x_batch in enumerate(X_batch):
-                        for item in x_batch:
-                            X_matrix[i, item[0]] = item[1]
                     
-                    violated = KB.violated(Y=y, X=X_matrix, mask=~(r.bool()))
+                    violated = KB.violated(Y=y, X=X_batch, mask=~(r.bool()))
                     weighted_restriction = torch.sum(torch.clamp(
                         torch.sign(r- .5) * (-label_weight), min=0))\
                                 if label_weight != None else 0
@@ -427,6 +431,7 @@ class ReflectLearner():
                     len_restriction = torch.max(torch.count_nonzero(r) - .3 * total, other=torch.tensor(0))
                     print(f'    violated: {violated}, weighted: {weighted_restriction}, len: {len_restriction}, nonzero: {torch.count_nonzero(r) / total}')
                     break
+                # NOTE TMP ############################
 
 
     #########################################################################
