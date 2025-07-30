@@ -6,8 +6,73 @@ from cupyx.scipy.sparse import coo_matrix
 import numpy as np
 import json
 import pandas as pd
+from sklearn.metrics import confusion_matrix, f1_score
 
 from egoal.reasoner import RegualtoryKB
+
+def eval_log(Y_true,
+             Y_pred,
+             log_file,
+             Y_prob = None):
+
+    total = Y_pred.size(0)
+    correct = (Y_true == Y_pred).sum(dim=0)
+
+    ''' compute total confusion matrix '''
+    flat_y_t = Y_true.flatten()
+    flat_y_p = Y_pred.flatten()
+    confusion = confusion_matrix(flat_y_t, flat_y_p, labels=[-1, 0,1])
+    confusion = confusion / confusion.sum().sum()
+    f1_macro = f1_score(flat_y_t, flat_y_p, average='macro') # micro on labels, macro on classes
+    f1_micro = f1_score(flat_y_t, flat_y_p, average='micro') # micro on labels, micro on classes
+
+    ' compute weighted f1 by ground truth proportion '
+    weights = [1/(torch.sum(flat_y_t==-1).item() + 1e-6),
+               1/(torch.sum(flat_y_t==0).item() + 1e-6),
+               1/(torch.sum(flat_y_t==1).item() + 1e-6)]
+    weights = torch.Tensor(weights) / sum(weights)
+    f1_class = f1_score(flat_y_t, flat_y_p, average=None)
+    f1_weighted = sum([f1*w for f1,w in zip(f1_class,weights)])
+    #f1_weighted = f1_class[0]*weights[0] + f1_class[2]*weights[2]
+
+
+    ''' compute acc & confusion matrix on each gene '''
+    per_label_accuracy = correct / total
+
+    with open(log_file,'a') as f:
+        f.write('label ')
+        for i in range(len(per_label_accuracy)):
+            f.write(f'{i:8}\t')
+        f.write('\n   acc ')
+        for acc in per_label_accuracy:
+            f.write(f'{acc * 100:7.2f}%\t')
+        f.write('\n    f1 ')
+        for label_idx in range(Y_true.shape[1]):
+            f.write(f"{f1_score(Y_true[:,label_idx], Y_pred[:,label_idx], average='macro'):8.4f}\t")
+        #f.write('\n---- data ----')
+
+        for data_idx in range(Y_true.shape[0]):
+            f.write(f'\npred{data_idx:2} ')
+            for y_pred in Y_pred[data_idx]:
+                f.write(f'{y_pred:8}\t')
+            if Y_prob != None:
+                f.write(f'\nprob{data_idx:2} ')
+                for y_prob in Y_prob[data_idx]:
+                    f.write(f'{y_prob:8.2f}\t')
+            f.write(f'\ntest{data_idx:2} ')
+            for y_test in Y_true[data_idx]:
+                f.write(f'{y_test:8}\t')
+
+        f.write(f'\n------\nconfusion matrix:\n{confusion}\n')
+        f.write(f'macro f1: {f1_macro}\n')
+        f.write(f'micro f1: {f1_micro}\n')
+        f.write(f'weighted f1: {f1_weighted}\n')
+        f.write(f'class -1 f1: {f1_class[0]}\n')
+        f.write(f'class  0 f1: {f1_class[1]}\n')
+        f.write(f'class  1 f1: {f1_class[2]}\n')
+        f.write(f'average label-wise acc: {np.mean(np.array(per_label_accuracy))*100:.2f}%\n')
+
+    return f1_macro
 
 def label_weight(
         X_test : torch.Tensor,

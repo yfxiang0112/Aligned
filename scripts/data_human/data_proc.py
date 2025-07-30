@@ -4,6 +4,11 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import coo_matrix, save_npz
 
+def diff_expr(x0, x1):
+    res = np.where(x1 > 2*x0, 1,
+                   np.where(x1 < .5*x0, -1, 0))
+    return res
+
 gene2go = pickle.load(open('../GEARS/gene2go_all.pkl', 'rb'))
 
 for data_name in ['norman', 'dixit', 'adamson']:
@@ -39,7 +44,7 @@ for data_name in ['norman', 'dixit', 'adamson']:
         de_idx = list(lst[0].de_idx)
     
         start_data_idx = len(Y)
-        Y += [(np.squeeze(d.y, 0) - np.squeeze(d.x, -1)) for d in lst]
+        Y += [diff_expr(np.squeeze(d.x, -1), np.squeeze(d.y, 0)) for d in lst]
         end_data_idx = len(Y)
     
         metadata.append({'pert':pert, 'pert_idx':pert_idx, 'data_start_idx':start_data_idx, 'data_end_idx+1':end_data_idx, 'de_idx':de_idx})

@@ -2,11 +2,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.metrics import confusion_matrix, f1_score
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
 
+
+from egoal.utils import eval_log
 
 class BaseLearnerNN(nn.Module):
     ''' network struct of base learner '''
@@ -185,12 +186,7 @@ class BaseLearner():
         #        f.write('---------- Eval ----------\n')
 
         self.model.eval()
-        correct = 0
-        total = 0
         with torch.no_grad():
-            # confusion = np.zeros((3, 3), dtype=int)
-            f1_micro2 = 0
-            f1_macro2 = 0
 
             Y_test, Y_pred, Y_prob = [], [], []
 
@@ -200,115 +196,14 @@ class BaseLearner():
                 Y_test.append(Y_batch)
                 Y_pred.append(outputs)
                 Y_prob.append(self.predict_prob(X_batch).max(dim=-1).values)
-                total += Y_batch.size(0)
-                # correct += (abs(outputs) == abs(Y_batch)).sum(dim=0)
-                correct += (outputs == Y_batch).sum(dim=0)
-                # print(outputs)
-                # outputs = torch.where(outputs==-1, 2, outputs)
-                # Y_batch = torch.where(Y_batch==-1, 2, Y_batch)
-
-                # NOTE temp test
-                # print(outputs, np.count_nonzero(outputs))
-                # print(Y_batch, np.count_nonzero(Y_batch))
 
             Y_test = torch.concat(Y_test, dim=0)
             Y_pred = torch.concat(Y_pred, dim=0)
             Y_prob = torch.concat(Y_prob, dim=0)
 
-            ''' compute total confusion matrix '''
-            flat_y_t = Y_test.flatten()
-            flat_y_p = Y_pred.flatten()
-            confusion = confusion_matrix(flat_y_t, flat_y_p, labels=[-1, 0, 1])
-            confusion = confusion / confusion.sum().sum()
-            # micro on labels, macro on classes
-            f1_macro = f1_score(flat_y_t, flat_y_p, average='macro')
-            # micro on labels, micro on classes
-            f1_micro = f1_score(flat_y_t, flat_y_p, average='micro')
+            f1 = eval_log(Y_test, Y_pred, self.log_path, Y_prob=Y_prob)
 
-            ' compute weighted f1 by ground truth proportion '
-            weights = [1/(torch.sum(flat_y_t == -1).item() + 1e-6),
-                       1/(torch.sum(flat_y_t == 0).item() + 1e-6),
-                       1/(torch.sum(flat_y_t == 1).item() + 1e-6)]
-            weights = torch.Tensor(weights) / sum(weights)
-            f1_class = f1_score(flat_y_t, flat_y_p, average=None)
-            f1_weighted = sum([f1*w for f1, w in zip(f1_class, weights)])
-            # f1_weighted = f1_class[0]*weights[0] + f1_class[2]*weights[2]
-
-            for label_idx in range(Y_test.shape[1]):
-                # macro on labels, macro on classes
-                f1_macro2 += f1_score(Y_test[:, label_idx],
-                                      Y_pred[:, label_idx], average='macro')
-                # macro on labels, macro on classes
-                f1_micro2 += f1_score(Y_test[:, label_idx],
-                                      Y_pred[:, label_idx], average='micro')
-
-                #    print(score)
-            f1_macro2 /= Y_test.shape[1]
-            f1_micro2 /= Y_test.shape[1]
-
-            # Y_pred = torch.where(Y_pred==2, -1, Y_pred)
-            # Y_test = torch.where(Y_test==2, -1, Y_test)
-
-            ''' compute acc & confusion matrix on each gene '''
-            per_label_accuracy = correct / total
-            # f1 /= Y_test.shape[1]
-            if self.log_path != '':
-                f1_ = []
-                csv_file_name = self.log_path.replace('.txt', '.csv')
-                csv_data = {
-                    'label': [f'{i:8}' for i in range(len(per_label_accuracy))],
-                    'accuracy': [f'{acc * 100:7.2f}%' for acc in per_label_accuracy],
-                }
-                with open(self.log_path, 'a') as f:
-                    f.write('label ')
-                    for i in range(len(per_label_accuracy)):
-                        f.write(f'{i:8}\t')
-                    f.write('\n   acc ')
-                    for acc in per_label_accuracy:
-                        f.write(f'{acc * 100:7.2f}%\t')
-                    f.write('\n    f1 ')
-                    for label_idx in range(Y_test.shape[1]):
-                        f1_score_ = f1_score(
-                            Y_test[:, label_idx], Y_pred[:, label_idx], average='macro')
-                        f1_.append(f1_score_)
-                        f.write(
-                            f"{f1_score_:8.4f}\t")
-                    csv_data['f1'] = f1_
-                    # f.write('\n---- data ----')
-
-                    for data_idx in range(Y_test.shape[0]):
-                        f.write(f'\npred{data_idx:2} ')
-                        for y_pred in Y_pred[data_idx]:
-                            f.write(f'{y_pred:8}\t')
-                        f.write(f'\nprob{data_idx:2} ')
-                        for y_prob in Y_prob[data_idx]:
-                            f.write(f'{y_prob:8.2f}\t')
-                        f.write(f'\ntest{data_idx:2} ')
-                        for y_test in Y_test[data_idx]:
-                            f.write(f'{y_test:8}\t')
-                        csv_data[f'pred{data_idx:2}'] = Y_pred[data_idx]
-                        csv_data[f'prob{data_idx:2}'] = Y_prob[data_idx]
-                        csv_data[f'test{data_idx:2}'] = Y_test[data_idx]
-
-                    f.write(f'\n------\nconfusion matrix:\n{confusion}\n')
-                    f.write(f'macro f1: {f1_macro}\n')
-                    f.write(f'micro f1: {f1_micro}\n')
-                    # f.write(f'macro f1 2: {f1_macro2}\n')
-                    # f.write(f'micro f1 2: {f1_micro2}\n')
-                    f.write(f'weighted f1: {f1_weighted}\n')
-                    f.write(f'class -1 f1: {f1_class[0]}\n')
-                    f.write(f'class  0 f1: {f1_class[1]}\n')
-                    f.write(f'class  1 f1: {f1_class[2]}\n')
-                    f.write(
-                        f'average label-wise acc: {np.mean(per_label_accuracy.numpy())*100:.2f}%\n')
-                pd.DataFrame(csv_data).to_csv(
-                    csv_file_name, index=False)
-
-            else:
-                print(
-                    f'Average Per-label Acc: {np.mean(per_label_accuracy.numpy())*100:.2f}%\n')
-
-            return f1_macro
+            return f1
 
     def predict(self, X):
         if type(X) != torch.Tensor:
