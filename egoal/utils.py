@@ -5,6 +5,57 @@ import cupy as cp
 from cupyx.scipy.sparse import coo_matrix
 import numpy as np
 import json
+import pandas as pd
+
+from egoal.reasoner import RegualtoryKB
+
+def label_weight(
+        X_test : torch.Tensor,
+        Y_test : torch.Tensor,
+        KB: RegualtoryKB,
+        X_train = None | torch.Tensor,
+        Y_train = None | torch.Tensor,
+        GOA_path = None | str):
+
+    if X_train != None:
+        total = len(Y_train)
+        Y_deduction = KB.deduce(X_train)
+        kb_train = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y_train), axis=0) / total > .01)[0].tolist())
+    else:
+        kb_train = list(range(Y_test.shape[1]))
+                        
+    total = len(Y_test)
+    Y_deduction = KB.deduce(X_test)
+    kb_test = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y_test), axis=0) / total > .1)[0].tolist())
+    kb_con_idx = list(set(kb_train).intersection(kb_test))
+
+
+    ' weight with GO annotation '
+    gene_idx = pd.read_csv('dataset/gene_idx.csv', index_col=0)
+    go_annot = pd.read_csv('rules/GO/goa_gene2go.csv', index_col = 0)
+    #go_annot = go_annot.loc[gene_idx.loc[gene_idx['iml1515_idx']!=-1, 'locus']]
+    go_annot_num = np.array([len(eval(go_annot.loc[i,'concepts'])) if i in go_annot.index else 0 for i in gene_idx.loc[gene_idx['iml1515_idx']!=-1, 'locus']], dtype=np.float32)
+    go_annot_num /= np.max(go_annot_num)
+    #go_annot_num = np.max(go_annot_num - .3, np.zeros_like(go_annot_num))
+    print(go_annot_num)
+    
+    
+    ' weight with in-degree in GRN '
+    iml_idx = list(gene_idx[gene_idx['iml1515_idx']!=-1].index)
+    regulatory_p = KB.Regu_P_0.cpu().numpy()
+    regulatory_n = KB.Regu_N_0.cpu().numpy()
+    regulatory_num = np.sum(regulatory_p + regulatory_n, axis=0)[iml_idx]
+    regulatory_num /= np.max(regulatory_num)
+    #regulatory_num = np.max(regulatory_num - .3, np.zeros_like(regulatory_num))
+    print(regulatory_num)
+
+    weights = np.full(shape=Y_true.shape[1], fill_value=-.3, dtype=np.float32)
+    weights += (go_annot_num - .3) + (regulatory_num - .3)
+    weights[kb_con_idx] += 1.3
+    weights = np.clip(weights, -1., 1.)
+
+    return weights
+    return np.zeros(shape=Y_test.shape[1])
 
 #def negation(M: Union[pgb.Matrix, pgb.Vector], print_matrix=False) -> Union[pgb.Matrix, pgb.Vector]:
 #    if type(M) == pgb.Matrix:

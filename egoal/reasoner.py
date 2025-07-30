@@ -17,20 +17,20 @@ def exp_power(X, k, t):
 class RegualtoryKB():
     def __init__(self,
                  pos_trn_pth: str,
-                 neg_trn_pth: str,
+                 neg_trn_pth: str | None,
                  output_idx_list=None,
                  device='cpu') -> None:
         '''
         Class for Regulatory Network Knowledgebase
         Args:
-            pos_trn_pth:
+            pos_trn_pth: npz file path 
             neg_trn_pth:
             output_idx_list:
             device:
         '''
 
         self.Regu_P_0 = torch.tensor(load_npz(pos_trn_pth).toarray(), dtype=torch.float)
-        self.Regu_N_0 = torch.tensor(load_npz(neg_trn_pth).toarray(), dtype=torch.float)
+        self.Regu_N_0 = torch.tensor(load_npz(neg_trn_pth).toarray(), dtype=torch.float) if neg_trn_pth!=None else torch.zeros_like(self.Regu_P_0)
 
         self.device = device
         if self.device != 'cpu':

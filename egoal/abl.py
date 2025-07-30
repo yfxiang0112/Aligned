@@ -18,7 +18,7 @@ def abduce(X_unlabel: torch.Tensor,
            Y_test: torch.Tensor,
 
            pos_trn_pth: str,
-           neg_trn_pth: str,
+           neg_trn_pth: str | None,
            output_idx_list = None,
            label_weight = None | torch.Tensor,
 
@@ -26,6 +26,7 @@ def abduce(X_unlabel: torch.Tensor,
            Y_label = None | torch.Tensor,
            pretrained_model_pth = None,
            model_save_pth = None,
+           base_learner_type = 'MLP',
 
            T= 5,
 
@@ -56,19 +57,20 @@ def abduce(X_unlabel: torch.Tensor,
         neg_trn_pth: str:
         output_idx_list = None:
 
-        X_label = None | torch.Tensor:
-        Y_label = None | torch.Tensor:
-        pretrained_model_pth = None:
-        model_save_pth = None,
+        X_label:
+        Y_label:
+        pretrained_model_pth:
+        model_save_pth:
+        base_learner_type:
 
-        T = 5:
-        pretrain_epc=100:
-        pretrain_lr=0.01:
-        retrain_epc=20:
-        retrain_lr=0.01:
-        device = 'cpu':
-        seed=None:
-        log_file='':
+        T:
+        pretrain_epc:
+        pretrain_lr:
+        retrain_epc:
+        retrain_lr:
+        device:
+        seed:
+        log_file:
     '''
 
     
@@ -80,7 +82,7 @@ def abduce(X_unlabel: torch.Tensor,
     learner = ReflectLearner(input_dim= X_test.shape[1],
                              output_dim= Y_test.shape[1],
                              hidden_dim= 64,
-                             base_learner_type= 'GNN',
+                             base_learner_type= base_learner_type,
                              device=device,
                              log_path=log_file)
     reasoner = RegualtoryKB(pos_trn_pth= pos_trn_pth,
@@ -279,6 +281,7 @@ if __name__ == "__main__":
            X_label = X_train,
            Y_label = Y_train,
            #pretrained_model_pth= 'models/pretrained_7.18_label_weight.pt',
+           base_learner_type= 'GNN',
 
            T= 2,
 
