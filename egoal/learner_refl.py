@@ -418,7 +418,7 @@ class ReflectLearner():
                     print(f'    full cols: {torch.count_nonzero(torch.sum(r,dim=0)==len(r))}, non-full cols: {torch.count_nonzero((torch.sum(r,dim=0)<len(r)) & (torch.sum(r,dim=0)>0))}')
                     #print(f'r={output_r}')
                     
-                    labels = [1, 2, 23, 82, 83, 84, 97, 107, 159, 160, 161, 162, 163, 243, 246, 263, 264, 265, 266, 267, 268, 269, 272, 284, 286, 301, 302, 303, 328, 337, 338, 342, 343, 348, 353, 362, 363, 418, 432, 436, 443, 444, 448, 458, 471, 501, 549, 550, 558, 561, 562, 570, 579, 584, 585, 586, 587, 588, 589, 621, 622, 632, 633, 634, 641, 661, 683, 705, 719, 720, 734, 748, 752, 753, 762, 763, 764, 765, 766, 799, 833, 904, 925, 934, 945, 950, 951, 952, 953, 954, 955, 965, 997, 998, 999, 1003, 1011, 1012, 1013, 1029, 1030, 1031, 1032, 1043, 1052, 1066, 1071, 1091, 1094, 1095, 1132, 1133, 1136, 1140, 1141, 1142, 1175, 1178, 1183, 1204, 1209, 1213, 1215, 1251, 1252, 1262, 1320, 1321, 1322, 1339, 1342, 1347, 1348, 1349, 1366, 1381, 1382, 1388, 1389, 1391, 1392, 1402, 1403, 1429, 1430, 1438, 1439, 1442, 1443, 1452, 1462, 1474, 1475, 1497, 1498, 1507]
+                    labels = torch.nonzero(label_weight > .1).squeeze(-1).cpu().detach().numpy().tolist()
                     r_idx = torch.nonzero(torch.sum(r,dim=0)).squeeze(-1).cpu().detach().numpy().tolist()
                     print(f'   r - labels: {len(set(r_idx)-set(labels))}, labels - r: {len(set(labels) - set(r_idx))}')
                     #print(f'    r-labels: {output_r[0,list(set(r_idx)-set(labels))]}\n    labels-r: {output_r[0,list(set(labels)-set(r_idx))]}')

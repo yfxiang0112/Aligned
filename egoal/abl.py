@@ -19,6 +19,7 @@ def abduce(X_unlabel: torch.Tensor,
 
            pos_trn_pth: str,
            neg_trn_pth: str | None,
+           closure_type = 'naive',
            output_idx_list = None,
            label_weight = None | torch.Tensor,
 
@@ -89,7 +90,7 @@ def abduce(X_unlabel: torch.Tensor,
                             neg_trn_pth= neg_trn_pth,
                             output_idx_list= output_idx_list,
                             device=device)#, T=4)
-    reasoner.closure_(T=closure, closure_type='weighted')
+    reasoner.closure_(T=closure, closure_type=closure_type)
 
     ########################################
 
@@ -106,7 +107,7 @@ def abduce(X_unlabel: torch.Tensor,
         learner.load(pretrained_model_pth)
 
     elif X_label != None and Y_label != None:
-        learner.load_data(X_train, Y_train, X_test, Y_test)
+        learner.load_data(X_label, Y_label, X_test, Y_test)
 
         if log_file != '':
             with open(log_file, 'a') as log:
@@ -168,9 +169,9 @@ def abduce(X_unlabel: torch.Tensor,
         R_pred = torch.round(R_pred).bool()
         Y_deduction_test = reasoner.deduce(X_test)
 
-        #np.save(f'data_anal/abduction_results/R_ABL{t}.npy', R_pred.cpu().numpy()) #NOTE tmp
-        #np.save(f'data_anal/abduction_results/Yp_ABL{t}.npy', Y_pred.cpu().numpy()) #NOTE tmp
-        #np.save(f'data_anal/abduction_results/Yd_ABL{t}.npy', Y_deduction_test.cpu().numpy()) #NOTE tmp
+        np.save(f'data_anal/abduction_results/R_ABL{t}.npy', R_pred.cpu().numpy()) #NOTE tmp
+        np.save(f'data_anal/abduction_results/Yp_ABL{t}.npy', Y_pred.cpu().numpy()) #NOTE tmp
+        np.save(f'data_anal/abduction_results/Yd_ABL{t}.npy', Y_deduction_test.cpu().numpy()) #NOTE tmp
 
         Y_pred = torch.where(R_pred, Y_deduction_test, Y_pred)
 
@@ -275,6 +276,7 @@ if __name__ == "__main__":
 
            pos_trn_pth='rules/regu_pos.npz',
            neg_trn_pth='rules/regu_neg.npz',
+           closure_type= 'weighted',
            output_idx_list=idx_list_sra,
            label_weight=label_weight,
 

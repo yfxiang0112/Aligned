@@ -10,12 +10,12 @@ from egoal.reasoner import RegualtoryKB
 
 data_name = 'norman'
 
-KB = RegualtoryKB(pos_trn_pth=f'dataset/human/{data_name}_KB.npz', neg_trn_pth=None, device='cuda')
+KB = RegualtoryKB(pos_trn_pth=f'dataset/human/{data_name}_KB.npz', neg_trn_pth=None, device='cuda:1')
 
 
 Y_train = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()
 X_train = load_npz(f'dataset/human/{data_name}_X.npz').toarray()
-Y_deduction = KB.deduce(torch.tensor(X_train).float().to('cuda'))
+Y_deduction = KB.deduce(torch.tensor(X_train).float().to('cuda:1'))
 Y_deduction = Y_deduction.cpu().numpy()
 
 #Y_pseudo = np.load('data_anal/abduction_results/Yp_ABL2.npy')
@@ -23,7 +23,7 @@ Y_deduction = Y_deduction.cpu().numpy()
 total = len(Y_train)
 
 #gt_con_idx = (np.nonzero(np.sum((Y_deduction != Y_true) | (Y_pseudo != Y_true), axis=0) / total < .2)[0].tolist())
-kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y_train), axis=0) / total > .01)[0].tolist())
+kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y_train), axis=0) / total > 1e-4)[0].tolist())
 
 #print(f'Consistent labels with Y_true\nsra: {len(labels_gt_con)}\n')
 print(f'Consistent labels with KB: {len(kb_con_idx)}\n')
@@ -73,4 +73,5 @@ weights[kb_con_idx] += 1.3
 weights = np.clip(weights, -1., 1.)
 print(weights)
 print(np.count_nonzero(weights >= .1))
+print(np.nonzero(weights >= .1)[0].tolist())
 np.save(f'dataset/human/{data_name}_label_weight.npy', weights)
