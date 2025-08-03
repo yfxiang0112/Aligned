@@ -13,7 +13,8 @@ if __name__ == '__main__':
     X_train = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray(), dtype = torch.float32)
     Y_train = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray(), dtype = int)
 
-    test_idx = np.random.choice([True, False], size=len(X_train), p=[.2, .8])
+    #test_idx = np.random.choice([True, False], size=len(X_train), p=[.2, .8])
+    test_idx = np.load(f'dataset/human/{data_name}_test_idx.npy')
 
     X_test = X_train[test_idx]
     Y_test = Y_train[test_idx]
