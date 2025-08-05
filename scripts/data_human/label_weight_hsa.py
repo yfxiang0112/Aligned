@@ -13,21 +13,45 @@ data_name = 'norman'
 #KB = RegualtoryKB(pos_trn_pth=f'dataset/human/{data_name}_KB.npz', neg_trn_pth=None, device='cuda')
 
 
-Y_train = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()
-X_train = load_npz(f'dataset/human/{data_name}_X.npz').toarray()
+Y = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()
+X = load_npz(f'dataset/human/{data_name}_X.npz').toarray()
 #Y_deduction = KB.deduce(torch.tensor(X_train).float().to('cuda'))
 
-test_idx = np.load('dataset/human/{data_name}_test_idx.npy')
-X_test = X_train[test_idx]
-Y_test = Y_train[test_idx]
+test_idx = np.load(f'dataset/human/{data_name}_test_idx.npy')
+X_test = X[test_idx]
+Y_test = Y[test_idx]
 
-Y_pseudo = np.load('data_anal/abduction_results/Yp_ABL0_hsa.npy')
-Y_deduction = np.load('data_anal/abduction_results/Yd_ABL0_hsa.npy')
-R = np.load('data_anal/abduction_results/R_ABL0_hsa.npy')
+
+#test_df = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
+#series = test_df[test_df['test_type']=='seen_2_pert'].apply(lambda x: list(range(x['data_start_idx'],x['data_end_idx+1'])), axis=1)
+#pert_idx = sum(series, [])
+#X_test = X_test[pert_idx]
+#Y_test = Y_test[pert_idx]
+
+Y_pseudo = np.load('data_anal/abduction_results/Yp_ABL0_train_hsa.npy')
+Y_deduction = np.load('data_anal/abduction_results/Yd_ABL0_train_hsa.npy')
+R = np.load('data_anal/abduction_results/R_ABL0_train_hsa.npy')
+
+print(Y_pseudo.shape)
+
+#Y_pseudo = Y_pseudo[pert_idx]
+#Y_deduction = Y_deduction[pert_idx]
+#R = R[pert_idx]
+
 total = len(Y_test)
 
 #gt_con_idx = (np.nonzero(np.sum((Y_deduction != Y_true) | (Y_pseudo != Y_true), axis=0) / total < .2)[0].tolist())
-kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y_test), axis=0) / total > 1e-3)[0].tolist())
+kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > 1e-3)[0].tolist())
+
+data_idx = np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == np.abs(Y)), axis=1) > 0)[0].tolist()
+print(len(data_idx))
+
+metadata = pd.read_csv(f'dataset/human/{data_name}_metadata.csv',index_col=0)
+metadata_test = metadata.loc[metadata.apply(lambda x: np.any((np.array(data_idx) >= x['data_start_idx']) & (np.array(data_idx) < x['data_end_idx+1'])), axis=1)]
+print(metadata_test)
+
+#Y_test, Y_pseudo, Y_deduction, R = Y[data_idx], Y_pseudo[data_idx], Y_deduction[data_idx], R[data_idx]
+Y_pseudo, Y_deduction, R =  Y_pseudo[test_idx], Y_deduction[test_idx], R[test_idx]
 
 #print(f'Consistent labels with Y_true\nsra: {len(labels_gt_con)}\n')
 print(f'Consistent labels with KB: {len(kb_con_idx)}\n')
@@ -40,9 +64,9 @@ y_mask_kb = np.where(mask_kb, Y_deduction, Y_pseudo)
 
 y_r = np.where(R, Y_deduction, Y_pseudo)
 
-print('f1 of Y_pseudo:', f1_score(Y_test.flatten(), Y_pseudo.flatten(), average='macro'))
+print('f1 of Y_pseudo:', f1_score(np.abs(Y_test).flatten(), np.abs(Y_pseudo).flatten(), average='macro'))
 print('f1 of Y_deduction:', f1_score(Y_test.flatten(), Y_deduction.flatten(), average='macro'))
-print('f1 of Y_mask_kb', f1_score(Y_test.flatten(), y_mask_kb.flatten(), average='macro'))
+print('f1 of Y_mask_kb', f1_score(np.abs(Y_test).flatten(), np.abs(y_mask_kb).flatten(), average='macro'))
 print('f1 of Y[r]:', f1_score(Y_test.flatten(), y_r.flatten(), average='macro'))
 
 

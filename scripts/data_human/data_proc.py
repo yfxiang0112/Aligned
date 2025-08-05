@@ -5,13 +5,13 @@ import pandas as pd
 from scipy.sparse import coo_matrix, save_npz
 
 def diff_expr(x0, x1):
-    res = np.where(x1 > 2*x0, 1,
-                   np.where(x1 < .5*x0, -1, 0))
+    res = np.where(x1 > x0, 1,
+                   np.where(x1 < x0, -1, 0))
     return res
 
 gene2go = pickle.load(open('../GEARS/gene2go_all.pkl', 'rb'))
 
-for data_name in ['norman', 'dixit', 'adamson']:
+for data_name in ['norman']:#, 'dixit', 'adamson']:
     data_dict = pickle.load(open(f'../GEARS/{data_name}/data_pyg/cell_graphs.pkl','rb'))
     ann_data = sc.read_h5ad(f'../GEARS/{data_name}/perturb_processed.h5ad')
     df_go= pd.read_csv(f'../GEARS/{data_name}/go.csv')
@@ -39,9 +39,9 @@ for data_name in ['norman', 'dixit', 'adamson']:
     genes_out_key = set()
 
     for i, lst in enumerate(data):
-        pert_idx = lst[0].pert_idx
+        pert_idx = [int(i) for i in lst[0].pert_idx]
         pert = lst[0].pert.split('+')
-        de_idx = list(lst[0].de_idx)
+        de_idx = [int(i) for i in lst[0].de_idx]
     
         start_data_idx = len(Y)
         Y += [diff_expr(np.squeeze(d.x, -1), np.squeeze(d.y, 0)) for d in lst]
