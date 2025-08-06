@@ -5,13 +5,13 @@ import pandas as pd
 from scipy.sparse import coo_matrix, save_npz
 
 def diff_expr(x0, x1):
-    res = np.where(x1 > x0, 1,
-                   np.where(x1 < x0, -1, 0))
+    res = np.where(x1 > 2 * x0, 1,
+                   np.where(x1 < .5 * x0, -1, 0))
     return res
 
 gene2go = pickle.load(open('../GEARS/gene2go_all.pkl', 'rb'))
 
-for data_name in ['norman']:#, 'dixit', 'adamson']:
+for data_name in ['norman', 'dixit', 'adamson']:
     data_dict = pickle.load(open(f'../GEARS/{data_name}/data_pyg/cell_graphs.pkl','rb'))
     ann_data = sc.read_h5ad(f'../GEARS/{data_name}/perturb_processed.h5ad')
     df_go= pd.read_csv(f'../GEARS/{data_name}/go.csv')
@@ -53,8 +53,9 @@ for data_name in ['norman']:#, 'dixit', 'adamson']:
             if g == 'ctrl':
                 continue
             elif g in df_genes.index:
-                X_row.append(i)
-                X_col.append(int(df_genes.loc[g,'vector_idx']))
+                for row in range(start_data_idx, end_data_idx):
+                    X_row.append(row)
+                    X_col.append(int(df_genes.loc[g,'vector_idx']))
             else:
                 genes_out_key.add(g)
     
