@@ -169,9 +169,9 @@ def abduce(X_unlabel: torch.Tensor,
         R_pred = torch.round(R_pred).bool()
         Y_deduction_test = reasoner.deduce(X_test)
 
-        np.save(f'data_anal/abduction_results/R_ABL{t}.npy', R_pred.cpu().numpy()) #NOTE tmp
-        np.save(f'data_anal/abduction_results/Yp_ABL{t}.npy', Y_pred.cpu().numpy()) #NOTE tmp
-        np.save(f'data_anal/abduction_results/Yd_ABL{t}.npy', Y_deduction_test.cpu().numpy()) #NOTE tmp
+        np.save(f'data_anal/abduction_results/R_ABL{t}_hsa.npy', R_pred.cpu().numpy()) #NOTE tmp
+        np.save(f'data_anal/abduction_results/Yp_ABL{t}_hsa.npy', Y_pred.cpu().numpy()) #NOTE tmp
+        np.save(f'data_anal/abduction_results/Yd_ABL{t}_hsa.npy', Y_deduction_test.cpu().numpy()) #NOTE tmp
 
         Y_pred = torch.where(R_pred, Y_deduction_test, Y_pred)
 
@@ -264,7 +264,7 @@ if __name__ == "__main__":
     #Y_test = Y_test[idx_list]
 
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)

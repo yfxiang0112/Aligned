@@ -16,17 +16,19 @@ if __name__ == '__main__':
     #test_idx = np.random.choice([True, False], size=len(X_train), p=[.2, .8])
     test_idx = np.load(f'dataset/human/{data_name}_test_idx.npy')
 
-    X_test = X_train[test_idx]
-    Y_test = Y_train[test_idx]
-    X_train = X_train[~ test_idx]
-    Y_train = Y_train[~ test_idx]
+    X_test = X_train[test_idx][:2000]
+    Y_test = Y_train[test_idx][:2000]
+    X_train = X_train[~ test_idx][:2000]
+    Y_train = Y_train[~ test_idx][:2000]
 
-    X_unlabel = X_test #NOTE TMP
+    regulators = np.nonzero(np.sum(load_npz(f'dataset/human/{data_name}_KB.npz').toarray(),axis=1))[0]
+    X_unlabel = np.zeros(shape=(len(regulators), X_train.shape[1]))
+    X_unlabel[range(len(X_unlabel)), regulators] = 1.
+    X_unlabel = torch.tensor(X_unlabel, dtype=torch.float32)
 
     label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
 
-
-    device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -42,13 +44,13 @@ if __name__ == '__main__':
 
            X_label = X_train,
            Y_label = Y_train,
-           pretrained_model_pth= 'models/pretrained_hsa.pt',
+           #pretrained_model_pth= 'models/pretrained_hsa.pt',
            base_learner_type= 'MLP',
 
            T= 2,
 
            pretrain_epc= 300,
-           pretrain_rl_epc= 10,
+           pretrain_rl_epc= 200,
            pretrain_lr= 1e-3,
 
            retrain_epc= 500,
