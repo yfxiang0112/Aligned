@@ -273,7 +273,8 @@ class ReflectLearner():
         total = r_binary.shape[0] * r_binary.shape[1]
         len_restriction = torch.max(torch.count_nonzero(r_binary) - th * total, other=torch.tensor(0))
 
-        return - violated - 2*weighted_restriction - len_restriction
+        #return - violated - 2*weighted_restriction - len_restriction
+        return - weighted_restriction
 
     def load_data(self,
                   X_train: None | torch.Tensor,
@@ -359,7 +360,7 @@ class ReflectLearner():
 
                 output_y, output_r = self.model(X_batch)
 
-                output_r = torch.clamp(output_r.detach(), .2, .8)
+                output_r = torch.clamp(output_r.detach(), .3, .7)
                 # NOTE test
 
                 dist = Bernoulli(output_r)

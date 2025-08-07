@@ -119,7 +119,7 @@ def abduce(X_unlabel: torch.Tensor,
                       label_weight= label_weight,
                       epochs= pretrain_epc,
                       reinforce_epochs= pretrain_rl_epc,
-                      C=0,
+                      C=10,
                       lr=pretrain_lr,
                       verbose=verbose)
         learner.save('models/pretrained.pt' if model_save_pth==None else model_save_pth)
@@ -151,12 +151,12 @@ def abduce(X_unlabel: torch.Tensor,
         Y_prob, R = learner.forward(X_unlabel)
         Y_pseudo = torch.argmax(Y_prob, dim=-1) -1
         print(torch.max(R))
-        print('>.9:', torch.sum(R > .9) / (R.shape[0]*R.shape[1]))
-        print('>.8:', torch.sum((R > .8) & (R <= .9)) / (R.shape[0]*R.shape[1]))
-        print('>.5:', torch.sum((R > .5) & (R <= .8)) / (R.shape[0]*R.shape[1]))
-        print('<.5:', torch.sum(R <= .5) / (R.shape[0]*R.shape[1]))
-        R_binary = torch.round(R > .8).bool()
-        exit()
+        print('R >.9:', torch.sum(R > .9) / (R.shape[0]*R.shape[1]))
+        print('R >.8:', torch.sum((R > .8) & (R <= .9)) / (R.shape[0]*R.shape[1]))
+        print('R >.5:', torch.sum((R > .5) & (R <= .8)) / (R.shape[0]*R.shape[1]))
+        print('R <.5:', torch.sum(R <= .5) / (R.shape[0]*R.shape[1]))
+        R_binary = R >= .8#torch.round(R > .8).bool()
+        print('R_biary nonzero:', torch.count_nonzero(R_binary))
 
 
         print(torch.count_nonzero(R_binary) / (R.shape[0]*R.shape[1]))
@@ -172,7 +172,7 @@ def abduce(X_unlabel: torch.Tensor,
         #NOTE tmp ########################################
         Y_pred, R_pred = learner.forward(X_test)
         Y_pred = torch.argmax(Y_pred, dim=-1) -1
-        R_pred = torch.round(R_pred).bool()
+        R_pred = R_pred >= .8
         Y_deduction_test = reasoner.deduce(X_test)
 
         np.save(f'data_anal/abduction_results/R_ABL{t}_hsa.npy', R_pred.cpu().numpy()) #NOTE tmp
@@ -191,12 +191,14 @@ def abduce(X_unlabel: torch.Tensor,
 
         # TODO KB update before RL training?
         #np.save('KB_before.npy', reasoner.KB.detach().cpu().numpy()) #NOTE tmp
+
         reasoner.refine(X= X_unlabel,
                         Y= Y_modified,
                         k= closure,
                         epochs= refine_epc,
                         init_lr= refine_lr,
                         verbose= verbose)
+        
         #np.save('KB_after.npy', reasoner.KB.detach().cpu().numpy()) #NOTE tmp
 
         ' retrain base learner '
@@ -270,7 +272,7 @@ if __name__ == "__main__":
     #Y_test = Y_test[idx_list]
 
 
-    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -288,7 +290,8 @@ if __name__ == "__main__":
 
            X_label = X_train,
            Y_label = Y_train,
-           #pretrained_model_pth= 'models/pretrained_7.18_label_weight.pt',
+           #pretrained_model_pth= 'models/pretrained_7.29_GNN.pt',
+           #model_save_pth= 'models/pretrained_8.7_GNN.pt',
            base_learner_type= 'GNN',
 
            T= 2,
