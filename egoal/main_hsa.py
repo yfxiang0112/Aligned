@@ -16,10 +16,10 @@ if __name__ == '__main__':
     #test_idx = np.random.choice([True, False], size=len(X_train), p=[.2, .8])
     test_idx = np.load(f'dataset/human/{data_name}_test_idx.npy')
 
-    X_test = X_train[test_idx][:2000]
-    Y_test = Y_train[test_idx][:2000]
-    X_train = X_train[~ test_idx][:2000]
-    Y_train = Y_train[~ test_idx][:2000]
+    X_test = X_train[test_idx]
+    Y_test = Y_train[test_idx]
+    X_train = X_train[~ test_idx]
+    Y_train = Y_train[~ test_idx]
 
     regulators = np.nonzero(np.sum(load_npz(f'dataset/human/{data_name}_KB.npz').toarray(),axis=1))[0]
     X_unlabel = np.zeros(shape=(len(regulators), X_train.shape[1]))
@@ -50,7 +50,7 @@ if __name__ == '__main__':
            T= 2,
 
            pretrain_epc= 300,
-           pretrain_rl_epc= 200,
+           pretrain_rl_epc= 0,
            pretrain_lr= 1e-3,
 
            retrain_epc= 500,

@@ -119,7 +119,7 @@ def abduce(X_unlabel: torch.Tensor,
                       label_weight= label_weight,
                       epochs= pretrain_epc,
                       reinforce_epochs= pretrain_rl_epc,
-                      C=10,
+                      C=0,
                       lr=pretrain_lr,
                       verbose=verbose)
         learner.save('models/pretrained.pt' if model_save_pth==None else model_save_pth)
@@ -150,7 +150,13 @@ def abduce(X_unlabel: torch.Tensor,
         ' predict pseudo label & to binary '
         Y_prob, R = learner.forward(X_unlabel)
         Y_pseudo = torch.argmax(Y_prob, dim=-1) -1
-        R_binary = torch.round(R).bool()
+        print(torch.max(R))
+        print('>.9:', torch.sum(R > .9) / (R.shape[0]*R.shape[1]))
+        print('>.8:', torch.sum((R > .8) & (R <= .9)) / (R.shape[0]*R.shape[1]))
+        print('>.5:', torch.sum((R > .5) & (R <= .8)) / (R.shape[0]*R.shape[1]))
+        print('<.5:', torch.sum(R <= .5) / (R.shape[0]*R.shape[1]))
+        R_binary = torch.round(R > .8).bool()
+        exit()
 
 
         print(torch.count_nonzero(R_binary) / (R.shape[0]*R.shape[1]))
