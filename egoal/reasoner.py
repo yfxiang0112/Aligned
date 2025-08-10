@@ -89,16 +89,7 @@ class RegualtoryKB():
         else:
             self.KB = torch.clamp(R_diff, -1,1)
 
-        #self.KB_P, self.KB_N, self.T = self.closure(self.Regu_P_0, self.Regu_N_0, T, self.device)
-        #self.KB_P, self.KB_N  = self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
-        #self.KB = torch.clamp(self.KB_P - self.KB_N, -1.,1.)
-
         self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
-        #print(self.KB, self.KB.shape, torch.count_nonzero(self.KB))
-        #print(torch.count_nonzero(torch.sum(self.KB,dim=1)))
-        #print(torch.count_nonzero(torch.sum(self.KB,dim=1)>100))
-        #print(torch.count_nonzero(R_diff))
-        #exit()
         return self.KB_P, self.KB_N, self.T
 
 
@@ -347,6 +338,8 @@ class RegualtoryKB():
 
 
 if __name__ == '__main__':
+    # NOTE tmp test
+
     cp.cuda.Device(0).use()
     
     regulatoryKB = RegualtoryKB(pos_trn_pth='rules/regu_pos.npz',

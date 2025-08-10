@@ -137,10 +137,6 @@ def abduce(X_unlabel: torch.Tensor,
 
     ########################################
 
-    ' modified labels in each unlabeled sample '
-    modified_labels = [set() for _ in range(len(X_unlabel))]
-    #TODO?
-
     ''' abl main loop '''
     for t in range(T):
         if log_file != '':
@@ -167,7 +163,6 @@ def abduce(X_unlabel: torch.Tensor,
         Y_modified = torch.where(R_binary, Y_deduction, Y_pseudo)
         #Y_modified = Y_deduction
 
-        #print(torch.count_nonzero(Y_deduction))
 
         #NOTE tmp ########################################
         Y_pred, R_pred = learner.forward(X_test)
@@ -199,9 +194,9 @@ def abduce(X_unlabel: torch.Tensor,
         #exit()
         #if t == 1: # tmp
         #    exit()
-        #NOTE ###########################################
 
-        # TODO KB update before RL training?
+        #NOTE end #######################################
+
         #np.save('KB_before.npy', reasoner.KB.detach().cpu().numpy()) #NOTE tmp
 
         reasoner.refine(X= X_unlabel,
@@ -226,100 +221,3 @@ def abduce(X_unlabel: torch.Tensor,
 
         f1 = learner.eval()
         print(f'ABL loop {t}: macro f1 {f1:.4f}')
-        
-
-
-####################
-
-if __name__ == "__main__":
-    log_file = f'log/EGOAL-{datetime.now()}.txt'.replace(' ','-')
-
-    X_train = torch.tensor(np.load('dataset/precise1k/X_label.npy'), dtype = torch.float32)
-    Y_train = torch.tensor(np.load('dataset/precise1k/Y_label.npy'), dtype = int)
-
-    X_test = torch.tensor(np.load('dataset/ncbi-sra/X_label.npy'), dtype = torch.float32)
-    Y_test = torch.tensor(np.load('dataset/ncbi-sra/Y_label.npy'), dtype = int)
-
-    test_idx = [37,38,39,40,41,42,43,44,45,46,47,48, 49,50,51,52,53,54, 55,56,57, 28,29,30,58,59,60,61]
-    # arcZ, gcvB, micA, ryhB
-    X_test, Y_test = X_test[test_idx], Y_test[test_idx]
-
-    X_unlabel = torch.tensor(np.load('dataset/X_regulators.npy'), dtype = torch.float32)
-
-
-    #X_unlabel = X_train
-
-    label_set = pd.read_csv('dataset/label_set_iml.csv', index_col=0)
-    idx_list_p1k = list(label_set['precise1k_idx'])
-    idx_list_sra = list(label_set['matrix_idx'])
-
-    Y_train = Y_train[:,idx_list_p1k]
-    Y_test = Y_test[:,idx_list_sra]
-
-    label_weight = torch.tensor(np.load('rules/label_weight.npy'))
-
-    #print(f'Y_train: {Y_train.shape}, Y_test: {Y_test.shape}')
-
-    ##X_unlabel = X_unlabel[2860:2880] # yicR
-    ##X_unlabel = X_unlabel[2570:2580]
-
-    #X_unlabel = torch.zeros(size=(10, X_train.shape[1]), dtype=torch.float32)
-    #for i in range(10):
-    #    X_unlabel[i, 3370+i] = 1 #arcZ
-    #    #X_unlabel[i, 2830+i] = 1 #micA
-    #    #X_unlabel[i,2960+i] = 1 # gcvB
-
-    #print(list(torch.nonzero(X_unlabel)))
-
-
-    ##idx_list = [26,27] # yicR
-    ##idx_list = [51,52,53,54,55,56] #gcvB
-    ##idx_list = [0,1,2,4,5,11,12] # mazF
-
-    #idx_list = list(range(42,54)) # arcZ
-    ##idx_list = list(range(60,63)) # micA
-
-    #print(torch.nonzero(X_test[idx_list]).tolist())
-    #print(torch.nonzero(X_test[[i for i in range(len(X_test)) if i not in idx_list]]).tolist())
-    #X_test = X_test[idx_list]
-    #Y_test = Y_test[idx_list]
-
-
-    device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
-    X_train, Y_train = X_train.to(device), Y_train.to(device)
-    X_test, Y_test = X_test.to(device), Y_test.to(device)
-    X_unlabel = X_unlabel.to(device)
-    label_weight = label_weight.to(device)
-
-    abduce(X_unlabel= X_unlabel,
-           X_test= X_test,
-           Y_test= Y_test,
-
-           pos_trn_pth='rules/regu_pos.npz',
-           neg_trn_pth='rules/regu_neg.npz',
-           closure_type= 'weighted',
-           output_idx_list=idx_list_sra,
-           label_weight=label_weight,
-
-           X_label = X_train,
-           Y_label = Y_train,
-           #pretrained_model_pth= 'models/pretrained_7.29_GNN.pt',
-           model_save_pth= 'models/ecoli/GNN.pt',
-           base_learner_type= 'GNN',
-
-           T= 2,
-
-           pretrain_epc= 300,
-           pretrain_rl_epc= 100,
-           pretrain_lr= 1e-3,
-
-           retrain_epc= 500,
-           retrain_rl_epc= 100,
-           retrain_lr= 1e-3,
-           refine_epc= 2000,
-           refine_lr= 1e-4,
-
-           device= device,
-           seed= 42,
-           log_file= log_file,
-           verbose= False)

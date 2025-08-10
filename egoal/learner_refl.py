@@ -549,6 +549,8 @@ class ReflectLearner():
 
 
 if __name__ == '__main__':
+    # NOTE tmp test
+
     torch.manual_seed(42)
     np.random.seed(42)
 
