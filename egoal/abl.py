@@ -155,7 +155,7 @@ def abduce(X_unlabel: torch.Tensor,
         print('R >.8:', torch.sum((R > .8) & (R <= .9)) / (R.shape[0]*R.shape[1]))
         print('R >.5:', torch.sum((R > .5) & (R <= .8)) / (R.shape[0]*R.shape[1]))
         print('R <.5:', torch.sum(R <= .5) / (R.shape[0]*R.shape[1]))
-        R_binary = R >= .8#torch.round(R > .8).bool()
+        R_binary = R >= .6#torch.round(R > .8).bool()
         print('R_biary nonzero:', torch.count_nonzero(R_binary))
 
 
@@ -172,19 +172,31 @@ def abduce(X_unlabel: torch.Tensor,
         #NOTE tmp ########################################
         Y_pred, R_pred = learner.forward(X_test)
         Y_pred = torch.argmax(Y_pred, dim=-1) -1
-        R_pred = R_pred >= .8
+        y_p_flat = Y_pred.detach().cpu().numpy().flatten()
+        y_t_flat = Y_test.detach().cpu().numpy().flatten()
+        print(f'Y_pseudo f1: {f1_score(y_t_flat, y_p_flat, average="macro")}')
+        print(f'Y_pseudo f1 (abs): {f1_score(np.abs(y_t_flat), np.abs(y_p_flat), average="macro")}')
+
+        R_pred = R_pred >= .5 #NOTE
         Y_deduction_test = reasoner.deduce(X_test)
 
-        np.save(f'data_anal/abduction_results/R_ABL{t}_hsa.npy', R_pred.cpu().numpy()) #NOTE tmp
-        np.save(f'data_anal/abduction_results/Yp_ABL{t}_hsa.npy', Y_pred.cpu().numpy()) #NOTE tmp
-        np.save(f'data_anal/abduction_results/Yd_ABL{t}_hsa.npy', Y_deduction_test.cpu().numpy()) #NOTE tmp
+        y_d_flat = Y_deduction_test.detach().cpu().numpy().flatten()
+        print(f'Y_pseudo f1 (Y_d): {f1_score(y_d_flat, y_p_flat, average="macro")}')
+
+        #np.save(f'data_anal/abduction_results/R_ABL{t}_hsa.npy', R_pred.cpu().numpy()) #NOTE tmp
+        #np.save(f'data_anal/abduction_results/Yp_ABL{t}_hsa.npy', Y_pred.cpu().numpy()) #NOTE tmp
+        #np.save(f'data_anal/abduction_results/Yd_ABL{t}_hsa.npy', Y_deduction_test.cpu().numpy()) #NOTE tmp
 
         Y_pred = torch.where(R_pred, Y_deduction_test, Y_pred)
 
         y_p_flat = Y_pred.detach().cpu().numpy().flatten()
-        y_t_flat = Y_test.detach().cpu().numpy().flatten()
+        #y_t_flat = Y_test.detach().cpu().numpy().flatten()
         #print(Y_modified.shape, Y_test.shape)
         print(f'Y_modified f1: {f1_score(y_t_flat, y_p_flat, average="macro")}')
+        print(f'Y_modified f1 (abs): {f1_score(np.abs(y_t_flat), np.abs(y_p_flat), average="macro")}')
+        print(f'Y_modified f1 (Y_d): {f1_score(y_d_flat, y_p_flat, average="macro")}')
+
+        #exit()
         #if t == 1: # tmp
         #    exit()
         #NOTE ###########################################
@@ -210,6 +222,7 @@ def abduce(X_unlabel: torch.Tensor,
                       C= 100,
                       lr= retrain_lr,
                       verbose= verbose)
+        learner.save(f'models/ABL_{t}.pt' if model_save_pth==None else model_save_pth+f'ABL_{t}')
 
         f1 = learner.eval()
         print(f'ABL loop {t}: macro f1 {f1:.4f}')
@@ -272,7 +285,7 @@ if __name__ == "__main__":
     #Y_test = Y_test[idx_list]
 
 
-    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -291,7 +304,7 @@ if __name__ == "__main__":
            X_label = X_train,
            Y_label = Y_train,
            #pretrained_model_pth= 'models/pretrained_7.29_GNN.pt',
-           #model_save_pth= 'models/pretrained_8.7_GNN.pt',
+           model_save_pth= 'models/ecoli/GNN.pt',
            base_learner_type= 'GNN',
 
            T= 2,
@@ -309,4 +322,4 @@ if __name__ == "__main__":
            device= device,
            seed= 42,
            log_file= log_file,
-           verbose= True)
+           verbose= False)
