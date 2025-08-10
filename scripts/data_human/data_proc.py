@@ -14,10 +14,12 @@ gene2go = pickle.load(open('../GEARS/gene2go_all.pkl', 'rb'))
 for data_name in ['norman', 'dixit', 'adamson']:
     data_dict = pickle.load(open(f'../GEARS/{data_name}/data_pyg/cell_graphs.pkl','rb'))
     ann_data = sc.read_h5ad(f'../GEARS/{data_name}/perturb_processed.h5ad')
-    df_go= pd.read_csv(f'../GEARS/{data_name}/go.csv')
+    #df_go= pd.read_csv(f'../GEARS/{data_name}/go.csv')
     df_genes= pd.DataFrame(ann_data.var)
     df_genes['vector_idx'] = list(range(len(df_genes)))
     df_genes.set_index('gene_name', inplace=True)
+    df_genes.to_csv(f'dataset/human/{data_name}_gene_ann.csv')
+    exit()
 
 
 
@@ -70,11 +72,11 @@ for data_name in ['norman', 'dixit', 'adamson']:
     X = coo_matrix((X_data, (X_row,X_col)), shape=Y.shape)
     save_npz(f'dataset/human/{data_name}_X.npz', X)
 
-    KB_row = np.array([int(df_genes.loc[g,'vector_idx']) for g in df_go['source']])
-    KB_col = np.array([int(df_genes.loc[g,'vector_idx']) for g in df_go['target']])
-    KB_data = np.full_like(KB_row, fill_value=1.)
-    KB = coo_matrix((KB_data, (KB_row,KB_col)), shape=(len(df_genes),len(df_genes)))
-    save_npz(f'dataset/human/{data_name}_KB.npz', KB)
+    #KB_row = np.array([int(df_genes.loc[g,'vector_idx']) for g in df_go['source']])
+    #KB_col = np.array([int(df_genes.loc[g,'vector_idx']) for g in df_go['target']])
+    #KB_data = np.full_like(KB_row, fill_value=1.)
+    #KB = coo_matrix((KB_data, (KB_row,KB_col)), shape=(len(df_genes),len(df_genes)))
+    #save_npz(f'dataset/human/{data_name}_KB.npz', KB)
     
     metadata = pd.DataFrame(metadata)
     print(metadata)
