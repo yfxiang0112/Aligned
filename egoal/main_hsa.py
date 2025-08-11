@@ -21,7 +21,9 @@ if __name__ == '__main__':
     X_train = X_train[~ test_idx][:2000]
     Y_train = Y_train[~ test_idx][:2000]
 
-    regulators = np.nonzero(np.sum(load_npz(f'dataset/human/{data_name}_KB.npz').toarray(),axis=1))[0]
+    regulators = np.nonzero(np.sum(\
+            load_npz(f'rules/human/{data_name}_KB_P.npz').toarray()\
+            +load_npz(f'rules/human/{data_name}_KB_P.npz').toarray(), axis=1))[0]
     X_unlabel = np.zeros(shape=(len(regulators), X_train.shape[1]))
     X_unlabel[range(len(X_unlabel)), regulators] = 1.
     X_unlabel = torch.tensor(X_unlabel, dtype=torch.float32)

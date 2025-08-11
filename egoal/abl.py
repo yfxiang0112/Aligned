@@ -7,7 +7,6 @@ from datetime import datetime
 from zoopt import Dimension, ValueType, Dimension2, Objective, Parameter, Opt, ExpOpt, parameter
 from sklearn.metrics import f1_score
 
-from egoal.learner import BaseLearner
 from egoal.learner_refl import ReflectLearner
 from egoal.reasoner import RegualtoryKB#, MetabolicKB
 from egoal.utils import optvec2matrix
@@ -80,17 +79,26 @@ def abduce(X_unlabel: torch.Tensor,
        np.random.seed(seed)
 
     ''' init base learner & reasoner  '''
-    learner = ReflectLearner(input_dim= X_test.shape[1],
-                             output_dim= Y_test.shape[1],
-                             hidden_dim= 64,
-                             base_learner_type= base_learner_type,
-                             device=device,
-                             log_path=log_file)
     reasoner = RegualtoryKB(pos_trn_pth= pos_trn_pth,
                             neg_trn_pth= neg_trn_pth,
                             output_idx_list= output_idx_list,
                             device=device)#, T=4)
     reasoner.closure_(T=closure, closure_type=closure_type)
+
+    if base_learner_type == 'GNN':
+        adj_matrix = torch.round(torch.abs(reasoner.get_KB()))
+    else:
+        adj_matrix = None
+
+    learner = ReflectLearner(input_dim= X_test.shape[1],
+                             output_dim= Y_test.shape[1],
+                             hidden_dim= 64,
+                             base_learner_type= base_learner_type,
+                             adj_matrix= adj_matrix,
+                             device=device,
+                             log_path=log_file)
+    if label_weight != None:
+        learner.init_weight(label_weight)
 
     ########################################
 

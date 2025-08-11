@@ -28,9 +28,10 @@ Y_test = Y[test_idx]
 #X_test = X_test[pert_idx]
 #Y_test = Y_test[pert_idx]
 
-Y_p = np.load('data_anal/abduction_results/Yp_ABL0_hsa.npy')
-Y_d = np.load('data_anal/abduction_results/Yd_ABL0_hsa.npy')
-R = np.load('data_anal/abduction_results/R_ABL0_hsa.npy')
+Y_p = np.load('data_anal/abduction_results/Yp_ABL0_Aug11.npy')
+#Y_d = np.load('data_anal/abduction_results/Yd_ABL0_hsa.npy')
+#R = np.load('data_anal/abduction_results/R_ABL0_hsa.npy')
+Y_d = KB.deduce(torch.tensor(X_test).float().to('cuda')).to('cpu').numpy()
 
 print(Y_p.shape)
 
@@ -66,13 +67,12 @@ mask_kb = np.zeros_like(Y_test, dtype=bool)
 mask_kb[:,kb_con_idx] = True
 y_mask_kb = np.where(mask_kb, Y_d, Y_p)
 
-y_r = np.where(R, Y_d, Y_p)
+#y_r = np.where(R, Y_d, Y_p)
 
 print('f1 of Y_p:', f1_score(Y_test.flatten(), Y_p.flatten(), average='macro'))
 print('f1 of Y_deduction:', f1_score(Y_test.flatten(), Y_d.flatten(), average='macro'))
 print('f1 of Y_mask_kb', f1_score(Y_test.flatten(), y_mask_kb.flatten(), average='macro'))
-exit()
-print('f1 of Y[r]:', f1_score(Y_test.flatten(), y_r.flatten(), average='macro'))
+#print('f1 of Y[r]:', f1_score(Y_test.flatten(), y_r.flatten(), average='macro'))
 
 
 ' weight with GO annotation '

@@ -89,7 +89,7 @@ class RegualtoryKB():
         else:
             self.KB = torch.clamp(R_diff, -1,1)
 
-        self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
+        #self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
         return self.KB_P, self.KB_N, self.T
 
 
@@ -109,7 +109,7 @@ class RegualtoryKB():
         #        and (mask.shape[1]!=1 or mask.shape[0]!=Y.shape[0]))):
         #    raise(Exception('All matrices should be in same shape'))
 
-        deduction = torch.clamp(X @ self.KB, -1.,1.).int()
+        deduction = torch.clamp((X @ self.KB)[:,self.idx_list], -1.,1.).int()
         if mask != None:
             vio_cnt = torch.count_nonzero(deduction != Y)
         else:
@@ -128,7 +128,13 @@ class RegualtoryKB():
 
     def deduce(self, X: torch.Tensor):
         ''' deduction result (multiplication) '''
-        return torch.clamp(X @ self.KB, -1.,1.).int()
+        return torch.clamp((X @ self.KB)[:,self.idx_list], -1.,1.).int()
+    
+    def get_KB(self):
+        return self.KB
+
+    def get_KB_with_out_dim(self):
+        return self.KB[:,self.idx_list]
 
 
     @staticmethod
@@ -332,7 +338,7 @@ class RegualtoryKB():
         # TODO weighted / comb?
         self.KB = torch.clamp(self.KB_P - self.KB_N, -1,1)
 
-        self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
+        #self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
 
         self.Regu_0 = torch.clamp(torch.round(KB_opt), 0,1)
 

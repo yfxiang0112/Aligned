@@ -198,6 +198,7 @@ class ReflectLearner():
         output_dim,
         hidden_dim = 64,
         base_learner_type = 'MLP',
+        adj_matrix = None | torch.Tensor,
         device = 'cpu',
         log_path = '',
     ) -> None:
@@ -214,7 +215,6 @@ class ReflectLearner():
             print(f'cuda availability: {torch.cuda.is_available()}')
             assert torch.cuda.is_available()
 
-        ' 4639 genes of whole genome, 241 output genes '
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
@@ -225,11 +225,8 @@ class ReflectLearner():
         if base_learner_type == 'MLP':
             self.model = ReflectMLP(self.input_dim, self.hidden_dim,  self.output_dim)
         elif base_learner_type == 'GNN':
+            assert adj_matrix != None
             self.model = ReflectGNN(self.input_dim, self.hidden_dim, 3, self.output_dim, self.device)
-            #TODO tmp
-            r_pos, r_neg = load_npz('rules/regu_pos_clo.npz').toarray(), load_npz('rules/regu_neg_clo.npz').toarray()
-            adj_matrix = np.abs(np.clip(r_pos+r_neg, -1,1))
-            adj_matrix = torch.tensor(adj_matrix).to(self.device)
             self.model.set_weighted_adjacency(adj_matrix)
         else:
             raise Exception('Invalid Base Learner Type')
@@ -268,13 +265,13 @@ class ReflectLearner():
         violated = KB.violated(Y=y, X=x, mask=~(r_binary.bool()))
 
         weighted_restriction = torch.sum(torch.clamp(
-            torch.sign(r_binary - .5) * (-label_weight), min=0))\
+            torch.sign(r_binary - .5) * (.5 - label_weight), min=0))\
                     if label_weight != None else 0
 
         total = r_binary.shape[0] * r_binary.shape[1]
         len_restriction = torch.max(torch.count_nonzero(r_binary) - th * total, other=torch.tensor(0))
 
-        return - violated - 2*weighted_restriction - len_restriction
+        return - violated - weighted_restriction - len_restriction
         #return - weighted_restriction
 
     def load_data(self,
@@ -319,7 +316,7 @@ class ReflectLearner():
                 if self.device != 'cpu':
                     self.clf_weight = self.clf_weight.to(self.device)
 
-    def init_weight(self, label_weight):
+    def init_weight(self, label_weight: torch.Tensor):
         """
         Initialize a linear layer to produce desired outputs after sigmoid
         
@@ -439,7 +436,7 @@ class ReflectLearner():
                     print(f'    full cols: {torch.count_nonzero(torch.sum(r,dim=0)==len(r))}, non-full cols: {torch.count_nonzero((torch.sum(r,dim=0)<len(r)) & (torch.sum(r,dim=0)>0))}')
                     #print(f'r={output_r}')
                     
-                    labels = torch.nonzero(label_weight > .1).squeeze(-1).cpu().detach().numpy().tolist()
+                    labels = torch.nonzero(label_weight > .55).squeeze(-1).cpu().detach().numpy().tolist()
                     r_idx = torch.nonzero(torch.sum(r,dim=0)).squeeze(-1).cpu().detach().numpy().tolist()
                     print(f'   r - labels: {len(set(r_idx)-set(labels))}, labels - r: {len(set(labels) - set(r_idx))}')
                     #print(f'    r-labels: {output_r[0,list(set(r_idx)-set(labels))]}\n    labels-r: {output_r[0,list(set(labels)-set(r_idx))]}')
