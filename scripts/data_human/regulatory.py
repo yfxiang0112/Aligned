@@ -32,11 +32,11 @@ KB_P = coo_matrix((KB_P_data, (KB_P_row,KB_P_col)), shape=(len(df_genes),len(df_
 save_npz(f'rules/human/{data_name}_KB_P.npz', KB_P)
 
 KB_N_row = np.array(\
-        [int(df_genes.loc[g,'vector_idx']) for g in df_regu_n['tf']]\
-        + [int(df_genes.loc[g,'vector_idx']) for g in df_go['source']])
+        [int(df_genes.loc[g,'vector_idx']) for g in df_regu_n['tf']])
+        #+ [int(df_genes.loc[g,'vector_idx']) for g in df_go['source']])
 KB_N_col = np.array(\
-        [int(df_genes.loc[g,'vector_idx']) for g in df_regu_n['target']]\
-        + [int(df_genes.loc[g,'vector_idx']) for g in df_go['target']])
+        [int(df_genes.loc[g,'vector_idx']) for g in df_regu_n['target']])
+        #+ [int(df_genes.loc[g,'vector_idx']) for g in df_go['target']])
 KB_N_data = np.full_like(KB_N_row, fill_value=1.)
 KB_N = coo_matrix((KB_N_data, (KB_N_row,KB_N_col)), shape=(len(df_genes),len(df_genes)))
 save_npz(f'rules/human/{data_name}_KB_N.npz', KB_N)

@@ -111,11 +111,12 @@ class ReflectGNN(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
         ' Head 2: REINFORCE (r): Logits for binary actions '
-        self.r_head = nn.Sequential(
-                nn.Linear(hidden_dim, hidden_dim*2),
-                nn.ReLU(),
-                nn.Linear(hidden_dim*2, output_dim),
-                )
+        self.r_head = nn.Linear(hidden_dim, output_dim)
+        #self.r_head = nn.Sequential(
+        #        nn.Linear(hidden_dim, hidden_dim*2),
+        #        nn.ReLU(),
+        #        nn.Linear(hidden_dim*2, output_dim),
+        #        )
         self.sigmoid = nn.Sigmoid()
 
     def set_weighted_adjacency(self, adj_matrix):
@@ -317,6 +318,26 @@ class ReflectLearner():
                 self.clf_weight = torch.Tensor(weights) / sum(weights)
                 if self.device != 'cpu':
                     self.clf_weight = self.clf_weight.to(self.device)
+
+    def init_weight(self, label_weight):
+        """
+        Initialize a linear layer to produce desired outputs after sigmoid
+        
+        Args:
+            label_weight: torch.Tensor - desired initial output values (0 <= y <= 1)
+        """
+        with torch.no_grad():
+            # Clamp to avoid numerical instability
+            y = torch.clamp(label_weight, 1e-7, 1-1e-7)
+            
+            # Compute required biases (logits)
+            bias_data = torch.log(y / (1 - y))
+            
+            # Set biases
+            self.model.r_head.bias.data = bias_data
+            
+            # Set weights to small random values
+            nn.init.normal_(self.model.r_head.weight, mean=0, std=0.01)
 
 
     def train(

@@ -39,8 +39,8 @@ if __name__ == '__main__':
            X_test= X_test,
            Y_test= Y_test,
 
-           pos_trn_pth=f'dataset/human/{data_name}_KB.npz',
-           neg_trn_pth=None,
+           pos_trn_pth=f'rules/human/{data_name}_KB_P.npz',
+           neg_trn_pth=f'rules/human/{data_name}_KB_N.npz',
            label_weight=label_weight,
 
            X_label = X_train,
