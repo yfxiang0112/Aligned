@@ -198,6 +198,7 @@ class ReflectLearner():
         output_dim,
         hidden_dim = 64,
         base_learner_type = 'MLP',
+        num_layers = 3,
         adj_matrix = None | torch.Tensor,
         num_layers = 3,
         device = 'cpu',
@@ -208,6 +209,9 @@ class ReflectLearner():
             input_dim:
             output_dim:
             hidden_dim:
+            base_learner_type:
+            num_layers:
+            adj_matrix:
             device:
             log_path (optional):
         '''

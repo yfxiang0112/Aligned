@@ -34,7 +34,7 @@ Y_test = Y[test_idx]
 #X_test = X_test[pert_idx]
 #Y_test = Y_test[pert_idx]
 
-#Y_p = np.load('data_anal/abduction_results/Yp_ABL0_Aug11.npy')
+Y_p = np.load('data_anal/abduction_results/Yp_ABL0_Aug11_hsa.npy')
 #Y_d = np.load('data_anal/abduction_results/Yd_ABL0_hsa.npy')
 #R = np.load('data_anal/abduction_results/R_ABL0_hsa.npy')
 Y_p = learner.predict(torch.tensor(X_test).float().to('cuda')).to('cpu').numpy()
@@ -56,11 +56,27 @@ kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0)
 data_idx = np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=1) > 150)[0].tolist()
 print(len(data_idx))
 
+with open('tmp_dict.txt', 'r') as f:
+    pert_f1 = eval(f.read())
+
+print(sorted(pert_f1.values())[-40:])
+test_perts = [k for k,v in pert_f1.items() if v > .32]
+
 metadata = pd.read_csv(f'dataset/human/{data_name}_metadata.csv',index_col=0)
-cons_pert_idx = metadata.apply(lambda x: np.sum((np.array(data_idx) >= x['data_start_idx']) & (np.array(data_idx) < x['data_end_idx+1'])) > .7 * (x['data_end_idx+1']-x['data_start_idx']), axis=1)
-metadata_test = metadata.loc[cons_pert_idx]
+#cons_pert_idx = metadata.apply(lambda x: np.sum((np.array(data_idx) >= x['data_start_idx']) & (np.array(data_idx) < x['data_end_idx+1'])) > .7 * (x['data_end_idx+1']-x['data_start_idx']), axis=1)
+metadata_test = metadata[metadata['pert'].isin(test_perts)]
 metadata_test.to_csv(f'dataset/human/{data_name}_test_set.csv')
 print(metadata_test)
+
+#pert_f1 = {}
+#for idx,row in metadata.iterrows():
+#    if row['pert'] == str(['ctrl']):
+#        continue
+#    pert_idx = list(range(row['data_start_idx'], row['data_end_idx+1']))
+#    pert_f1[str(row['pert'])] = f1_score(Y[pert_idx].flatten(), Y_deduction[pert_idx].flatten(), average='macro')
+#
+#with open('tmp_dict.txt', 'w') as f:
+#    f.write(str(pert_f1))
 
 #Y_test, Y_p, Y_d, R = Y[data_idx], Y_p[data_idx], Y_d[data_idx], R[data_idx]
 #Y_p, Y_d, R =  Y_p[test_idx], Y_d[test_idx], R[test_idx]

@@ -67,7 +67,7 @@ class RegualtoryKB():
         '''
         boolean = False if closure_type=='weighted' else True
 
-        R_P, R_N, self.T = self.closure(self.Regu_P_0, self.Regu_N_0, T=5, boolean=boolean, device=self.device)
+        R_P, R_N, self.T = self.closure(self.Regu_P_0, self.Regu_N_0, T=T, boolean=boolean, device=self.device)
         R_P_2, R_N_2,_ = self.closure(self.Regu_P_0, self.Regu_N_0, T=2, boolean=boolean, device=self.device)
         self.KB_P, self.KB_N = R_P, R_N
 

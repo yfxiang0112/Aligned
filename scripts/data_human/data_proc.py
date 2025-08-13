@@ -5,8 +5,8 @@ import pandas as pd
 from scipy.sparse import coo_matrix, save_npz
 
 def diff_expr(x0, x1):
-    res = np.where(x1 > 2 * x0, 1,
-                   np.where(x1 < .5 * x0, -1, 0))
+    res = np.where(x1 >  x0, 1,
+                   np.where(x1 <  x0, -1, 0))
     return res
 
 gene2go = pickle.load(open('../GEARS/gene2go_all.pkl', 'rb'))
@@ -19,19 +19,7 @@ for data_name in ['norman', 'dixit', 'adamson']:
     df_genes['vector_idx'] = list(range(len(df_genes)))
     df_genes.set_index('gene_name', inplace=True)
     df_genes.to_csv(f'dataset/human/{data_name}_gene_ann.csv')
-    exit()
 
-
-
-
-#keys = set(data_norman.keys()).union(set(data_dixit.keys())).union(set(data_adamson.keys()))
-#print(len(data_norman.keys()))
-#print(len(keys))
-#
-#data = [(data_norman[k] if k in data_norman else []) + 
-#        (data_dixit[k] if k in data_dixit else [])+ 
-#        (data_adamson[k] if k in data_adamson else [])
-#        for k in keys]
 
     Y = []
     X_row, X_col = [], []
