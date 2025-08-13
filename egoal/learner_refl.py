@@ -200,7 +200,6 @@ class ReflectLearner():
         base_learner_type = 'MLP',
         num_layers = 3,
         adj_matrix = None | torch.Tensor,
-        num_layers = 3,
         device = 'cpu',
         log_path = '',
     ) -> None:
@@ -321,7 +320,7 @@ class ReflectLearner():
                 if self.device != 'cpu':
                     self.clf_weight = self.clf_weight.to(self.device)
 
-    def init_weight(self, label_weight: torch.Tensor, epochs=100, lr=1e-4):
+    def init_weight(self, label_weight: torch.Tensor, epochs=1000, lr=1e-4):
         #"""
         #Initialize a linear layer to produce desired outputs after sigmoid
         
@@ -472,6 +471,9 @@ class ReflectLearner():
             optimizer.zero_grad()
             total_loss.backward()
             optimizer.step()
+
+            if (epoch+1)%10000 == 0:
+                self.eval()
 
             if (epoch+1)%100 == 0 and verbose:
                 print(f"Epoch {epoch+1}, Total loss: {total_loss.item():.4f}, CE loss: {loss_y.item():.4f}, RL loss: {loss_r.item():.4f}, Reward: {reward:.4f}")

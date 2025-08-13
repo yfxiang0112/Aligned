@@ -86,7 +86,8 @@ def abduce(X_unlabel: torch.Tensor,
     reasoner.closure_(T=closure, closure_type=closure_type)
 
     if base_learner_type == 'GNN':
-        adj_matrix = torch.round(torch.abs(reasoner.get_KB()))
+        #adj_matrix = torch.round(torch.abs(reasoner.get_KB()))
+        adj_matrix = torch.round(torch.clamp(torch.abs(reasoner.Regu_P_0 + reasoner.Regu_N_0), 0,1))
     else:
         adj_matrix = None
 
@@ -130,7 +131,7 @@ def abduce(X_unlabel: torch.Tensor,
                       C=10,
                       lr=pretrain_lr,
                       verbose=verbose)
-        learner.save('models/pretrained.pt' if model_save_pth==None else model_save_pth)
+        learner.save('models/pretrained.pt' if model_save_pth==None else model_save_pth+'.pt')
 
     else:
         learner.load_data(None, None, X_test, Y_test)
@@ -159,7 +160,7 @@ def abduce(X_unlabel: torch.Tensor,
         print('R >.8:', torch.sum((R > .8) & (R <= .9)) / (R.shape[0]*R.shape[1]))
         print('R >.5:', torch.sum((R > .5) & (R <= .8)) / (R.shape[0]*R.shape[1]))
         print('R <.5:', torch.sum(R <= .5) / (R.shape[0]*R.shape[1]))
-        R_binary = R >= .6#torch.round(R > .8).bool()
+        R_binary = R >= .5
         print('R_biary nonzero:', torch.count_nonzero(R_binary))
 
 
@@ -183,6 +184,7 @@ def abduce(X_unlabel: torch.Tensor,
         R_pred = R_pred >= .5 #NOTE
         Y_deduction_test = reasoner.deduce(X_test)
 
+
         y_d_flat = Y_deduction_test.detach().cpu().numpy().flatten()
         print(f'Y_pseudo f1 (Y_d): {f1_score(y_d_flat, y_p_flat, average="macro")}')
 
@@ -199,7 +201,7 @@ def abduce(X_unlabel: torch.Tensor,
         print(f'Y_modified f1 (abs): {f1_score(np.abs(y_t_flat), np.abs(y_p_flat), average="macro")}')
         print(f'Y_modified f1 (Y_d): {f1_score(y_d_flat, y_p_flat, average="macro")}')
 
-        #exit()
+        print(torch.count_nonzero(torch.sum(R_pred, dim=0)))
         #if t == 1: # tmp
         #    exit()
 
@@ -225,7 +227,7 @@ def abduce(X_unlabel: torch.Tensor,
                       C= 100,
                       lr= retrain_lr,
                       verbose= verbose)
-        learner.save(f'models/ABL_{t}.pt' if model_save_pth==None else model_save_pth+f'ABL_{t}')
+        learner.save(f'models/ABL_{t}.pt' if model_save_pth==None else model_save_pth+f'_ABL_{t}.pt')
 
         f1 = learner.eval()
         print(f'ABL loop {t}: macro f1 {f1:.4f}')

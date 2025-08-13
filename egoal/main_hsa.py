@@ -8,22 +8,33 @@ from egoal.abl import abduce
 if __name__ == '__main__':
     data_name = 'norman'
     log_file = f'log/EGOAL-hsa-{datetime.now()}.txt'.replace(' ','-')
+    
+    model_type = 'GNN'
+    model_name = model_type + ''
+    print(model_name)
+    print(log_file)
+
+    #########################################
 
     np.random.seed(42)
     X_train = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray(), dtype = torch.float32)
     Y_train = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray(), dtype = int)
 
     #test_idx = np.random.choice([True, False], size=len(X_train), p=[.2, .8])
-    test_idx = np.load(f'dataset/human/{data_name}_test_idx.npy')
+    p_train = .1
+    test_idx = np.zeros(shape=len(X_train), dtype=bool)
+    test_idx[np.load(f'dataset/human/{data_name}_test_idx.npy')] = True
 
-    X_test = X_train[test_idx][:2000]
-    Y_test = Y_train[test_idx][:2000]
-    X_train = X_train[~ test_idx][:2000]
-    Y_train = Y_train[~ test_idx][:2000]
+    train_idx = np.random.choice([True, False], size=len(X_train)-np.count_nonzero(test_idx), p=[p_train, 1-p_train])
+
+    X_test = X_train[test_idx]
+    Y_test = Y_train[test_idx]
+    X_train = X_train[~ test_idx][train_idx]
+    Y_train = Y_train[~ test_idx][train_idx]
 
     regulators = np.nonzero(np.sum(\
             load_npz(f'rules/human/{data_name}_KB_P.npz').toarray()\
-            +load_npz(f'rules/human/{data_name}_KB_P.npz').toarray(), axis=1))[0]
+            +load_npz(f'rules/human/{data_name}_KB_N.npz').toarray(), axis=1))[0]
     X_unlabel = np.zeros(shape=(len(regulators), X_train.shape[1]))
     X_unlabel[range(len(X_unlabel)), regulators] = 1.
     X_unlabel = torch.tensor(X_unlabel, dtype=torch.float32)
@@ -31,7 +42,7 @@ if __name__ == '__main__':
 
     label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
 
-    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -47,8 +58,9 @@ if __name__ == '__main__':
 
            X_label = X_train,
            Y_label = Y_train,
-           #pretrained_model_pth= 'models/pretrained_hsa.pt',
-           base_learner_type= 'MLP',
+           #pretrained_model_pth = '',
+           model_save_pth = f'models/{model_name}',
+           base_learner_type= model_type,
 
            T= 2,
 
@@ -57,7 +69,7 @@ if __name__ == '__main__':
            pretrain_lr= 1e-3,
 
            retrain_epc= 500,
-           retrain_rl_epc= 100,
+           retrain_rl_epc= 80,
            retrain_lr= 1e-3,
            refine_epc= 0,
            refine_lr= 1e-4,
