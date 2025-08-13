@@ -7,6 +7,7 @@ from sklearn.metrics import f1_score
 from scipy.sparse import load_npz
 
 from egoal.reasoner import RegualtoryKB
+from egoal.learner_refl import ReflectLearner
 
 data_name = 'norman'
 
@@ -16,6 +17,11 @@ KB.closure_(T=5, closure_type='weighted')
 Y = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()
 X = load_npz(f'dataset/human/{data_name}_X.npz').toarray()
 Y_deduction = KB.deduce(torch.tensor(X).float().to('cuda')).to('cpu').numpy()
+
+KB.closure_(T=5, closure_type='naive')
+adj_matrix = torch.round(torch.abs(KB.get_KB()))
+learner = ReflectLearner(input_dim= X.shape[1], output_dim= Y.shape[1], hidden_dim= 64, base_learner_type= 'GNN', adj_matrix= adj_matrix, device='cuda')
+learner.load('models/human_Aug12_GNN_r_warmup.pt')
 
 test_idx = np.load(f'dataset/human/{data_name}_test_idx.npy')
 X_test = X[test_idx]
@@ -28,9 +34,10 @@ Y_test = Y[test_idx]
 #X_test = X_test[pert_idx]
 #Y_test = Y_test[pert_idx]
 
-Y_p = np.load('data_anal/abduction_results/Yp_ABL0_Aug11.npy')
+#Y_p = np.load('data_anal/abduction_results/Yp_ABL0_Aug11.npy')
 #Y_d = np.load('data_anal/abduction_results/Yd_ABL0_hsa.npy')
 #R = np.load('data_anal/abduction_results/R_ABL0_hsa.npy')
+Y_p = learner.predict(torch.tensor(X_test).float().to('cuda')).to('cpu').numpy()
 Y_d = KB.deduce(torch.tensor(X_test).float().to('cuda')).to('cpu').numpy()
 
 print(Y_p.shape)

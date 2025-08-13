@@ -199,6 +199,7 @@ class ReflectLearner():
         hidden_dim = 64,
         base_learner_type = 'MLP',
         adj_matrix = None | torch.Tensor,
+        num_layers = 3,
         device = 'cpu',
         log_path = '',
     ) -> None:
@@ -226,7 +227,7 @@ class ReflectLearner():
             self.model = ReflectMLP(self.input_dim, self.hidden_dim,  self.output_dim)
         elif base_learner_type == 'GNN':
             assert adj_matrix != None
-            self.model = ReflectGNN(self.input_dim, self.hidden_dim, 3, self.output_dim, self.device)
+            self.model = ReflectGNN(self.input_dim, self.hidden_dim, num_layers, self.output_dim, self.device)
             self.model.set_weighted_adjacency(adj_matrix)
         else:
             raise Exception('Invalid Base Learner Type')
@@ -316,25 +317,70 @@ class ReflectLearner():
                 if self.device != 'cpu':
                     self.clf_weight = self.clf_weight.to(self.device)
 
-    def init_weight(self, label_weight: torch.Tensor):
-        """
-        Initialize a linear layer to produce desired outputs after sigmoid
+    def init_weight(self, label_weight: torch.Tensor, epochs=100, lr=1e-4):
+        #"""
+        #Initialize a linear layer to produce desired outputs after sigmoid
         
-        Args:
-            label_weight: torch.Tensor - desired initial output values (0 <= y <= 1)
+        #Args:
+            #label_weight: torch.Tensor - desired initial output values (0 <= y <= 1)
+        #"""
+        #with torch.no_grad():
+            ## Clamp to avoid numerical instability
+            #y = torch.clamp(label_weight, 1e-7, 1-1e-7)
+            
+            ## Compute required biases (logits)
+            #bias_data = torch.log(y / (1 - y))
+            
+            ## Set biases
+            #self.model.r_head.bias.data = bias_data
+            
+            ## Set weights to small random values
+            #nn.init.normal_(self.model.r_head.weight, mean=0, std=0.01)
+
         """
-        with torch.no_grad():
-            # Clamp to avoid numerical instability
-            y = torch.clamp(label_weight, 1e-7, 1-1e-7)
-            
-            # Compute required biases (logits)
-            bias_data = torch.log(y / (1 - y))
-            
-            # Set biases
-            self.model.r_head.bias.data = bias_data
-            
-            # Set weights to small random values
-            nn.init.normal_(self.model.r_head.weight, mean=0, std=0.01)
+        Train only the last layer to produce desired outputs
+
+        Args:
+            model: nn.Module with sigmoid output
+            desired_output: torch.Tensor of shape (batch_size, output_dim)
+            input_samples: torch.Tensor of representative input samples
+            epochs: training iterations
+            lr: learning rate
+        """
+        # Freeze all layers except last
+        for name, param in self.model.named_parameters():
+            #if not name.startswith('r_head' if hasattr(self.model, 'r_head')
+            #                else name.startswith('net.' + str(len(self.model.net)-1))):
+            if not name.startswith('r_head'):
+                param.requires_grad = False
+
+        # Set up optimization
+        criterion = nn.MSELoss()
+        optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=lr)
+
+        # Training loop
+        input_samples =  torch.eye(self.input_dim).to(self.device)
+        desired_output = label_weight.unsqueeze(0).expand(self.input_dim, -1)
+        for epoch in range(epochs):
+            optimizer.zero_grad()
+            _,outputs = self.model(input_samples)
+            loss = criterion(outputs, label_weight)
+            loss.backward()
+            optimizer.step()
+
+            if epoch % 100 == 0:
+                print(f"Epoch {epoch}, Loss: {loss.item():.4f}")
+
+            if loss.item() < 1e-4:  # Early stopping
+                break
+
+        # Unfreeze all parameters
+        for param in self.model.parameters():
+            param.requires_grad = True
+
+        print("Final loss:", loss.item())
+        print("Achieved outputs:", self.model(input_samples)[1].detach())
+
 
 
     def train(
