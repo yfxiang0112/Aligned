@@ -40,7 +40,7 @@ learner = ReflectLearner(input_dim= X.shape[1],
                          base_learner_type= 'GNN',
                          adj_matrix= adj_matrix,
                          device=device)
-learner.load('models/human_Aug12_GNN_r_warmup_R0.pt')
+learner.load('models/GNN_human_Aug13.pt')
 
 
 #test_df = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
@@ -50,6 +50,7 @@ learner.load('models/human_Aug12_GNN_r_warmup_R0.pt')
 #Y_test = Y_test[pert_idx]
 
 Y_p = learner.predict(torch.tensor(X_test).float().to(device)).to('cpu').numpy()
+R = learner.reflection(torch.tensor(X_test).float().to(device)).to('cpu').numpy().astype(bool)
 #Y_d = np.load('data_anal/abduction_results/Yd_ABL0_hsa.npy')
 #R = np.load('data_anal/abduction_results/R_ABL0_hsa.npy')
 Y_d = Y_deduction[test_idx]
@@ -70,17 +71,17 @@ kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0)
 data_idx = np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=1) > 150)[0].tolist()
 print(len(data_idx))
 
-with open('tmp_dict.txt', 'r') as f:
-    pert_f1 = eval(f.read())
+#with open('tmp_dict.txt', 'r') as f:
+#    pert_f1 = eval(f.read())
 
-print(sorted(pert_f1.values())[-40:])
-test_perts = [k for k,v in pert_f1.items() if v > .32]
+#print(sorted(pert_f1.values())[-40:])
+#test_perts = [k for k,v in pert_f1.items() if v > .32]
 
 metadata = pd.read_csv(f'dataset/human/{data_name}_metadata.csv',index_col=0)
 #cons_pert_idx = metadata.apply(lambda x: np.sum((np.array(data_idx) >= x['data_start_idx']) & (np.array(data_idx) < x['data_end_idx+1'])) > .7 * (x['data_end_idx+1']-x['data_start_idx']), axis=1)
-metadata_test = metadata[metadata['pert'].isin(test_perts)]
-metadata_test.to_csv(f'dataset/human/{data_name}_test_set.csv')
-print(metadata_test)
+#metadata_test = metadata[metadata['pert'].isin(test_perts)]
+#metadata_test.to_csv(f'dataset/human/{data_name}_test_set.csv')
+#print(metadata_test)
 
 #pert_f1 = {}
 #for idx,row in metadata.iterrows():
@@ -104,12 +105,12 @@ mask_kb = np.zeros_like(Y_test, dtype=bool)
 mask_kb[:,kb_con_idx] = True
 y_mask_kb = np.where(mask_kb, Y_d, Y_p)
 
-#y_r = np.where(R, Y_d, Y_p)
+y_r = np.where(R, Y_d, Y_p)
 
 print('f1 of Y_p:', f1_score(Y_test.flatten(), Y_p.flatten(), average='macro'))
 print('f1 of Y_deduction:', f1_score(Y_test.flatten(), Y_d.flatten(), average='macro'))
 print('f1 of Y_mask_kb', f1_score(Y_test.flatten(), y_mask_kb.flatten(), average='macro'))
-#print('f1 of Y[r]:', f1_score(Y_test.flatten(), y_r.flatten(), average='macro'))
+print('f1 of Y[r]:', f1_score(Y_test.flatten(), y_r.flatten(), average='macro'))
 
 
 ' weight with GO annotation '
@@ -121,7 +122,7 @@ df_genes= pd.DataFrame(ann_data.var)
 go_annot_num = np.array([len(gene2go[g]) if g in gene2go else 0 for g in df_genes['gene_name']], dtype=np.float32)
 go_annot_num = go_annot_num / np.max(go_annot_num)
 #go_annot_num = np.max(go_annot_num - .3, np.zeros_like(go_annot_num))
-print(go_annot_num)
+#print(go_annot_num)
 y_mask_go = np.where((go_annot_num > .01) & (go_annot_num <= 1.), Y_d, Y_p)
 print('f1 of Y_go_weight:', f1_score(Y_test.flatten(), y_mask_go.flatten(), average='macro'))
 
@@ -131,17 +132,20 @@ regulatory = load_npz(f'rules/human/{data_name}_KB_P.npz').toarray()
 regulatory_num = np.sum(regulatory, axis=0)
 regulatory_num = regulatory_num / np.max(regulatory_num)
 #regulatory_num = np.max(regulatory_num - .3, np.zeros_like(regulatory_num))
-print(regulatory_num)
+#print(regulatory_num)
 y_mask_regu = np.where((regulatory_num > .01) & (regulatory_num <= 1.), Y_d, Y_p)
 print('f1 of Y_grn_weight:', f1_score(Y_test.flatten(), y_mask_regu.flatten(), average='macro'))
 
 
 ' get label weight '
-weights = np.full(shape=Y_test.shape[1], fill_value=.25, dtype=np.float32)
-weights += (go_annot_num - .1) + (regulatory_num - .1)
-weights[kb_con_idx] += .7
+weights = np.full(shape=Y_test.shape[1], fill_value=.1, dtype=np.float32)
+weights += (go_annot_num - .2) + (regulatory_num - .1)
+weights[kb_con_idx] += .8
 weights = np.clip(weights, 0., 1.)
-print(weights)
-print(np.count_nonzero(weights >= .55))
-#print(np.nonzero(weights >= .1)[0].tolist())
+#print(weights)
+print('w >= .5:', np.count_nonzero(weights >= .5))
 np.save(f'dataset/human/{data_name}_label_weight.npy', weights)
+
+
+y_w = np.where(weights>=.5, Y_d, Y_p)
+print('f1 of Y[w]:', f1_score(Y_test.flatten(), y_w.flatten(), average='macro'))

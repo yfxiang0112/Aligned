@@ -10,7 +10,7 @@ if __name__ == '__main__':
     log_file = f'log/EGOAL-hsa-{datetime.now()}.txt'.replace(' ','-')
     
     model_type = 'GNN'
-    model_name = model_type + ''
+    model_name = model_type + '_human_Aug13'
     print(model_name)
     print(log_file)
 
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     Y_train = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray(), dtype = int)
 
     #test_idx = np.random.choice([True, False], size=len(X_train), p=[.2, .8])
-    p_train = .1
+    p_train = .5
     test_idx = np.zeros(shape=len(X_train), dtype=bool)
     test_idx[np.load(f'dataset/human/{data_name}_test_idx.npy')] = True
 
@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -68,8 +68,8 @@ if __name__ == '__main__':
            pretrain_rl_epc= 1,
            pretrain_lr= 1e-3,
 
-           retrain_epc= 500,
-           retrain_rl_epc= 80,
+           retrain_epc= 400,
+           retrain_rl_epc= 100,
            retrain_lr= 1e-3,
            refine_epc= 0,
            refine_lr= 1e-4,

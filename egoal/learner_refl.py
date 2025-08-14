@@ -187,7 +187,7 @@ class ReflectGNN(nn.Module):
 
     def reflection(self, x):
         _, output_r = self.forward(x)
-        return torch.round(output_r)
+        return torch.round(output_r.detach())
 
 ################################################################################
 ################################################################################
@@ -488,7 +488,7 @@ class ReflectLearner():
                     print(f'    full cols: {torch.count_nonzero(torch.sum(r,dim=0)==len(r))}, non-full cols: {torch.count_nonzero((torch.sum(r,dim=0)<len(r)) & (torch.sum(r,dim=0)>0))}')
                     #print(f'r={output_r}')
                     
-                    labels = torch.nonzero(label_weight > .55).squeeze(-1).cpu().detach().numpy().tolist()
+                    labels = torch.nonzero(label_weight > .5).squeeze(-1).cpu().detach().numpy().tolist()
                     r_idx = torch.nonzero(torch.sum(r,dim=0)).squeeze(-1).cpu().detach().numpy().tolist()
                     print(f'   r - labels: {len(set(r_idx)-set(labels))}, labels - r: {len(set(labels) - set(r_idx))}')
                     #print(f'    r-labels: {output_r[0,list(set(r_idx)-set(labels))]}\n    labels-r: {output_r[0,list(set(labels)-set(r_idx))]}')
@@ -604,6 +604,9 @@ class ReflectLearner():
 
     def predict(self, x: torch.Tensor):
         return self.model.predict(x)
+
+    def reflection(self, x: torch.Tensor):
+        return self.model.reflection(x)
 
     def predict_prob(self, x: torch.Tensor):
         outputs, _ = self.model(x)
