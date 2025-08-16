@@ -8,10 +8,10 @@ metadata = pd.read_csv(f'dataset/human/{data_name}_metadata.csv',index_col=0)
 regulatory = pd.read_csv('rules/human/regulatory_dorothea.csv', index_col=0)
 
 # NOTE tmp ##############
-test_idx = np.random.choice([True, False], size=len(metadata), p=[.2, .8])
-test_idx = test_idx & (metadata['pert'].apply(lambda x: len(eval(x))==2))
-test = metadata[test_idx]
-train = metadata[~test_idx]
+#test_idx = np.random.choice([True, False], size=len(metadata), p=[.2, .8])
+#test_idx = test_idx & (metadata['pert'].apply(lambda x: len(eval(x))==2))
+#test = metadata[test_idx]
+#train = metadata[~test_idx]
 
 test = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
 train = metadata.loc[~ metadata.index.isin(test.index)]
