@@ -37,10 +37,10 @@ adj_matrix = torch.round(torch.clamp(torch.abs(KB.Regu_N_0 + KB.Regu_P_0), 0,1))
 learner = ReflectLearner(input_dim= X.shape[1],
                          output_dim= Y.shape[1],
                          hidden_dim= 64,
-                         base_learner_type= 'GNN',
+                         base_learner_type= 'MLP',
                          adj_matrix= adj_matrix,
                          device=device)
-learner.load('models/GNN_human_Aug13.pt')
+learner.load('models/MLP_human_Aug16.pt')
 
 
 #test_df = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
@@ -103,14 +103,37 @@ print(f'Consistent labels with KB: {len(kb_con_idx)}\n')
 ' mask index for labels consistent with kb '
 mask_kb = np.zeros_like(Y_test, dtype=bool)
 mask_kb[:,kb_con_idx] = True
-y_mask_kb = np.where(mask_kb, Y_d, Y_p)
+Y_mask_kb = np.where(mask_kb, Y_d, Y_p)
 
-y_r = np.where(R, Y_d, Y_p)
+Y_r = np.where(R, Y_d, Y_p)
 
-print('f1 of Y_p:', f1_score(Y_test.flatten(), Y_p.flatten(), average='macro'))
-print('f1 of Y_deduction:', f1_score(Y_test.flatten(), Y_d.flatten(), average='macro'))
-print('f1 of Y_mask_kb', f1_score(Y_test.flatten(), y_mask_kb.flatten(), average='macro'))
-print('f1 of Y[r]:', f1_score(Y_test.flatten(), y_r.flatten(), average='macro'))
+print(f'f1 of Y_deduction: {f1_score(Y_test.flatten(), Y_d.flatten(), average="macro")}')
+
+size_y = Y.shape[0]*Y.shape[1]
+size_data, size_klg = np.count_nonzero(np.sum(Y, axis=1)), np.count_nonzero(np.sum(KB.KB.cpu().numpy(), axis=1))
+q_data = (np.count_nonzero(Y) / size_y) +\
+        (size_data/(size_klg+size_data)) +\
+        (np.count_nonzero((np.sum(Y, axis=1)!=0) & (np.sum(Y_deduction,axis=1)==0)) / len(Y))
+q_knowledge = (np.count_nonzero(Y_deduction) / size_y) +\
+        (size_klg/(size_klg+size_data)) +\
+        (np.count_nonzero((np.sum(Y, axis=1)==0) & (np.sum(Y_deduction,axis=1)!=0)) / len(Y))
+w_data = q_knowledge / (q_data + q_knowledge)
+w_knowledge = q_data / (q_data + q_knowledge)
+
+print(f'eval weight: data {w_data: .4f}, kb {w_knowledge: .4f}')
+
+f1_test = f1_score(Y_test.flatten(), Y_p.flatten(), average='macro')
+f1_deduc = f1_score(Y_d.flatten(), Y_p.flatten(), average='macro')
+print(f'f1 of Y_p on Y_t: {f1_test: .4f}, on Y_d: {f1_deduc: .4f}, weighted: {w_data*f1_test + w_knowledge*f1_deduc: .4f}')
+
+f1_test = f1_score(Y_test.flatten(), Y_mask_kb.flatten(), average='macro')
+f1_deduc = f1_score(Y_d.flatten(), Y_mask_kb.flatten(), average='macro')
+print(f'f1 of Y_m on Y_t: {f1_test: .4f}, on Y_d: {f1_deduc: .4f}, weighted: {w_data*f1_test + w_knowledge*f1_deduc: .4f}')
+
+f1_test = f1_score(Y_test.flatten(), Y_r.flatten(), average='macro')
+f1_deduc = f1_score(Y_d.flatten(), Y_r.flatten(), average='macro')
+print(f'f1 of Y_r on Y_t: {f1_test: .4f}, on Y_d: {f1_deduc: .4f}, weighted: {w_data*f1_test + w_knowledge*f1_deduc: .4f}')
+
 
 
 ' weight with GO annotation '

@@ -62,7 +62,7 @@ class ReflectMLP(nn.Module):
 
     def reflection(self, x):
         _, output_r = self.forward(x)
-        return torch.round(output_r)
+        return torch.round(output_r.detach())
 
 ################################################################################
 
