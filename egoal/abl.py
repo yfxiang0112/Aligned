@@ -21,7 +21,7 @@ def eval_weight(X: torch.Tensor, Y: torch.Tensor, KB: RegualtoryKB) -> float:
     Return:
         w_data
     '''
-    size_y = Y.shape[0]*Y.shape[1]
+    size_y = int(Y.shape[0]*Y.shape[1])
     size_data= int(torch.count_nonzero(torch.sum(Y, dim=1)))
     size_klg= int(torch.count_nonzero(torch.sum(KB.KB, dim=1)))
 
@@ -29,7 +29,7 @@ def eval_weight(X: torch.Tensor, Y: torch.Tensor, KB: RegualtoryKB) -> float:
 
     q_data = (int(torch.count_nonzero(Y)) / size_y) +\
             (size_data/(size_klg+size_data)) +\
-            (torch.count_nonzero((torch.sum(Y, dim=1)!=0) & (torch.sum(Y_deduction,dim=1)==0)) / len(Y))
+            (int(torch.count_nonzero((torch.sum(Y, dim=1)!=0) & (torch.sum(Y_deduction,dim=1)==0))) / len(Y))
 
     q_knowledge = (int(torch.count_nonzero(Y_deduction)) / size_y) +\
             (size_klg/(size_klg+size_data)) +\
@@ -47,6 +47,8 @@ def abduce(X_unlabel: torch.Tensor,
            pos_trn_pth: str,
            neg_trn_pth: str | None,
            closure_type = 'naive',
+           closure= 5,
+
            output_idx_list = None,
            label_weight = None | torch.Tensor,
 
@@ -55,8 +57,6 @@ def abduce(X_unlabel: torch.Tensor,
            base_learner_type = 'MLP',
 
            T= 5,
-
-           closure= 5,
            pretrain_epc= 300,
            pretrain_rl_epc= 100,
            pretrain_lr= 1e-3,

@@ -621,16 +621,16 @@ class ReflectLearner():
 
             if verbose:
                 print(f'--- eval ---\nprediction result:')
-                print(f'f1 on test:    {f1_pred_macro}')
-                print(f'f1 on test:    {f1_pred_micro} (micro)')
-                print(f'f1 on KB:      {f1_pred_kb}')
-                print(f'integrated f1: {f1_pred_final}, w_data: {w_data}, w_klg: {1-w_data}')
+                print(f'f1 on test:    {f1_pred_macro:.4f}')
+                print(f'f1 on test:    {f1_pred_micro:.4f} (micro)')
+                print(f'f1 on KB:      {f1_pred_kb:.4f}')
+                print(f'integrated f1: {f1_pred_final:.4f}, w_data: {w_data:.4f}, w_klg: {1-w_data:.4f}')
 
                 print(f'\nintegrated result:')
-                print(f'f1 on test:    {f1_refl_macro}')
-                print(f'f1 on test:    {f1_refl_micro} (micro)')
-                print(f'f1 on KB:      {f1_refl_kb}')
-                print(f'integrated f1: {f1_refl_final}, w_data: {w_data}, w_klg: {1-w_data}')
+                print(f'f1 on test:    {f1_refl_macro:.4f}')
+                print(f'f1 on test:    {f1_refl_micro:.4f} (micro)')
+                print(f'f1 on KB:      {f1_refl_kb:.4f}')
+                print(f'integrated f1: {f1_refl_final:.4f}, w_data: {w_data:.4f}, w_klg: {1-w_data:.4f}')
                 print('------------')
 
             return f1_pred_final

@@ -9,8 +9,8 @@ if __name__ == '__main__':
     data_name = 'norman'
     log_file = f'log/EGOAL-hsa-{datetime.now()}.txt'.replace(' ','-')
     
-    model_type = 'GNN'
-    model_name = model_type + '_human_Aug13'
+    model_type = 'MLP'
+    model_name = model_type + '_human_Aug19_refine'
     print(model_name)
     print(log_file)
 
@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
 
-    device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -51,27 +51,29 @@ if __name__ == '__main__':
     abduce(X_unlabel= X_unlabel,
            X_test= X_test,
            Y_test= Y_test,
+           X_label = X_train,
+           Y_label = Y_train,
 
            pos_trn_pth=f'rules/human/{data_name}_KB_P.npz',
            neg_trn_pth=f'rules/human/{data_name}_KB_N.npz',
-           label_weight=label_weight,
+           closure = 5,
+           closure_type = 'weighted',
 
-           X_label = X_train,
-           Y_label = Y_train,
+           label_weight=label_weight,
            #pretrained_model_pth = '',
            model_save_pth = f'models/{model_name}',
            base_learner_type= model_type,
 
            T= 2,
 
-           pretrain_epc= 300,
+           pretrain_epc= 500,
            pretrain_rl_epc= 1,
            pretrain_lr= 1e-3,
 
            retrain_epc= 400,
            retrain_rl_epc= 100,
            retrain_lr= 1e-3,
-           refine_epc= 0,
+           refine_epc= 2000,
            refine_lr= 1e-4,
 
            device= device,
