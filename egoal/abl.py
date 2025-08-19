@@ -11,10 +11,38 @@ from egoal.learner_refl import ReflectLearner
 from egoal.reasoner import RegualtoryKB#, MetabolicKB
 from egoal.utils import optvec2matrix
 
+def eval_weight(X: torch.Tensor, Y: torch.Tensor, KB: RegualtoryKB):
+    '''
+    Compute the weight in integrated data-knowledge evaluation metric
+    Args:
+        X:
+        Y:
+        KB:
+    Return:
+        w_data
+    '''
+    size_y = Y.shape[0]*Y.shape[1]
+    size_data= torch.count_nonzero(torch.sum(Y, dim=1)).int()
+    size_klg= torch.count_nonzero(torch.sum(KB.KB, dim=1)).int()
+
+    Y_deduction = KB.deduce(X)
+
+    q_data = (torch.count_nonzero(Y).int() / size_y) +\
+            (size_data/(size_klg+size_data)) +\
+            (torch.count_nonzero((torch.sum(Y, dim=1)!=0) & (torch.sum(Y_deduction,dim=1)==0)) / len(Y))
+
+    q_knowledge = (torch.count_nonzero(Y_deduction).int() / size_y) +\
+            (size_klg/(size_klg+size_data)) +\
+            (torch.count_nonzero((torch.sum(Y, dim=1)==0) & (torch.sum(Y_deduction,dim=1)!=0)).int() / len(Y))
+
+    return q_knowledge / (q_data + q_knowledge)
+
 # TODO
 def abduce(X_unlabel: torch.Tensor,
            X_test: torch.Tensor,
            Y_test: torch.Tensor,
+           X_label: torch.Tensor,
+           Y_label: torch.Tensor,
 
            pos_trn_pth: str,
            neg_trn_pth: str | None,
@@ -22,8 +50,6 @@ def abduce(X_unlabel: torch.Tensor,
            output_idx_list = None,
            label_weight = None | torch.Tensor,
 
-           X_label = None | torch.Tensor,
-           Y_label = None | torch.Tensor,
            pretrained_model_pth = None,
            model_save_pth = None,
            base_learner_type = 'MLP',
@@ -52,13 +78,13 @@ def abduce(X_unlabel: torch.Tensor,
         X_unlabel: torch.Tensor:
         X_test: torch.Tensor:
         Y_test: torch.Tensor:
+        X_label:
+        Y_label:
 
         pos_trn_pth: str:
         neg_trn_pth: str:
         output_idx_list = None:
 
-        X_label:
-        Y_label:
         pretrained_model_pth:
         model_save_pth:
         base_learner_type:
@@ -110,8 +136,9 @@ def abduce(X_unlabel: torch.Tensor,
         if log_file != '':
             with open(log_file, 'a') as log:
                 log.write(f'\n\nbefore pretrain\n{"-"*20}\n')
-        f1 = learner.eval()
-        print(f'Before pretrain: macro f1 {f1:.4f}')
+        w_data = eval_weight(X_label, Y_label, reasoner)
+        f1 = learner.eval(reasoner, w_data)
+        print(f'Before pretrain: integrated f1 {f1:.4f}')
 
         learner.load(pretrained_model_pth)
 
@@ -121,8 +148,9 @@ def abduce(X_unlabel: torch.Tensor,
         if log_file != '':
             with open(log_file, 'a') as log:
                 log.write(f'\n\nbefore pretrain\n{"-"*20}\n')
-        f1 = learner.eval()
-        print(f'Before pretrain: macro f1 {f1:.4f}')
+        w_data = eval_weight(X_label, Y_label, reasoner)
+        f1 = learner.eval(reasoner, w_data)
+        print(f'Before pretrain: integrated f1 {f1:.4f}')
 
         learner.train(KB= reasoner,
                       label_weight= label_weight,
@@ -140,8 +168,9 @@ def abduce(X_unlabel: torch.Tensor,
     if log_file != '':
         with open(log_file, 'a') as log:
             log.write(f'\n\nbefore ABL\n{"-"*20}\n')
-    f1 = learner.eval()
-    print(f'Before ABL: macro f1 {f1:.4f}')
+    w_data = eval_weight(X_label, Y_label, reasoner)
+    f1 = learner.eval(reasoner, w_data)
+    print(f'Before ABL: integrated f1 {f1:.4f}')
 
 
     ########################################
@@ -192,14 +221,14 @@ def abduce(X_unlabel: torch.Tensor,
         #np.save(f'data_anal/abduction_results/Yp_ABL{t}_hsa.npy', Y_pred.cpu().numpy()) #NOTE tmp
         #np.save(f'data_anal/abduction_results/Yd_ABL{t}_hsa.npy', Y_deduction_test.cpu().numpy()) #NOTE tmp
 
-        Y_pred = torch.where(R_pred, Y_deduction_test, Y_pred)
+        Y_m = torch.where(R_pred, Y_deduction_test, Y_pred)
 
-        y_p_flat = Y_pred.detach().cpu().numpy().flatten()
+        y_m_flat = Y_m.detach().cpu().numpy().flatten()
         #y_t_flat = Y_test.detach().cpu().numpy().flatten()
         #print(Y_modified.shape, Y_test.shape)
-        print(f'Y_modified f1: {f1_score(y_t_flat, y_p_flat, average="macro")}')
-        print(f'Y_modified f1 (abs): {f1_score(np.abs(y_t_flat), np.abs(y_p_flat), average="macro")}')
-        print(f'Y_modified f1 (Y_d): {f1_score(y_d_flat, y_p_flat, average="macro")}')
+        print(f'Y_modified f1: {f1_score(y_t_flat, y_m_flat, average="macro")}')
+        print(f'Y_modified f1 (abs): {f1_score(np.abs(y_t_flat), np.abs(y_m_flat), average="macro")}')
+        print(f'Y_modified f1 (Y_d): {f1_score(y_d_flat, y_m_flat, average="macro")}')
 
         print(torch.count_nonzero(torch.sum(R_pred, dim=0)))
         #if t == 1: # tmp
@@ -229,5 +258,6 @@ def abduce(X_unlabel: torch.Tensor,
                       verbose= verbose)
         learner.save(f'models/ABL_{t}.pt' if model_save_pth==None else model_save_pth+f'_ABL_{t}.pt')
 
-        f1 = learner.eval()
-        print(f'ABL loop {t}: macro f1 {f1:.4f}')
+        w_data = eval_weight(X_label, Y_label, reasoner)
+        f1 = learner.eval(reasoner, w_data)
+        print(f'ABL Loop {t}: integrated f1 {f1:.4f}')

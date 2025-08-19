@@ -272,10 +272,10 @@ class ReflectLearner():
             torch.sign(r_binary - .5) * (.5 - label_weight), min=0))\
                     if label_weight != None else 0
 
-        total = r_binary.shape[0] * r_binary.shape[1]
-        len_restriction = torch.max(torch.count_nonzero(r_binary) - th * total, other=torch.tensor(0))
+        #total = r_binary.shape[0] * r_binary.shape[1]
+        #len_restriction = torch.max(torch.count_nonzero(r_binary) - th * total, other=torch.tensor(0))
 
-        return - violated - weighted_restriction - len_restriction
+        return - violated - .1 * weighted_restriction #- len_restriction
         #return - weighted_restriction
 
     def load_data(self,
@@ -506,17 +506,15 @@ class ReflectLearner():
 
     #########################################################################
 
-    def eval(self):
+    def eval(self, KB = None | RegualtoryKB, w_data = None | float):
         assert self.test_loader != None
 
         self.model.eval()
         correct = 0
         total = 0
         with torch.no_grad():
-            f1_micro2 = 0
-            f1_macro2 = 0
 
-            Y_test, Y_pred, Y_prob = [],[],[]
+            Y_test, Y_pred, Y_prob, Y_deduc = [],[],[],[]
 
             for X_batch, Y_batch in self.test_loader:
                 outputs = self.model.predict(X_batch)
@@ -527,38 +525,49 @@ class ReflectLearner():
                 total += Y_batch.size(0)
                 correct += (outputs == Y_batch).sum(dim=0)
 
+                if KB != None:
+                    Y_deduc.append(KB.deduce(X_batch))
+
             Y_test = torch.concat(Y_test, dim=0)
             Y_pred = torch.concat(Y_pred, dim=0)
+            if KB != None:
+                Y_deduc = torch.concat(Y_deduc, dim=0)
 
             if self.device != 'cpu':
                 Y_test = Y_test.cpu()
                 Y_pred = Y_pred.cpu()
                 correct = correct.cpu()
+
+                if KB != None:
+                    Y_deduc = Y_deduc.cpu()
             #Y_prob = torch.concat(Y_prob, dim=0)
 
             ''' compute total confusion matrix '''
             flat_y_t = Y_test.flatten()
             flat_y_p = Y_pred.flatten()
             confusion = confusion_matrix(flat_y_t, flat_y_p, labels=[-1, 0,1])
-            confusion = confusion / confusion.sum().sum()
+            confusion = confusion / np.sum(confusion)
             f1_macro = f1_score(flat_y_t, flat_y_p, average='macro') # micro on labels, macro on classes
             f1_micro = f1_score(flat_y_t, flat_y_p, average='micro') # micro on labels, micro on classes
 
-            ' compute weighted f1 by ground truth proportion '
-            weights = [1/(torch.sum(flat_y_t==-1).item() + 1e-6),
-                       1/(torch.sum(flat_y_t==0).item() + 1e-6),
-                       1/(torch.sum(flat_y_t==1).item() + 1e-6)]
-            weights = torch.Tensor(weights) / sum(weights)
-            f1_class = f1_score(flat_y_t, flat_y_p, average=None)
-            f1_weighted = sum([f1*w for f1,w in zip(f1_class,weights)])
+            #' compute weighted f1 by ground truth proportion '
+            #weights = [1/(torch.sum(flat_y_t==-1).item() + 1e-6),
+            #           1/(torch.sum(flat_y_t==0).item() + 1e-6),
+            #           1/(torch.sum(flat_y_t==1).item() + 1e-6)]
+            #weights = torch.Tensor(weights) / sum(weights)
+            #f1_class = f1_score(flat_y_t, flat_y_p, average=None)
+            #f1_weighted = sum([f1*w for f1,w in zip(f1_class,weights)])
             #f1_weighted = f1_class[0]*weights[0] + f1_class[2]*weights[2]
 
-            for label_idx in range(Y_test.shape[1]):
-                f1_macro2 += f1_score(Y_test[:,label_idx], Y_pred[:,label_idx], average='macro') # macro on labels, macro on classes
-                f1_micro2 += f1_score(Y_test[:,label_idx], Y_pred[:,label_idx], average='micro') # macro on labels, macro on classes
-                    
-            f1_macro2 /= Y_test.shape[1]
-            f1_micro2 /= Y_test.shape[1]
+            ''' performance on KB consistency '''
+            if KB != None:
+                flat_y_d = Y_deduc.flatten()
+                f1_kb = f1_score(flat_y_d, flat_y_p, average='macro')
+                w_data = .5 if w_data == None or w_data<0. or w_data>1. else w_data
+                f1_final = w_data * f1_macro + (1-w_data) * f1_kb
+            else:
+                f1_final = f1_macro
+
 
             ''' compute acc & confusion matrix on each gene '''
             per_label_accuracy = correct / total
@@ -589,15 +598,18 @@ class ReflectLearner():
                     f.write(f'\n------\nconfusion matrix:\n{confusion}\n')
                     f.write(f'macro f1: {f1_macro}\n')
                     f.write(f'micro f1: {f1_micro}\n')
-                    f.write(f'weighted f1: {f1_weighted}\n')
-                    f.write(f'class -1 f1: {f1_class[0]}\n')
-                    f.write(f'class  0 f1: {f1_class[1]}\n')
-                    f.write(f'class  1 f1: {f1_class[2]}\n')
+                    #f.write(f'weighted f1: {f1_weighted}\n')
+                    #f.write(f'class -1 f1: {f1_class[0]}\n')
+                    #f.write(f'class  0 f1: {f1_class[1]}\n')
+                    #f.write(f'class  1 f1: {f1_class[2]}\n')
                     f.write(f'average label-wise acc: {np.mean(np.array(per_label_accuracy))*100:.2f}%\n')
+
+                    if KB != None:
+                        f.write(f'f1 on KB: {f1_kb}\nw_data: {w_data}, w_klg: {1-w_data}\nintegrated f1: {f1_final}\n')
             else:
                 print(f'Average Per-label Acc: {np.mean(np.array(per_label_accuracy))*100:.2f}%\n')
 
-            return f1_macro
+            return f1_final
 
     def forward(self, x: torch.Tensor):
         return self.model(x)

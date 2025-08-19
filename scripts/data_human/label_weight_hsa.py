@@ -37,10 +37,10 @@ adj_matrix = torch.round(torch.clamp(torch.abs(KB.Regu_N_0 + KB.Regu_P_0), 0,1))
 learner = ReflectLearner(input_dim= X.shape[1],
                          output_dim= Y.shape[1],
                          hidden_dim= 64,
-                         base_learner_type= 'MLP',
+                         base_learner_type= 'GNN',
                          adj_matrix= adj_matrix,
                          device=device)
-learner.load('models/MLP_human_Aug16.pt')
+learner.load('models/GNN_human_Aug16.pt')
 
 
 #test_df = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
@@ -67,6 +67,8 @@ total = len(Y)
 print('consistent 1:',np.sum((Y_deduction==1)&(Y==Y_deduction)))
 print('consistent -1:',np.sum((Y_deduction==-1)&(Y==Y_deduction)))
 kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist())
+kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist())
+kb_con_idx_1 = (np.nonzero((np.sum((Y_deduction == 1), axis=0) / total > .5) | (np.sum((Y_deduction == -1), axis=0) / total > .5))[0].tolist())
 
 data_idx = np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=1) > 150)[0].tolist()
 print(len(data_idx))
@@ -164,11 +166,15 @@ print('f1 of Y_grn_weight:', f1_score(Y_test.flatten(), y_mask_regu.flatten(), a
 weights = np.full(shape=Y_test.shape[1], fill_value=.1, dtype=np.float32)
 weights += (go_annot_num - .2) + (regulatory_num - .1)
 weights[kb_con_idx] += .8
+weights[kb_con_idx_0] += .3
+weights[kb_con_idx_1] += .2
 weights = np.clip(weights, 0., 1.)
 #print(weights)
 print('w >= .5:', np.count_nonzero(weights >= .5))
 np.save(f'dataset/human/{data_name}_label_weight.npy', weights)
 
 
-y_w = np.where(weights>=.5, Y_d, Y_p)
-print('f1 of Y[w]:', f1_score(Y_test.flatten(), y_w.flatten(), average='macro'))
+Y_w = np.where(weights>=.5, Y_d, Y_p)
+f1_test = f1_score(Y_test.flatten(), Y_w.flatten(), average='macro')
+f1_deduc = f1_score(Y_d.flatten(), Y_w.flatten(), average='macro')
+print(f'f1 of Y_w on Y_t: {f1_test: .4f}, on Y_d: {f1_deduc: .4f}, weighted: {w_data*f1_test + w_knowledge*f1_deduc: .4f}')
