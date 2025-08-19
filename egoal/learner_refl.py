@@ -473,7 +473,7 @@ class ReflectLearner():
             optimizer.step()
 
             if (epoch+1)%10000 == 0:
-                self.eval()
+                self.eval(KB, write_log=False, verbose=True)
 
             if (epoch+1)%100 == 0 and verbose:
                 print(f"Epoch {epoch+1}, Total loss: {total_loss.item():.4f}, CE loss: {loss_y.item():.4f}, RL loss: {loss_r.item():.4f}, Reward: {reward:.4f}")
@@ -506,8 +506,14 @@ class ReflectLearner():
 
     #########################################################################
 
-    def eval(self, KB = None | RegualtoryKB, w_data = None | float):
+    def eval(self,
+             KB: RegualtoryKB,
+             w_data = None | float,
+             write_log=True,
+             verbose=False):
+
         assert self.test_loader != None
+        w_data = .5 if w_data == None or w_data<0. or w_data>1. else w_data
 
         self.model.eval()
         correct = 0
@@ -515,64 +521,64 @@ class ReflectLearner():
         with torch.no_grad():
 
             Y_test, Y_pred, Y_prob, Y_deduc = [],[],[],[]
+            R_pred = []
 
             for X_batch, Y_batch in self.test_loader:
                 outputs = self.model.predict(X_batch)
+                r_pred = self.model.reflection(X_batch)
 
                 Y_test.append(Y_batch)
                 Y_pred.append(outputs)
+                R_pred.append(r_pred)
             #    Y_prob.append(self.predict_prob(X_batch).max(dim=-1).values)
                 total += Y_batch.size(0)
                 correct += (outputs == Y_batch).sum(dim=0)
-
-                if KB != None:
-                    Y_deduc.append(KB.deduce(X_batch))
+                Y_deduc.append(KB.deduce(X_batch))
 
             Y_test = torch.concat(Y_test, dim=0)
             Y_pred = torch.concat(Y_pred, dim=0)
-            if KB != None:
-                Y_deduc = torch.concat(Y_deduc, dim=0)
+            R_pred = torch.concat(R_pred, dim=0)
+
+            Y_deduc = torch.concat(Y_deduc, dim=0)
+            Y_refl = torch.where(R_pred.bool(), Y_deduc, Y_pred)
 
             if self.device != 'cpu':
                 Y_test = Y_test.cpu()
                 Y_pred = Y_pred.cpu()
+                Y_refl = Y_refl.cpu()
+                Y_deduc = Y_deduc.cpu()
                 correct = correct.cpu()
 
-                if KB != None:
-                    Y_deduc = Y_deduc.cpu()
             #Y_prob = torch.concat(Y_prob, dim=0)
 
-            ''' compute total confusion matrix '''
+            ''' flatten '''
             flat_y_t = Y_test.flatten()
             flat_y_p = Y_pred.flatten()
-            confusion = confusion_matrix(flat_y_t, flat_y_p, labels=[-1, 0,1])
-            confusion = confusion / np.sum(confusion)
-            f1_macro = f1_score(flat_y_t, flat_y_p, average='macro') # micro on labels, macro on classes
-            f1_micro = f1_score(flat_y_t, flat_y_p, average='micro') # micro on labels, micro on classes
+            flat_y_r = Y_refl.flatten()
+            flat_y_d = Y_deduc.flatten()
 
-            #' compute weighted f1 by ground truth proportion '
-            #weights = [1/(torch.sum(flat_y_t==-1).item() + 1e-6),
-            #           1/(torch.sum(flat_y_t==0).item() + 1e-6),
-            #           1/(torch.sum(flat_y_t==1).item() + 1e-6)]
-            #weights = torch.Tensor(weights) / sum(weights)
-            #f1_class = f1_score(flat_y_t, flat_y_p, average=None)
-            #f1_weighted = sum([f1*w for f1,w in zip(f1_class,weights)])
-            #f1_weighted = f1_class[0]*weights[0] + f1_class[2]*weights[2]
 
-            ''' performance on KB consistency '''
-            if KB != None:
-                flat_y_d = Y_deduc.flatten()
-                f1_kb = f1_score(flat_y_d, flat_y_p, average='macro')
-                w_data = .5 if w_data == None or w_data<0. or w_data>1. else w_data
-                f1_final = w_data * f1_macro + (1-w_data) * f1_kb
-            else:
-                f1_final = f1_macro
+            ' performance of prediction result '
+            confusion_pred = confusion_matrix(flat_y_t, flat_y_p, labels=[-1, 0,1])
+            confusion_pred = confusion_pred / np.sum(confusion_pred)
+            f1_pred_macro = f1_score(flat_y_t, flat_y_p, average='macro') # micro on labels, macro on classes
+            f1_pred_micro = f1_score(flat_y_t, flat_y_p, average='micro') # micro on labels, micro on classes
+            f1_pred_kb = f1_score(flat_y_d, flat_y_p, average='macro')
+            f1_pred_final = w_data * f1_pred_macro + (1.-w_data) * f1_pred_kb
+
+            ' performance of integrated result '
+            confusion_refl = confusion_matrix(flat_y_t, flat_y_p, labels=[-1, 0,1])
+            confusion_refl = confusion_refl / np.sum(confusion_pred)
+            f1_refl_macro = f1_score(flat_y_t, flat_y_r, average='macro') # micro on labels, macro on classes
+            f1_refl_micro = f1_score(flat_y_t, flat_y_r, average='micro') # micro on labels, micro on classes
+            f1_refl_kb = f1_score(flat_y_d, flat_y_r, average='macro')
+            f1_refl_final = w_data * f1_refl_macro + (1.-w_data) * f1_refl_kb
 
 
             ''' compute acc & confusion matrix on each gene '''
             per_label_accuracy = correct / total
             #f1 /= Y_test.shape[1]
-            if self.log_path != '':
+            if self.log_path != '' and write_log:
                 with open(self.log_path,'a') as f:
                     f.write('label ')
                     for i in range(len(per_label_accuracy)):
@@ -595,21 +601,39 @@ class ReflectLearner():
                     #    for y_test in Y_test[data_idx]:
                     #        f.write(f'{y_test:8}\t')
 
-                    f.write(f'\n------\nconfusion matrix:\n{confusion}\n')
-                    f.write(f'macro f1: {f1_macro}\n')
-                    f.write(f'micro f1: {f1_micro}\n')
+                    f.write(f'\n\n------\nprediction result:\nconfusion matrix:\n{confusion_pred}\n')
+                    f.write(f'f1 on test:    {f1_pred_macro}\n')
+                    f.write(f'f1 on test:    {f1_pred_micro} (micro)\n')
+                    f.write(f'f1 on KB:      {f1_pred_kb}\n')
+                    f.write(f'integrated f1: {f1_pred_final}, w_data: {w_data}, w_klg: {1-w_data}\n\n')
+
+                    f.write(f'\n\n------\nintegrated result:\nconfusion matrix:\n{confusion_refl}\n')
+                    f.write(f'f1 on test:    {f1_refl_macro}\n')
+                    f.write(f'f1 on test:    {f1_refl_micro} (micro)\n')
+                    f.write(f'f1 on KB:      {f1_refl_kb}\n')
+                    f.write(f'integrated f1: {f1_refl_final}, w_data: {w_data}, w_klg: {1-w_data}\n\n')
                     #f.write(f'weighted f1: {f1_weighted}\n')
                     #f.write(f'class -1 f1: {f1_class[0]}\n')
                     #f.write(f'class  0 f1: {f1_class[1]}\n')
                     #f.write(f'class  1 f1: {f1_class[2]}\n')
-                    f.write(f'average label-wise acc: {np.mean(np.array(per_label_accuracy))*100:.2f}%\n')
+                    #f.write(f'average label-wise acc: {np.mean(np.array(per_label_accuracy))*100:.2f}%\n')
 
-                    if KB != None:
-                        f.write(f'f1 on KB: {f1_kb}\nw_data: {w_data}, w_klg: {1-w_data}\nintegrated f1: {f1_final}\n')
-            else:
-                print(f'Average Per-label Acc: {np.mean(np.array(per_label_accuracy))*100:.2f}%\n')
 
-            return f1_final
+            if verbose:
+                print(f'--- eval ---\nprediction result:')
+                print(f'f1 on test:    {f1_pred_macro}')
+                print(f'f1 on test:    {f1_pred_micro} (micro)')
+                print(f'f1 on KB:      {f1_pred_kb}')
+                print(f'integrated f1: {f1_pred_final}, w_data: {w_data}, w_klg: {1-w_data}')
+
+                print(f'\nintegrated result:')
+                print(f'f1 on test:    {f1_refl_macro}')
+                print(f'f1 on test:    {f1_refl_micro} (micro)')
+                print(f'f1 on KB:      {f1_refl_kb}')
+                print(f'integrated f1: {f1_refl_final}, w_data: {w_data}, w_klg: {1-w_data}')
+                print('------------')
+
+            return f1_pred_final
 
     def forward(self, x: torch.Tensor):
         return self.model(x)
