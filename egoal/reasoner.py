@@ -313,8 +313,8 @@ class RegualtoryKB():
 
         #TODO  arc weight?
 
-        data = torch.clamp(X.T @ Y.float(), 0,1)
-        #data = torch.abs(torch.clamp(X.T @ Y.float(), 0,1))
+        #data = torch.clamp(torch.abs(X.T @ Y.float()), 0,1)
+        data = torch.abs(torch.clamp(X.T @ Y.float(), 0,1))
         Omega = torch.any((data!=0), axis=1)
 
         KB_opt, _ = self.sparse_opt(Y = data,
@@ -331,39 +331,39 @@ class RegualtoryKB():
                                     verbose = verbose)
 
         #KB_opt_k = exp_power(KB_opt, k-1, t)
-        #self.Regu_P_0 = exp_soft(KB_opt, t0)
+        self.Regu_P_0 = exp_soft(KB_opt, t0)
 
 
-        #data = torch.abs(torch.clamp(X.T @ Y.float(), -1,0))
-        #Omega = torch.any((data!=0), axis=1)
+        data = torch.abs(torch.clamp(X.T @ Y.float(), -1,0))
+        Omega = torch.any((data!=0), axis=1)
 
-        #KB_opt, _ = self.sparse_opt(Y = data,
-        #                            X0 = self.Regu_N_0,
-        #                            Omega = Omega,
-        #                            label_set = self.idx_list,
-        #                            C = C,
-        #                            k = k,
-        #                            t = t,
-        #                            t0 = t0,
-        #                            init_lr = init_lr,
-        #                            epochs = epochs,
-        #                            decay_rate = decay_rate,
-        #                            verbose = verbose)
+        KB_opt, _ = self.sparse_opt(Y = data,
+                                    X0 = self.Regu_N_0,
+                                    Omega = Omega,
+                                    label_set = self.idx_list,
+                                    C = C,
+                                    k = k,
+                                    t = t,
+                                    t0 = t0,
+                                    init_lr = init_lr,
+                                    epochs = epochs,
+                                    decay_rate = decay_rate,
+                                    verbose = verbose)
 
-        #self.Regu_N_0 = exp_soft(KB_opt, t0)
+        self.Regu_N_0 = exp_soft(KB_opt, t0)
 
-        #self.closure_(k, 'weighted')
+        self.closure_(k, 'weighted')
 
-        KB_opt_k = exp_power(KB_opt, k-1, t)
-        self.KB_P = torch.round(self.Regu_P_0 @ KB_opt_k + KB_opt_k @ self.Regu_P_0)
-        self.KB_N = torch.round(self.Regu_N_0 @ KB_opt_k + KB_opt_k @ self.Regu_N_0)
+        #KB_opt_k = exp_power(KB_opt, k-1, t)
+        #self.KB_P = torch.round(self.Regu_P_0 @ KB_opt_k + KB_opt_k @ self.Regu_P_0)
+        #self.KB_N = torch.round(self.Regu_N_0 @ KB_opt_k + KB_opt_k @ self.Regu_N_0)
 
-        # TODO weighted / comb?
-        self.KB = torch.clamp(self.KB_P - self.KB_N, -1,1)
+        ## TODO weighted / comb?
+        #self.KB = torch.clamp(self.KB_P - self.KB_N, -1,1)
 
-        self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
+        #self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
 
-        self.Regu_0 = torch.clamp(torch.round(KB_opt), 0,1)
+        #self.Regu_0 = torch.clamp(torch.round(KB_opt), 0,1)
 
 
 if __name__ == '__main__':
