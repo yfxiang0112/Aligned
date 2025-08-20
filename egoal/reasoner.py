@@ -14,6 +14,13 @@ def exp_power(X, k, t):
     Xk = torch.matrix_power(X, k)
     return 1 - torch.exp(-t * Xk)
 
+def tanh_soft(X, t):
+    return torch.tanh(t * X)
+
+def tanh_power(X, k, t):
+    return torch.tanh(t * torch.matrix_power(X, k))
+
+
 class RegualtoryKB():
     def __init__(self,
                  pos_trn_pth: str,
@@ -236,24 +243,24 @@ class RegualtoryKB():
         for epoch in range(epochs):
             optimizer.zero_grad()
     
-            Xk = exp_power(X, k, t)
+            Xk = tanh_power(X, k, t)
             loss1 = torch.norm((Xk[:,label_set] - Y)[Omega], p='fro') ** 2
 
-            loss2 = torch.norm(exp_soft(X, t0) - X0, p=1)# ** 2
+            loss2 = torch.norm(tanh_soft(X, t0) - X0, p=1)# ** 2
             loss = loss1 + C * loss2
 
             loss_round = torch.count_nonzero((torch.round(Xk[:,label_set])-Y)[Omega])
 
             f1 = f1_score(
                     torch.round(Xk[:,label_set][Omega]).flatten().detach().cpu().numpy(),
-                    Y[Omega].flatten().detach().cpu().numpy())
+                    Y[Omega].flatten().detach().cpu().numpy(), average='macro')
     
-            Xk_ = torch.clamp(torch.matrix_power(torch.round(exp_soft(X,t0)),k),0,1)
+            Xk_ = torch.clamp(torch.matrix_power(torch.round(tanh_soft(X,t0)),k),-1,1)
             loss_round_ = torch.count_nonzero((torch.round(Xk_)[:,label_set]-Y)[Omega])
 
             f1_ = f1_score(
                     torch.round(Xk_[:,label_set][Omega]).flatten().detach().cpu().numpy(),
-                    Y[Omega].flatten().detach().cpu().numpy())
+                    Y[Omega].flatten().detach().cpu().numpy(), average='macro')
             #loss_round = torch.count_nonzero((torch.round(tanh_power(X,k))-Y)[Omega])
             
             # Backpropagate
@@ -275,7 +282,7 @@ class RegualtoryKB():
             if verbose and (epoch % 20 == 0 or epoch == epochs - 1):
                 print(f"Iteration {epoch}: Loss = {loss.item():.6f}")
                 print(f'|Xk-Y|_F: {loss1.item(): .6f}, |X-X0|: {loss2.item(): .6f}')
-                print(f'rounded |X_k-Y|_0 = {loss_round}, f1 = {f1: .6f}, approx slack: {torch.count_nonzero(Xk_ - torch.round(exp_power(X,k,t)))}')
+                print(f'rounded |X_k-Y|_0 = {loss_round}, f1 = {f1: .6f}, approx slack: {torch.count_nonzero(Xk_ - torch.round(tanh_power(X,k,t)))}')
                 print(f'rounded before pow |X_k-Y|_0 = {loss_round_}, f1 = {f1_: .6f}\n')
 
         return X.detach(), losses
@@ -313,12 +320,12 @@ class RegualtoryKB():
 
         #TODO  arc weight?
 
-        #data = torch.clamp(torch.abs(X.T @ Y.float()), 0,1)
-        data = torch.abs(torch.clamp(X.T @ Y.float(), 0,1))
+        data = torch.clamp(X.T @ Y.float(), -1,1)
+        #data = torch.abs(torch.clamp(X.T @ Y.float(), 0,1))
         Omega = torch.any((data!=0), axis=1)
 
         KB_opt, _ = self.sparse_opt(Y = data,
-                                    X0 = self.Regu_P_0,
+                                    X0 = self.Regu_0,
                                     Omega = Omega,
                                     label_set = self.idx_list,
                                     C = C,
@@ -330,40 +337,18 @@ class RegualtoryKB():
                                     decay_rate = decay_rate,
                                     verbose = verbose)
 
-        #KB_opt_k = exp_power(KB_opt, k-1, t)
-        self.Regu_P_0 = exp_soft(KB_opt, t0)
-
-
-        data = torch.abs(torch.clamp(X.T @ Y.float(), -1,0))
-        Omega = torch.any((data!=0), axis=1)
-
-        KB_opt, _ = self.sparse_opt(Y = data,
-                                    X0 = self.Regu_N_0,
-                                    Omega = Omega,
-                                    label_set = self.idx_list,
-                                    C = C,
-                                    k = k,
-                                    t = t,
-                                    t0 = t0,
-                                    init_lr = init_lr,
-                                    epochs = epochs,
-                                    decay_rate = decay_rate,
-                                    verbose = verbose)
-
-        self.Regu_N_0 = exp_soft(KB_opt, t0)
-
-        self.closure_(k, 'weighted')
-
-        #KB_opt_k = exp_power(KB_opt, k-1, t)
+        KB_opt_k = tanh_power(KB_opt, k, t)
         #self.KB_P = torch.round(self.Regu_P_0 @ KB_opt_k + KB_opt_k @ self.Regu_P_0)
         #self.KB_N = torch.round(self.Regu_N_0 @ KB_opt_k + KB_opt_k @ self.Regu_N_0)
 
-        ## TODO weighted / comb?
-        #self.KB = torch.clamp(self.KB_P - self.KB_N, -1,1)
+        # TODO weighted / comb?
+        self.KB = torch.clamp(KB_opt_k, -1,1)
 
-        #self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
+        self.KB_P, self.KB_N = torch.clamp(self.KB, 0,1), torch.clamp(-self.KB, 0,1)
 
-        #self.Regu_0 = torch.clamp(torch.round(KB_opt), 0,1)
+        self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
+
+        self.Regu_0 = torch.clamp(torch.round(KB_opt), -1,1)
 
 
 if __name__ == '__main__':
