@@ -472,8 +472,8 @@ class ReflectLearner():
             total_loss.backward()
             optimizer.step()
 
-            if (epoch+1)%10000 == 0:
-                self.eval(KB, write_log=False, verbose=True)
+            if (epoch+1)%10000== 0: #NOTE tmp
+                self.eval(KB, w_data=.3, write_log=False, verbose=True)
 
             if (epoch+1)%100 == 0 and verbose:
                 print(f"Epoch {epoch+1}, Total loss: {total_loss.item():.4f}, CE loss: {loss_y.item():.4f}, RL loss: {loss_r.item():.4f}, Reward: {reward:.4f}")

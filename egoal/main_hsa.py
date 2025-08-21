@@ -9,8 +9,8 @@ if __name__ == '__main__':
     data_name = 'norman'
     log_file = f'log/EGOAL-hsa-{datetime.now()}.txt'.replace(' ','-')
     
-    model_type = 'MLP'
-    model_name = model_type + '_human_Aug19_refine'
+    model_type = 'GNN'
+    model_name = model_type + '_human_Aug20'
     print(model_name)
     print(log_file)
 
@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
 
-    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -60,7 +60,7 @@ if __name__ == '__main__':
            closure_type = 'weighted',
 
            label_weight=label_weight,
-           #pretrained_model_pth = '',
+           #pretrained_model_pth = 'models/MLP_human_Aug19.pt',
            model_save_pth = f'models/{model_name}',
            base_learner_type= model_type,
 
@@ -73,8 +73,8 @@ if __name__ == '__main__':
            retrain_epc= 400,
            retrain_rl_epc= 100,
            retrain_lr= 1e-3,
-           refine_epc= 2000,
-           refine_lr= 1e-4,
+           refine_epc= 5000,
+           refine_lr= 1e-3,
 
            device= device,
            seed= 42,

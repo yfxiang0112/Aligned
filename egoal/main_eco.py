@@ -31,7 +31,7 @@ if __name__ == "__main__":
     label_weight = torch.tensor(np.load('rules/label_weight.npy'))
 
 
-    device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -49,23 +49,23 @@ if __name__ == "__main__":
 
            X_label = X_train,
            Y_label = Y_train,
-           #pretrained_model_pth= 'models/pretrained_7.29_GNN.pt',
-           model_save_pth= 'models/ecoli/GNN.pt',
-           base_learner_type= 'GNN',
+           pretrained_model_pth= 'models/pretrained_7.18_label_weight.pt',
+           #model_save_pth= 'models/ecoli/MLP_Aug20.pt',
+           base_learner_type= 'MLP',
 
            T= 2,
 
-           pretrain_epc= 300,
-           pretrain_rl_epc= 100,
+           pretrain_epc= 500,
+           pretrain_rl_epc= 1,
            pretrain_lr= 1e-3,
 
            retrain_epc= 500,
-           retrain_rl_epc= 100,
+           retrain_rl_epc= 1,
            retrain_lr= 1e-3,
-           refine_epc= 2000,
-           refine_lr= 1e-4,
+           refine_epc= 5000,
+           refine_lr= 1e-3,
 
            device= device,
            seed= 42,
            log_file= log_file,
-           verbose= False)
+           verbose= True)

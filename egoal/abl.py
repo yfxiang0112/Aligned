@@ -176,7 +176,7 @@ def abduce(X_unlabel: torch.Tensor,
 
     ########################################
 
-    confidence_list = [.2, .5]
+    #confidence_list = [.3, .5]
 
     ''' abl main loop '''
     for t in range(T):
@@ -202,7 +202,7 @@ def abduce(X_unlabel: torch.Tensor,
         Y_deduction = reasoner.deduce(X_unlabel)
 
         ' retrain base learner '
-        Y_modified = torch.where(R > 1-confidence_list[t], Y_deduction, Y_pseudo)
+        Y_modified = torch.where(R > .5, Y_deduction, Y_pseudo)
         learner.load_data(X_unlabel, Y_modified, X_test, Y_test, update_weight=True)
         learner.train(KB= reasoner,
                       label_weight= label_weight,
@@ -221,7 +221,7 @@ def abduce(X_unlabel: torch.Tensor,
 
         ' knowledge refine '
         #np.save('KB_before.npy', reasoner.KB.detach().cpu().numpy()) #NOTE tmp
-        Y_modified = torch.where(R > confidence_list[t], Y_deduction, Y_pseudo)
+        #Y_modified = torch.where(R > .5, Y_deduction, Y_pseudo)
         reasoner.refine(X= X_unlabel,
                         Y= Y_modified,
                         k= closure,

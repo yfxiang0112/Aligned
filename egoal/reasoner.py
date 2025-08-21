@@ -237,7 +237,7 @@ class RegualtoryKB():
     
         # Use Adam optimizer for better convergence
         optimizer = torch.optim.Adam([X], lr=init_lr)
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=decay_rate)
+        #scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=decay_rate)
         
         losses = []
         for epoch in range(epochs):
@@ -249,24 +249,11 @@ class RegualtoryKB():
             loss2 = torch.norm(tanh_soft(X, t0) - X0, p=1)# ** 2
             loss = loss1 + C * loss2
 
-            loss_round = torch.count_nonzero((torch.round(Xk[:,label_set])-Y)[Omega])
-
-            f1 = f1_score(
-                    torch.round(Xk[:,label_set][Omega]).flatten().detach().cpu().numpy(),
-                    Y[Omega].flatten().detach().cpu().numpy(), average='macro')
-    
-            Xk_ = torch.clamp(torch.matrix_power(torch.round(tanh_soft(X,t0)),k),-1,1)
-            loss_round_ = torch.count_nonzero((torch.round(Xk_)[:,label_set]-Y)[Omega])
-
-            f1_ = f1_score(
-                    torch.round(Xk_[:,label_set][Omega]).flatten().detach().cpu().numpy(),
-                    Y[Omega].flatten().detach().cpu().numpy(), average='macro')
-            #loss_round = torch.count_nonzero((torch.round(tanh_power(X,k))-Y)[Omega])
             
             # Backpropagate
             loss.backward()
             optimizer.step()
-            scheduler.step()
+            #scheduler.step()
     
             with torch.no_grad():
                 X.data = X.data.clamp(min=0)
@@ -280,6 +267,20 @@ class RegualtoryKB():
                 break
             
             if verbose and (epoch % 20 == 0 or epoch == epochs - 1):
+                loss_round = torch.count_nonzero((torch.round(Xk[:,label_set])-Y)[Omega])
+
+                f1 = f1_score(
+                    torch.round(Xk[:,label_set][Omega]).flatten().detach().cpu().numpy(),
+                    Y[Omega].flatten().detach().cpu().numpy(), average='macro')
+    
+                Xk_ = torch.clamp(torch.matrix_power(torch.round(tanh_soft(X,t0)),k),-1,1)
+                loss_round_ = torch.count_nonzero((torch.round(Xk_)[:,label_set]-Y)[Omega])
+
+                f1_ = f1_score(
+                    torch.round(Xk_[:,label_set][Omega]).flatten().detach().cpu().numpy(),
+                    Y[Omega].flatten().detach().cpu().numpy(), average='macro')
+                #loss_round = torch.count_nonzero((torch.round(tanh_power(X,k))-Y)[Omega])
+                
                 print(f"Iteration {epoch}: Loss = {loss.item():.6f}")
                 print(f'|Xk-Y|_F: {loss1.item(): .6f}, |X-X0|: {loss2.item(): .6f}')
                 print(f'rounded |X_k-Y|_0 = {loss_round}, f1 = {f1: .6f}, approx slack: {torch.count_nonzero(Xk_ - torch.round(tanh_power(X,k,t)))}')
@@ -292,11 +293,11 @@ class RegualtoryKB():
                Y,
                C=1,
                k=None,
-               t=1,
-               t0=100,
+               t=10,
+               t0=1000,
                epochs= 1000,
                init_lr= 1e-3,
-               decay_rate= 0.995,
+               decay_rate= 0.999,
                verbose=False):
         '''
         knowledge refinement via sparse learning
@@ -337,7 +338,7 @@ class RegualtoryKB():
                                     decay_rate = decay_rate,
                                     verbose = verbose)
 
-        KB_opt_k = tanh_power(KB_opt, k, t)
+        KB_opt_k = torch.round(tanh_power(KB_opt, k, t))
         #self.KB_P = torch.round(self.Regu_P_0 @ KB_opt_k + KB_opt_k @ self.Regu_P_0)
         #self.KB_N = torch.round(self.Regu_N_0 @ KB_opt_k + KB_opt_k @ self.Regu_N_0)
 
@@ -345,8 +346,6 @@ class RegualtoryKB():
         self.KB = torch.clamp(KB_opt_k, -1,1)
 
         self.KB_P, self.KB_N = torch.clamp(self.KB, 0,1), torch.clamp(-self.KB, 0,1)
-
-        self.KB, self.KB_P, self.KB_N = self.KB[:,self.idx_list], self.KB_P[:,self.idx_list], self.KB_N[:,self.idx_list]
 
         self.Regu_0 = torch.clamp(torch.round(KB_opt), -1,1)
 
