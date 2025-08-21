@@ -22,19 +22,19 @@ def tanh_power(X, k, t):
 
 
 class RegualtoryKB():
+    '''
+    Class for Regulatory Network Knowledgebase
+    Args:\n
+        pos_trn_pth: npz file path 
+        neg_trn_pth:
+        output_idx_list:
+        device:
+    '''
     def __init__(self,
                  pos_trn_pth: str,
                  neg_trn_pth: str | None,
                  output_idx_list=None,
                  device='cpu') -> None:
-        '''
-        Class for Regulatory Network Knowledgebase
-        Args:
-            pos_trn_pth: npz file path 
-            neg_trn_pth:
-            output_idx_list:
-            device:
-        '''
 
         self.Regu_P_0 = torch.tensor(load_npz(pos_trn_pth).toarray(), dtype=torch.float)
         self.Regu_N_0 = torch.tensor(load_npz(neg_trn_pth).toarray(), dtype=torch.float) if neg_trn_pth!=None else torch.zeros_like(self.Regu_P_0)
@@ -348,6 +348,7 @@ class RegualtoryKB():
         self.KB_P, self.KB_N = torch.clamp(self.KB, 0,1), torch.clamp(-self.KB, 0,1)
 
         self.Regu_0 = torch.clamp(torch.round(KB_opt), -1,1)
+        self.Regu_P_0, self.Regu_N_0 = torch.clamp(self.Regu_0, 0,1), torch.clamp(-self.Regu_0, 0,1)
 
 
 if __name__ == '__main__':
