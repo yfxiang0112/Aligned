@@ -14,14 +14,14 @@ regulatory = pd.read_csv('rules/human/regulatory_dorothea.csv', index_col=0)
 #train = metadata[~test_idx]
 
 test = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
-train = metadata.loc[~ metadata.index.isin(test.index)]
+train = metadata.loc[~ metadata['pert'].isin(test['pert'])]
 # NOTE end ##############
 
 print('test metadata:\n',test)
 test.reset_index(inplace=True, drop=True)
 
 ' data idx of test set '
-test_data_idx = sum(test.apply(lambda x: list(range(x['data_start_idx'],x['data_end_idx+1'])), axis=1), [])
+test_data_idx = sum(metadata[metadata['pert'].isin(test['pert'])].apply(lambda x: list(range(x['data_start_idx'],x['data_end_idx+1'])), axis=1), [])
 print('test dataset len: ',len(test_data_idx))
 np.save(f'dataset/human/{data_name}_test_idx.npy', test_data_idx)
 
