@@ -43,7 +43,7 @@ true_RP_flat = reasoner_true.KB_P.cpu().numpy().flatten()
 true_RN_flat = reasoner_true.KB_N.cpu().numpy().flatten()
 true_R_flat = reasoner_true.KB.cpu().numpy().flatten()
 
-for p_incompl in [.05, .1, .2, .3, .4, .5]:
+for p_incompl in [0., .05, .1, .2, .3, .4, .5]:
 
     ' create mask for p% nonzero positions '
     nonzero_indices = np.argwhere(R != 0)
