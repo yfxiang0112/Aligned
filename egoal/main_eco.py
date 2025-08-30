@@ -59,7 +59,7 @@ if __name__ == "__main__":
            pretrain_rl_epc= 1,
            pretrain_lr= 1e-3,
 
-           retrain_epc= 400,
+           retrain_epc= 200,
            retrain_rl_epc= 100,
            retrain_lr= 1e-4,
            refine_epc= 5000,

@@ -6,7 +6,7 @@ import pickle
 from sklearn.metrics import f1_score
 from scipy.sparse import load_npz
 
-from egoal.reasoner import RegualtoryKB
+from egoal.reasoner import RegulatoryKB
 from egoal.learner_refl import ReflectLearner
 
 data_name = 'norman'
@@ -17,7 +17,7 @@ Y = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()
 X = load_npz(f'dataset/human/{data_name}_X.npz').toarray()
 
 
-KB = RegualtoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz', neg_trn_pth=f'rules/human/{data_name}_KB_N.npz', device=device)
+KB = RegulatoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz', neg_trn_pth=f'rules/human/{data_name}_KB_N.npz', device=device)
 KB.closure_(T=5, closure_type='weighted')
 
 

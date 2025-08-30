@@ -5,10 +5,10 @@ import torch
 from sklearn.metrics import f1_score, confusion_matrix
 from scipy.sparse import load_npz
 
-from egoal.reasoner import RegualtoryKB
+from egoal.reasoner import RegulatoryKB
 
 test_metadata = pd.read_csv('dataset/human/norman_test_set.csv', index_col=0)
-pred_result = json.load(open('data_anal/pert_benchmark/additive/all_predictions.json'))
+pred_result = json.load(open('data_anal/pert_benchmark/gears/all_predictions.json'))
 
 test_idx = np.load('dataset/human/norman_test_idx.npy')
 Y_true = load_npz('dataset/human/norman_Y.npz').toarray()[test_idx]
@@ -37,7 +37,7 @@ for i, (start, end) in enumerate(indices):
         for row in range(start, end):
             Y[row, :len(a_array)] = a_array
 
-Y = np.where(np.abs(Y)>.1, np.sign(Y), 0)
+Y = np.where(np.abs(Y)>.5, np.sign(Y), 0)
 
 ''' eval data consistency '''
 print(Y.shape)
@@ -51,7 +51,7 @@ print(f'confusion: {confusion}')
 
 ''' eval on KB deduction '''
 device = 'cuda'
-KB = RegualtoryKB(pos_trn_pth=f'rules/human/norman_KB_P.npz', neg_trn_pth=f'rules/human/norman_KB_N.npz', device=device)
+KB = RegulatoryKB(pos_trn_pth=f'rules/human/norman_KB_P.npz', neg_trn_pth=f'rules/human/norman_KB_N.npz', device=device)
 KB.closure_(T=5, closure_type='weighted')
 Y_deduction = KB.deduce(torch.tensor(X).float().to(device)).to('cpu').numpy()
 

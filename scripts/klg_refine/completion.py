@@ -70,6 +70,8 @@ for p_incompl in [0., .05, .1, .2, .3, .4, .5]:
     reasoner_train.refine(X= X,
                     Y= Y,
                     k= 5,
+                    t= 1,
+                    t0= 100,
                     epochs= 5000,
                     init_lr= 1e-3,
                     verbose= True)

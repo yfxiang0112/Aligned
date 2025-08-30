@@ -175,8 +175,6 @@ def abduce(X_unlabel: torch.Tensor,
 
     ########################################
 
-    #confidence_list = [.3, .5]
-
     ''' abl main loop '''
     for t in range(T):
         if log_file != '':
@@ -186,17 +184,6 @@ def abduce(X_unlabel: torch.Tensor,
         ' predict pseudo label & to binary '
         Y_prob, R = learner.forward(X_unlabel)
         Y_pseudo = torch.argmax(Y_prob, dim=-1) -1
-        #print(torch.max(R))
-        #print('R >.9:', torch.sum(R > .9) / (R.shape[0]*R.shape[1]))
-        #print('R >.8:', torch.sum((R > .8) & (R <= .9)) / (R.shape[0]*R.shape[1]))
-        #print('R >.5:', torch.sum((R > .5) & (R <= .8)) / (R.shape[0]*R.shape[1]))
-        #print('R <.5:', torch.sum(R <= .5) / (R.shape[0]*R.shape[1]))
-        #R_binary = R >= .5
-        #print('R_biary nonzero:', torch.count_nonzero(R_binary))
-
-
-        #print(torch.count_nonzero(R_binary) / (R.shape[0]*R.shape[1]))
-        #n_rows, n_cols = Y_pseudo.shape[0], Y_pseudo.shape[1]
 
         Y_deduction = reasoner.deduce(X_unlabel)
 
@@ -216,18 +203,15 @@ def abduce(X_unlabel: torch.Tensor,
         w_data = eval_weight(X_label, Y_label, reasoner)
         f1 = learner.eval(reasoner, w_data, verbose=True)
         print(f'integrated f1 {f1:.4f}')
-        #Y_modified = Y_deduction
 
         ' knowledge refine '
-        #np.save('KB_before.npy', reasoner.KB.detach().cpu().numpy()) #NOTE tmp
-        #Y_modified = torch.where(R > .5, Y_deduction, Y_pseudo)
         reasoner.refine(X= X_unlabel,
                         Y= Y_modified,
                         k= closure,
                         epochs= refine_epc,
-                        init_lr= refine_lr,
+                        lr= refine_lr,
+                        approx= 'tanh',
                         verbose= verbose)
-        #np.save('KB_after.npy', reasoner.KB.detach().cpu().numpy()) #NOTE tmp
 
         if log_file != '':
             with open(log_file, 'a') as log:
@@ -236,40 +220,3 @@ def abduce(X_unlabel: torch.Tensor,
         w_data = eval_weight(X_label, Y_label, reasoner)
         f1 = learner.eval(reasoner, w_data, verbose=True)
         print(f'integrated f1 {f1:.4f}')
-
-
-
-        ##NOTE tmp ########################################
-        #Y_pred, R_pred = learner.forward(X_test)
-        #Y_pred = torch.argmax(Y_pred, dim=-1) -1
-        #y_p_flat = Y_pred.detach().cpu().numpy().flatten()
-        #y_t_flat = Y_test.detach().cpu().numpy().flatten()
-        #print(f'Y_pseudo f1: {f1_score(y_t_flat, y_p_flat, average="macro")}')
-        #print(f'Y_pseudo f1 (abs): {f1_score(np.abs(y_t_flat), np.abs(y_p_flat), average="macro")}')
-
-        #R_pred = R_pred >= .5 #NOTE
-        #Y_deduction_test = reasoner.deduce(X_test)
-
-
-        #y_d_flat = Y_deduction_test.detach().cpu().numpy().flatten()
-        #print(f'Y_pseudo f1 (Y_d): {f1_score(y_d_flat, y_p_flat, average="macro")}')
-
-        ##np.save(f'data_anal/abduction_results/R_ABL{t}_hsa.npy', R_pred.cpu().numpy()) #NOTE tmp
-        ##np.save(f'data_anal/abduction_results/Yp_ABL{t}_hsa.npy', Y_pred.cpu().numpy()) #NOTE tmp
-        ##np.save(f'data_anal/abduction_results/Yd_ABL{t}_hsa.npy', Y_deduction_test.cpu().numpy()) #NOTE tmp
-
-        #Y_m = torch.where(R_pred, Y_deduction_test, Y_pred)
-
-        #y_m_flat = Y_m.detach().cpu().numpy().flatten()
-        ##y_t_flat = Y_test.detach().cpu().numpy().flatten()
-        ##print(Y_modified.shape, Y_test.shape)
-        #print(f'Y_modified f1: {f1_score(y_t_flat, y_m_flat, average="macro")}')
-        #print(f'Y_modified f1 (abs): {f1_score(np.abs(y_t_flat), np.abs(y_m_flat), average="macro")}')
-        #print(f'Y_modified f1 (Y_d): {f1_score(y_d_flat, y_m_flat, average="macro")}')
-
-        #print(torch.count_nonzero(torch.sum(R_pred, dim=0)))
-        ##if t == 1: # tmp
-        ##    exit()
-
-        ##NOTE end #######################################
-
