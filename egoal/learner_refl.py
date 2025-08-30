@@ -9,7 +9,7 @@ from torch.distributions import Bernoulli
 from torch_geometric.utils import dense_to_sparse
 from scipy.sparse import load_npz
 
-from egoal.reasoner import RegualtoryKB
+from egoal.reasoner import RegulatoryKB
 
 class ReflectMLP(nn.Module):
     """ Network Structure of Base Learner with Reflect Output (RL) """
@@ -245,7 +245,7 @@ class ReflectLearner():
 
 
     def consistency_reward(self,
-                           KB: RegualtoryKB,
+                           KB: RegulatoryKB,
                            x: torch.Tensor,
                            y_probs: torch.Tensor,
                            r_binary: torch.Tensor,
@@ -267,15 +267,17 @@ class ReflectLearner():
         y = torch.argmax(y_probs, dim=-1) -1
 
         violated = KB.violated(Y=y, X=x, mask=~(r_binary.bool()))
+        #violated = KB.violated(Y=torch.where(r_binary.bool(), KB.deduce(x), y), X=x)
 
         weighted_restriction = torch.sum(torch.clamp(
             torch.sign(r_binary - .5) * (.5 - label_weight), min=0))\
                     if label_weight != None else 0
+        #weighted_restriction = torch.sum(r_binary @ (1-label_weight) + (1-r_binary) @ label_weight)
 
         #total = r_binary.shape[0] * r_binary.shape[1]
         #len_restriction = torch.max(torch.count_nonzero(r_binary) - th * total, other=torch.tensor(0))
 
-        return - violated - .1 * weighted_restriction #- len_restriction
+        return - .1*violated -  weighted_restriction #- len_restriction
         #return - weighted_restriction
 
     def load_data(self,
@@ -388,7 +390,7 @@ class ReflectLearner():
 
     def train(
         self, 
-        KB: RegualtoryKB,
+        KB: RegulatoryKB,
         label_weight= None | torch.Tensor,
         epochs= 10, 
         reinforce_epochs= 100,
@@ -472,7 +474,7 @@ class ReflectLearner():
             total_loss.backward()
             optimizer.step()
 
-            if (epoch+1)%10000== 0: #NOTE tmp
+            if (epoch+1)%2000== 0: #NOTE tmp
                 self.eval(KB, w_data=.3, write_log=False, verbose=True)
 
             if (epoch+1)%100 == 0 and verbose:
@@ -494,9 +496,11 @@ class ReflectLearner():
                     #print(f'    r-labels: {output_r[0,list(set(r_idx)-set(labels))]}\n    labels-r: {output_r[0,list(set(labels)-set(r_idx))]}')
                     
                     violated = KB.violated(Y=y, X=X_batch, mask=~(r.bool()))
+                    #violated = KB.violated(Y=torch.where(r.bool(), KB.deduce(X_batch), y), X=X_batch)
                     weighted_restriction = torch.sum(torch.clamp(
-                        torch.sign(r- .5) * (-label_weight), min=0))\
+                        torch.sign(r- .5) * (.5-label_weight), min=0))\
                                 if label_weight != None else 0
+                    #weighted_restriction = torch.sum(r @ (1-label_weight) + (1-r) @ label_weight)
                     total = r.shape[0] * r.shape[1]
                     len_restriction = torch.max(torch.count_nonzero(r) - .3 * total, other=torch.tensor(0))
                     print(f'    violated: {violated}, weighted: {weighted_restriction}, len: {len_restriction}, nonzero: {torch.count_nonzero(r) / total}')
@@ -507,7 +511,7 @@ class ReflectLearner():
     #########################################################################
 
     def eval(self,
-             KB: RegualtoryKB,
+             KB: RegulatoryKB,
              w_data = None | float,
              write_log=True,
              verbose=False):
@@ -694,7 +698,7 @@ if __name__ == '__main__':
 
     # Train
     learner = ReflectLearner(input_dim=X_train.shape[1], output_dim=Y_train.shape[1], device=device, log_path='log.txt')
-    regulatory_kb = RegualtoryKB(pos_trn_pth= 'rules/regu_pos.npz', neg_trn_pth='rules/regu_neg.npz', output_idx_list=idx_list_sra, device=device)
+    regulatory_kb = RegulatoryKB(pos_trn_pth= 'rules/regu_pos.npz', neg_trn_pth='rules/regu_neg.npz', output_idx_list=idx_list_sra, device=device)
     regulatory_kb.closure_(T=5, closure_type='weighted')
 
     learner.load_data(X_train, Y_train, X_test, Y_test, batch_size=batch_size)

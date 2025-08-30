@@ -49,9 +49,9 @@ if __name__ == "__main__":
 
            X_label = X_train,
            Y_label = Y_train,
-           pretrained_model_pth= 'models/pretrained_7.18_label_weight.pt',
+           #pretrained_model_pth= 'models/pretrained_7.18_label_weight.pt',
            #model_save_pth= 'models/ecoli/MLP_Aug20.pt',
-           base_learner_type= 'MLP',
+           base_learner_type= 'GNN',
 
            T= 2,
 
@@ -59,9 +59,9 @@ if __name__ == "__main__":
            pretrain_rl_epc= 1,
            pretrain_lr= 1e-3,
 
-           retrain_epc= 500,
-           retrain_rl_epc= 1,
-           retrain_lr= 1e-3,
+           retrain_epc= 400,
+           retrain_rl_epc= 100,
+           retrain_lr= 1e-4,
            refine_epc= 5000,
            refine_lr= 1e-3,
 

@@ -5,8 +5,8 @@ import pandas as pd
 from scipy.sparse import coo_matrix, save_npz
 
 def diff_expr(x0, x1):
-    res = np.where(x1 >  x0, 1,
-                   np.where(x1 <  x0, -1, 0))
+    res = np.where(x1 >  x0+.5, 1,
+                   np.where(x1 <  x0-.5, -1, 0))
     return res
 
 gene2go = pickle.load(open('../GEARS/gene2go_all.pkl', 'rb'))

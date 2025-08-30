@@ -8,7 +8,7 @@ import json
 import pandas as pd
 from sklearn.metrics import confusion_matrix, f1_score
 
-from egoal.reasoner import RegualtoryKB
+from egoal.reasoner import RegulatoryKB
 
 def eval_log(Y_true,
              Y_pred,

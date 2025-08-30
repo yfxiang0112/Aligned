@@ -35,7 +35,7 @@ def tanh_power(X, k, t):
     return torch.tanh(t * torch.matrix_power(X, k))
 
 
-class RegualtoryKB():
+class RegulatoryKB():
     '''
     Class for Regulatory Network Knowledgebase
     Args:\n
@@ -117,7 +117,7 @@ class RegualtoryKB():
     def violated(self,
                  Y: torch.Tensor,
                  X: torch.Tensor,
-                 mask=None | torch.Tensor):
+                 mask=None):
         '''
         violated count across all data points (matrix)
         Args:
@@ -131,7 +131,7 @@ class RegualtoryKB():
         #    raise(Exception('All matrices should be in same shape'))
 
         deduction = torch.clamp((X @ self.KB)[:,self.idx_list], -1.,1.).int()
-        if mask != None:
+        if mask == None:
             vio_cnt = torch.count_nonzero(deduction != Y)
         else:
             vio_cnt = torch.count_nonzero((deduction != Y)[mask])
@@ -280,30 +280,31 @@ class RegualtoryKB():
             losses.append(loss.item())
             
             # Check for convergence
-            if epoch > 0 and abs(losses[-1] - losses[-2]) < tol:
-                if verbose:
-                    print(f"Converged at iteration {epoch}")
-                break
+            #if epoch > 0 and abs(losses[-1] - losses[-2]) < tol:
+            #    if verbose:
+            #        print(f"Converged at iteration {epoch}")
+            #    break
             
-            #if verbose and (epoch % 20 == 0 or epoch == epochs - 1):
-            #    loss_round = torch.count_nonzero((torch.round(Xk[:,label_set])-Y)[Omega])
+            if verbose and (epoch % 20 == 0 or epoch == epochs - 1):
+                loss_round = torch.count_nonzero((torch.round(Xk[:,label_set])-Y)[Omega])
 
-            #    f1 = f1_score(
-            #        torch.round(Xk[:,label_set][Omega]).flatten().detach().cpu().numpy(),
-            #        Y[Omega].flatten().detach().cpu().numpy(), average='macro')
+                f1 = f1_score(
+                    torch.round(Xk[:,label_set][Omega]).flatten().detach().cpu().numpy(),
+                    Y[Omega].flatten().detach().cpu().numpy(), average='macro')
     
-            #    Xk_ = torch.clamp(torch.matrix_power(torch.round(tanh_soft(X,t0)),k),-1,1)
-            #    loss_round_ = torch.count_nonzero((torch.round(Xk_)[:,label_set]-Y)[Omega])
+                Xk_P_, Xk_N_, _ = RegulatoryKB.closure(torch.round(exp_soft(X_P,t0)), torch.round(exp_soft(X_N, t0)),T=k, device=device)
+                Xk_ = torch.clamp(Xk_P_ - Xk_N_,-1,1)
+                #loss_round_ = torch.count_nonzero((torch.round(Xk_)[:,label_set]-Y)[Omega])
 
-            #    f1_ = f1_score(
-            #        torch.round(Xk_[:,label_set][Omega]).flatten().detach().cpu().numpy(),
-            #        Y[Omega].flatten().detach().cpu().numpy(), average='macro')
-            #    #loss_round = torch.count_nonzero((torch.round(tanh_power(X,k))-Y)[Omega])
-            #    
-            #    print(f"Iteration {epoch}: Loss = {loss.item():.6f}")
-            #    print(f'|Xk-Y|_F: {loss1.item(): .6f}, |X-X0|: {loss2.item(): .6f}')
-            #    print(f'rounded |X_k-Y|_0 = {loss_round}, f1 = {f1: .6f}, approx slack: {torch.count_nonzero(Xk_ - torch.round(tanh_power(X,k,t)))}')
-            #    print(f'rounded before pow |X_k-Y|_0 = {loss_round_}, f1 = {f1_: .6f}\n')
+                #f1_ = f1_score(
+                #    torch.round(Xk_[:,label_set][Omega]).flatten().detach().cpu().numpy(),
+                #    Y[Omega].flatten().detach().cpu().numpy(), average='macro')
+                #loss_round = torch.count_nonzero((torch.round(tanh_power(X,k))-Y)[Omega])
+                
+                print(f"Iteration {epoch}: Loss = {loss.item():.6f}")
+                print(f'|Xk-Y|_F: {loss1.item(): .6f}, |X-X0|: {loss2.item(): .6f}')
+                print(f'rounded |X_k-Y|_0 = {loss_round}, f1 = {f1: .6f}, approx slack: {torch.count_nonzero(Xk_ - Xk)}')
+                #print(f'rounded before pow |X_k-Y|_0 = {loss_round_}, f1 = {f1_: .6f}\n')
 
         return X_P.detach(), X_N.detach(), losses
 
@@ -312,8 +313,8 @@ class RegualtoryKB():
                Y,
                C=1,
                k=None,
-               t=10,
-               t0=1000,
+               t=1,
+               t0=100,
                epochs= 1000,
                init_lr= 1e-3,
                decay_rate= 0.999,
@@ -356,7 +357,8 @@ class RegualtoryKB():
                                     init_lr = init_lr,
                                     epochs = epochs,
                                     decay_rate = decay_rate,
-                                    verbose = verbose)
+                                    verbose = verbose,
+                                    device = self.device)
 
         self.KB_P, self.KB_N = exp_closure(KB_P_opt, KB_N_opt, k, t)
         self.KB_P, self.KB_N = torch.round(self.KB_P), torch.round(self.KB_N)
@@ -378,7 +380,7 @@ if __name__ == '__main__':
 
     cp.cuda.Device(0).use()
     
-    regulatoryKB = RegualtoryKB(pos_trn_pth='rules/regu_pos.npz',
+    regulatoryKB = RegulatoryKB(pos_trn_pth='rules/regu_pos.npz',
                                 neg_trn_pth='rules/regu_neg.npz')
 
     print(regulatoryKB.KB_P, regulatoryKB.KB_P.shape)

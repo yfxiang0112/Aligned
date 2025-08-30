@@ -4,7 +4,7 @@ from scipy.sparse import load_npz, coo_matrix, save_npz
 from sklearn.metrics import f1_score
 import gc
 
-from egoal.reasoner import RegualtoryKB
+from egoal.reasoner import RegulatoryKB
 
 seed = 42
 np.random.seed(seed)
@@ -19,13 +19,13 @@ regu_n_pth = 'rules/human/norman_KB_N.npz'
 incomp_p_pth = 'scripts/klg_refine/KB_P.npz'
 incomp_n_pth = 'scripts/klg_refine/KB_N.npz'
 
-device = 'cuda'
+device = 'cuda:6'
 
-reasoner_true = RegualtoryKB(
+reasoner_true = RegulatoryKB(
         pos_trn_pth=regu_p_pth,
         neg_trn_pth=regu_n_pth,
         device=device)
-reasoner_true.closure_(T=5, closure_type='weighted')
+reasoner_true.closure_(T=5, closure_type='naive')
 
 n_cols = reasoner_true.KB.shape[1]
 X = torch.eye(n_cols).to(device)
@@ -63,7 +63,7 @@ for p_incompl in [0., .05, .1, .2, .3, .4, .5]:
     save_npz(incomp_n_pth, coo_matrix(np.where(mask, 0, R_N)))
 
 
-    reasoner_train = RegualtoryKB(
+    reasoner_train = RegulatoryKB(
             pos_trn_pth= incomp_p_pth,
             neg_trn_pth= incomp_n_pth,
             device=device)
@@ -72,7 +72,7 @@ for p_incompl in [0., .05, .1, .2, .3, .4, .5]:
                     k= 5,
                     epochs= 5000,
                     init_lr= 1e-3,
-                    verbose= False)
+                    verbose= True)
 
 
     pred_R0P_flat = reasoner_train.Regu_P_0.cpu().numpy().flatten()

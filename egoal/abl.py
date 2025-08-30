@@ -8,10 +8,9 @@ from zoopt import Dimension, ValueType, Dimension2, Objective, Parameter, Opt, E
 from sklearn.metrics import f1_score
 
 from egoal.learner_refl import ReflectLearner
-from egoal.reasoner import RegualtoryKB#, MetabolicKB
-from egoal.utils import optvec2matrix
+from egoal.reasoner import RegulatoryKB#, MetabolicKB
 
-def eval_weight(X: torch.Tensor, Y: torch.Tensor, KB: RegualtoryKB) -> float:
+def eval_weight(X: torch.Tensor, Y: torch.Tensor, KB: RegulatoryKB) -> float:
     '''
     Compute the weight in integrated data-knowledge evaluation metric
     Args:
@@ -105,7 +104,7 @@ def abduce(X_unlabel: torch.Tensor,
        np.random.seed(seed)
 
     ''' init base learner & reasoner  '''
-    reasoner = RegualtoryKB(pos_trn_pth= pos_trn_pth,
+    reasoner = RegulatoryKB(pos_trn_pth= pos_trn_pth,
                             neg_trn_pth= neg_trn_pth,
                             output_idx_list= output_idx_list,
                             device=device)#, T=4)

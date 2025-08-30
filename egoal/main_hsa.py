@@ -10,7 +10,7 @@ if __name__ == '__main__':
     log_file = f'log/EGOAL-hsa-{datetime.now()}.txt'.replace(' ','-')
     
     model_type = 'GNN'
-    model_name = model_type + '_human_Aug20'
+    model_name = model_type + '_human_Aug29'
     print(model_name)
     print(log_file)
 
@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
 
-    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -66,11 +66,11 @@ if __name__ == '__main__':
 
            T= 2,
 
-           pretrain_epc= 500,
+           pretrain_epc= 300,
            pretrain_rl_epc= 1,
            pretrain_lr= 1e-3,
 
-           retrain_epc= 400,
+           retrain_epc= 150,
            retrain_rl_epc= 100,
            retrain_lr= 1e-3,
            refine_epc= 5000,
