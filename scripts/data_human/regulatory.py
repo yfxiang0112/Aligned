@@ -11,18 +11,29 @@ df_go= pd.read_csv(f'rules/human/{data_name}_go.csv')
 df_genes = pd.read_csv(f'dataset/human/{data_name}_gene_ann.csv', index_col=0)
 df_go = df_go[df_go['importance'] >= go_thrs]
 
-df_regu = pd.read_csv('rules/human/regulatory_dorothea.csv', index_col=0)
-df_tf_ann = pd.read_csv('rules/human/tf_ann_dorothea.csv', index_col=0)
+#df_regu = pd.read_csv('rules/human/regulatory_dorothea.csv', index_col=0)
+#df_regu.rename({'tf':'source'}, axis=1, inplace=True)
+#df_tf_ann = pd.read_csv('rules/human/tf_ann_dorothea.csv', index_col=0)
 
+df_regu = pd.read_csv('rules/human/omnipath.csv', index_col=0)
+
+#df_regu_p = df_regu[\
+#        (df_regu['source'].isin(df_tf_ann.loc[df_tf_ann['class']!='repressors', 'tf']))\
+#        & (df_regu['source'].isin(df_genes.index)) & (df_regu['target'].isin(df_genes.index))]
 df_regu_p = df_regu[\
-        (df_regu['tf'].isin(df_tf_ann.loc[df_tf_ann['class']!='repressors', 'tf']))\
-        & (df_regu['tf'].isin(df_genes.index)) & (df_regu['target'].isin(df_genes.index))]
+        (df_regu['is_stimulation'] == True)\
+        & (df_regu['source'].isin(df_genes.index))\
+        & (df_regu['target'].isin(df_genes.index))]
+#df_regu_n = df_regu[\
+#        (df_regu['source'].isin(df_tf_ann.loc[df_tf_ann['class']!='activators', 'tf']))\
+#        & (df_regu['source'].isin(df_genes.index)) & (df_regu['target'].isin(df_genes.index))]
 df_regu_n = df_regu[\
-        (df_regu['tf'].isin(df_tf_ann.loc[df_tf_ann['class']!='activators', 'tf']))\
-        & (df_regu['tf'].isin(df_genes.index)) & (df_regu['target'].isin(df_genes.index))]
+        (df_regu['is_inhibition'] == True)\
+        & (df_regu['source'].isin(df_genes.index))\
+        & (df_regu['target'].isin(df_genes.index))]
 
 KB_P_row = np.array(\
-        [int(df_genes.loc[g,'vector_idx']) for g in df_regu_p['tf']]\
+        [int(df_genes.loc[g,'vector_idx']) for g in df_regu_p['source']]\
         + [int(df_genes.loc[g,'vector_idx']) for g in df_go['source']])
 KB_P_col = np.array(\
         [int(df_genes.loc[g,'vector_idx']) for g in df_regu_p['target']]\
@@ -32,7 +43,7 @@ KB_P = coo_matrix((KB_P_data, (KB_P_row,KB_P_col)), shape=(len(df_genes),len(df_
 save_npz(f'rules/human/{data_name}_KB_P.npz', KB_P)
 
 KB_N_row = np.array(\
-        [int(df_genes.loc[g,'vector_idx']) for g in df_regu_n['tf']])
+        [int(df_genes.loc[g,'vector_idx']) for g in df_regu_n['source']])
         #+ [int(df_genes.loc[g,'vector_idx']) for g in df_go['source']])
 KB_N_col = np.array(\
         [int(df_genes.loc[g,'vector_idx']) for g in df_regu_n['target']])

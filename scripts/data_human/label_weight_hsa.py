@@ -37,10 +37,10 @@ adj_matrix = torch.round(torch.clamp(torch.abs(KB.Regu_N_0 + KB.Regu_P_0), 0,1))
 learner = ReflectLearner(input_dim= X.shape[1],
                          output_dim= Y.shape[1],
                          hidden_dim= 64,
-                         base_learner_type= 'GNN',
+                         base_learner_type= 'MLP',
                          adj_matrix= adj_matrix,
                          device=device)
-learner.load('models/GNN_human_Aug16.pt')
+learner.load('models/MLP_human_Aug16.pt')
 
 
 #test_df = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
