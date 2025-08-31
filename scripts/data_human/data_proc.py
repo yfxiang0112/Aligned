@@ -22,6 +22,7 @@ for data_name in ['norman', 'dixit', 'adamson']:
 
 
     Y = []
+    Y_con = []
     X_row, X_col = [], []
     metadata = []
     data = [data_dict[k] for k in data_dict.keys()]
@@ -35,6 +36,7 @@ for data_name in ['norman', 'dixit', 'adamson']:
     
         start_data_idx = len(Y)
         Y += [diff_expr(np.squeeze(d.x, -1), np.squeeze(d.y, 0)) for d in lst]
+        Y_con += [np.squeeze(d.y, 0) - np.squeeze(d.x, -1) for d in lst]
         end_data_idx = len(Y)
     
         metadata.append({'pert':pert, 'pert_idx':pert_idx, 'data_start_idx':start_data_idx, 'data_end_idx+1':end_data_idx, 'de_idx':de_idx})
@@ -54,6 +56,9 @@ for data_name in ['norman', 'dixit', 'adamson']:
     print(Y)
     #np.save(f'dataset/human/{data_name}_Y.npy', Y)
     save_npz(f'dataset/human/{data_name}_Y.npz', coo_matrix(Y, shape=Y.shape))
+
+    Y_con = np.stack(Y_con)
+    save_npz(f'dataset/human/{data_name}_Y_con.npz', coo_matrix(Y_con, shape=Y_con.shape))
 
     X_data = np.array([1.]*len(X_row))
     X_row, X_col = np.array(X_row), np.array(X_col)

@@ -37,7 +37,7 @@ for i, (start, end) in enumerate(indices):
         for row in range(start, end):
             Y[row, :len(a_array)] = a_array
 
-Y = np.where(np.abs(Y)>.5, np.sign(Y), 0)
+Y = np.where(np.abs(Y)>.1, np.sign(Y), 0)
 
 ''' eval data consistency '''
 print(Y.shape)

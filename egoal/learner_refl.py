@@ -14,7 +14,11 @@ from egoal.reasoner import RegulatoryKB
 class ReflectMLP(nn.Module):
     """ Network Structure of Base Learner with Reflect Output (RL) """
 
-    def __init__(self, input_dim, hidden_dim, output_dim):
+    def __init__(self,
+                 input_dim,
+                 hidden_dim,
+                 output_dim,
+                 discretized=True):
         """
         Args:
             input_dim:
@@ -30,12 +34,16 @@ class ReflectMLP(nn.Module):
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
         )
-        #TODO use MLP temp, GNN embd?
+        self.discretized = discretized
+
         self.relu = nn.ReLU()
 
         ' Head 1: Classification (y) '
-        self.y_head = nn.Linear(hidden_dim, output_dim*3)
-        self.softmax = nn.Softmax(dim=-1)
+        if self.discretized:
+            self.y_head = nn.Linear(hidden_dim, output_dim*3)
+            self.softmax = nn.Softmax(dim=-1)
+        else:
+            self.y_head = nn.Linear(hidden_dim, output_dim)
 
         ' Head 2: REINFORCE (r): Logits for binary actions '
         self.fc = nn.Linear(hidden_dim, hidden_dim)
@@ -47,7 +55,8 @@ class ReflectMLP(nn.Module):
 
         ' clf head '
         output_y = self.y_head(emb)
-        output_y = self.softmax(output_y.view(output_y.shape[0], -1, 3))
+        output_y = self.softmax(output_y.view(output_y.shape[0], -1, 3))\
+                if self.discretized else self.relu(output_y)
 
         ' action head '
         #output_r = self.r_head(self.relu(self.fc(emb)))
@@ -58,7 +67,8 @@ class ReflectMLP(nn.Module):
 
     def predict(self,x):
         output_y, _ = self.forward(x)
-        return torch.argmax(output_y, dim=-1) -1
+        return torch.argmax(output_y, dim=-1) -1\
+                 if self.discretized else torch.where(torch.abs(output_y)>.1, torch.sign(output_y), 0)
 
     def reflection(self, x):
         _, output_r = self.forward(x)
@@ -69,7 +79,14 @@ class ReflectMLP(nn.Module):
 class ReflectGNN(nn.Module):
     """ Network Structure of Base Learner with Reflect Output (RL) """
 
-    def __init__(self, input_dim, hidden_dim, num_layers, output_dim, device='cpu', label_mask=None):
+    def __init__(self,
+                 input_dim,
+                 hidden_dim,
+                 num_layers,
+                 output_dim,
+                 device='cpu',
+                 label_mask=None,
+                 discretized=True):
         '''
         Network Struct of GNN
         Args:
@@ -87,6 +104,7 @@ class ReflectGNN(nn.Module):
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.device = device
+        self.discretized = discretized
 
         self.input_emb = nn.Embedding(self.input_dim, hidden_dim, max_norm=True)
         
@@ -106,8 +124,10 @@ class ReflectGNN(nn.Module):
         self.y_head = nn.Sequential(
                 nn.Linear(hidden_dim, hidden_dim*2),
                 nn.ReLU(),
-                nn.Linear(hidden_dim*2, 3 * self.output_dim),
-                )
+                nn.Linear(hidden_dim*2, 3 * self.output_dim)\
+                if self.discretized else\
+                nn.Linear(hidden_dim*2, self.output_dim),
+        )
         self.softmax = nn.Softmax(dim=-1)
 
         ' Head 2: REINFORCE (r): Logits for binary actions '
@@ -138,7 +158,7 @@ class ReflectGNN(nn.Module):
         #deg_inv_sqrt *= torch.sign(deg)
         norm = deg_inv_sqrt[row] * self.edge_weight * deg_inv_sqrt[col]
 
-        self.edge_weight = torch.abs(norm) #NOTE no negative weights
+        self.edge_weight = torch.abs(norm)
 
     def forward(self, x):
         """
@@ -173,7 +193,8 @@ class ReflectGNN(nn.Module):
 
         ' clf head '
         output_y = self.y_head(emb)
-        output_y = self.softmax(output_y.view(output_y.shape[0], -1, 3))
+        output_y = self.softmax(output_y.view(output_y.shape[0], -1, 3))\
+                if self.discretized else self.relu(output_y)
 
         ' action head '
         output_r = self.r_head(emb)
@@ -183,7 +204,8 @@ class ReflectGNN(nn.Module):
 
     def predict(self,x):
         output_y, _ = self.forward(x)
-        return torch.argmax(output_y, dim=-1) -1
+        return torch.argmax(output_y, dim=-1) -1\
+                if self.discretized else  torch.where(torch.abs(output_y)>.1, torch.sign(output_y), 0)
 
     def reflection(self, x):
         _, output_r = self.forward(x)
@@ -200,6 +222,7 @@ class ReflectLearner():
         base_learner_type = 'MLP',
         num_layers = 3,
         adj_matrix = None | torch.Tensor,
+        discretized = True,
         device = 'cpu',
         log_path = '',
     ) -> None:
@@ -219,6 +242,8 @@ class ReflectLearner():
             print(f'cuda availability: {torch.cuda.is_available()}')
             assert torch.cuda.is_available()
 
+        self.discretized = discretized
+
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
@@ -227,10 +252,18 @@ class ReflectLearner():
         self.clf_weight = torch.Tensor([.4,.2,.4])
 
         if base_learner_type == 'MLP':
-            self.model = ReflectMLP(self.input_dim, self.hidden_dim,  self.output_dim)
+            self.model = ReflectMLP(self.input_dim,
+                                    self.hidden_dim,
+                                    self.output_dim,
+                                    discretized=self.discretized)
         elif base_learner_type == 'GNN':
             assert adj_matrix != None
-            self.model = ReflectGNN(self.input_dim, self.hidden_dim, num_layers, self.output_dim, self.device)
+            self.model = ReflectGNN(self.input_dim,
+                                    self.hidden_dim,
+                                    num_layers,
+                                    self.output_dim,
+                                    self.device,
+                                    discretized=self.discretized)
             self.model.set_weighted_adjacency(adj_matrix)
         else:
             raise Exception('Invalid Base Learner Type')
@@ -264,7 +297,8 @@ class ReflectLearner():
 
         '''
 
-        y = torch.argmax(y_probs, dim=-1) -1
+        y = torch.argmax(y_probs, dim=-1) -1\
+                if self.discretized else torch.where(torch.abs(y_probs)>.1, torch.sign(y_probs), 0)
 
         violated = KB.violated(Y=y, X=x, mask=~(r_binary.bool()))
         #violated = KB.violated(Y=torch.where(r_binary.bool(), KB.deduce(x), y), X=x)
@@ -413,7 +447,11 @@ class ReflectLearner():
         '''
 
         ''' Training loop '''
-        criterion = nn.CrossEntropyLoss(weight=self.clf_weight)
+        if self.discretized:
+            criterion = nn.CrossEntropyLoss(weight=self.clf_weight)
+        else:
+            criterion = nn.MSELoss()
+
         optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.model.train()
 
@@ -446,10 +484,12 @@ class ReflectLearner():
             loss_y, loss_r = 0.,0.
             for (X_batch, Y_batch), r_actions in zip(self.train_loader, r_actions_batch):
                 output_y, output_r = self.model(X_batch)
-                Y_batch = Y_batch.to(int)+1
+                if self.discretized:
+                    Y_batch = Y_batch.to(int)+1
 
                 ' CE loss '
-                loss_y += criterion(output_y.view(-1,3), Y_batch.view(-1))
+                loss_y += criterion(output_y.view(-1,3), Y_batch.view(-1)) if self.discretized\
+                        else criterion(output_y, Y_batch)
 
                 ' RL for discrete action opt '
                 ' sample from Ber distribution, '
@@ -485,7 +525,8 @@ class ReflectLearner():
                 #NOTE TMP #############################
                 for X_batch, _ in self.train_loader:
                     output_y, output_r = self.model(X_batch)
-                    y = torch.argmax(output_y, dim=-1) -1
+                    y = torch.argmax(output_y, dim=-1) -1 if self.discretized\
+                            else torch.where(torch.abs(output_y)>.1, torch.sign(output_y), 0)
                     r = torch.round(output_r)
                     print(f'    full cols: {torch.count_nonzero(torch.sum(r,dim=0)==len(r))}, non-full cols: {torch.count_nonzero((torch.sum(r,dim=0)<len(r)) & (torch.sum(r,dim=0)>0))}')
                     #print(f'r={output_r}')
@@ -666,42 +707,93 @@ if __name__ == '__main__':
 
     torch.manual_seed(42)
     np.random.seed(42)
+    device = 'cuda'
+    log_file = 'log/learner.txt'
 
-    X_train = torch.tensor(np.load('dataset/precise1k/X_label.npy'), dtype=torch.float32)
-    Y_train = torch.tensor(np.load('dataset/precise1k/Y_label.npy'), dtype=int)
-    X_test = torch.tensor(np.load('dataset/ncbi-sra/X_label.npy'), dtype=torch.float32)
-    Y_test = torch.tensor(np.load('dataset/ncbi-sra/Y_label.npy'), dtype=int)
+    X_train = torch.tensor(load_npz(f'dataset/human/norman_X.npz').toarray(), dtype = torch.float32)
+    Y_train = torch.tensor(load_npz(f'dataset/human/norman_Y_con.npz').toarray(), dtype = torch.float32)
 
-    import pandas as pd
-    label_set = pd.read_csv('dataset/label_set_iml.csv')
-    idx_list_p1k = list(label_set['precise1k_idx'])
-    idx_list_sra = list(label_set['matrix_idx'])
+    p_train = .5
+    test_idx = np.zeros(shape=len(X_train), dtype=bool)
+    test_idx[np.load(f'dataset/human/norman_test_idx.npy')] = True
 
-    Y_train = Y_train[:,idx_list_p1k]
-    Y_test = Y_test[:,idx_list_sra]
+    train_idx = np.random.choice([True, False], size=len(X_train)-np.count_nonzero(test_idx), p=[p_train, 1-p_train])
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    X_test = X_train[test_idx]
+    Y_test = Y_train[test_idx]
+    X_train = X_train[~ test_idx][train_idx]
+    Y_train = Y_train[~ test_idx][train_idx]
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
 
+    learner = ReflectLearner(input_dim= X_test.shape[1],
+                             output_dim= Y_test.shape[1],
+                             hidden_dim= 64,
+                             base_learner_type= 'GNN',
+                             #adj_matrix= adj_matrix,
+                             device=device,
+                             discretized=False,
+                             log_path=log_file)
 
+    reasoner = RegulatoryKB(pos_trn_pth= 'rules/human/norman_KB_P.npz',
+                            neg_trn_pth= 'rules/human/norman_KB_N.npz',
+                            output_idx_list= None,
+                            device=device)#, T=4)
+    reasoner.closure_(T=5, closure_type='weighted')
 
-    input_dim = X_train.shape[1]
-    output_dim = Y_train.shape[1]
-    hidden_dim = 128
-    batch_size = 64
+    learner.load_data(X_train, Y_train, X_test, Y_test)
+    learner.train(KB= reasoner,
+                  label_weight= None,
+                  epochs= 300,
+                  reinforce_epochs= 1,
+                  C=10,
+                  lr=1e-3,
+                  verbose=True)
+
+    criterion = nn.MSELoss(reduction='mean')
+    Y_pred, _ = learner.forward(X_test)
+    print(f'MSE: {criterion(Y_pred, Y_test)}')
+
+    Y_test = torch.tensor(load_npz(f'dataset/human/norman_Y.npz').toarray(), dtype = int)[test_idx].to(device)
+    learner.load_data(_, _, X_test, Y_test)
+    f1 = learner.eval(reasoner, .3)
+    print(f'pretrain: integrated f1 {f1:.4f}')
     
 
-    # Initialize model
-    #data_loader = DataLoader(TensorDataset(X_train,Y_train), batch_size=batch_size, shuffle=True)
-    #learner.train_loader = data_loader
+    #Y_train = torch.tensor(np.load('dataset/precise1k/Y_label.npy'), dtype=int)
+    #X_test = torch.tensor(np.load('dataset/ncbi-sra/X_label.npy'), dtype=torch.float32)
+    #Y_test = torch.tensor(np.load('dataset/ncbi-sra/Y_label.npy'), dtype=int)
 
-    # Train
-    learner = ReflectLearner(input_dim=X_train.shape[1], output_dim=Y_train.shape[1], device=device, log_path='log.txt')
-    regulatory_kb = RegulatoryKB(pos_trn_pth= 'rules/regu_pos.npz', neg_trn_pth='rules/regu_neg.npz', output_idx_list=idx_list_sra, device=device)
-    regulatory_kb.closure_(T=5, closure_type='weighted')
+    #import pandas as pd
+    #label_set = pd.read_csv('dataset/label_set_iml.csv')
+    #idx_list_p1k = list(label_set['precise1k_idx'])
+    #idx_list_sra = list(label_set['matrix_idx'])
 
-    learner.load_data(X_train, Y_train, X_test, Y_test, batch_size=batch_size)
-    print(learner.eval())
-    learner.train(KB= regulatory_kb, epochs=50000, lr=1e-4)
-    print(learner.eval())
+    #Y_train = Y_train[:,idx_list_p1k]
+    #Y_test = Y_test[:,idx_list_sra]
+
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #X_train, Y_train = X_train.to(device), Y_train.to(device)
+    #X_test, Y_test = X_test.to(device), Y_test.to(device)
+
+
+
+    #input_dim = X_train.shape[1]
+    #output_dim = Y_train.shape[1]
+    #hidden_dim = 128
+    #batch_size = 64
+    #
+
+    ## Initialize model
+    ##data_loader = DataLoader(TensorDataset(X_train,Y_train), batch_size=batch_size, shuffle=True)
+    ##learner.train_loader = data_loader
+
+    ## Train
+    #learner = ReflectLearner(input_dim=X_train.shape[1], output_dim=Y_train.shape[1], device=device, log_path='log.txt')
+    #regulatory_kb = RegulatoryKB(pos_trn_pth= 'rules/regu_pos.npz', neg_trn_pth='rules/regu_neg.npz', output_idx_list=idx_list_sra, device=device)
+    #regulatory_kb.closure_(T=5, closure_type='weighted')
+
+    #learner.load_data(X_train, Y_train, X_test, Y_test, batch_size=batch_size)
+    #print(learner.eval())
+    #learner.train(KB= regulatory_kb, epochs=50000, lr=1e-4)
+    #print(learner.eval())
