@@ -554,6 +554,7 @@ class ReflectLearner():
     def eval(self,
              KB: RegulatoryKB,
              w_data = None | float,
+             p_integrate = 2,
              write_log=True,
              verbose=False):
 
@@ -609,7 +610,8 @@ class ReflectLearner():
             f1_pred_macro = f1_score(flat_y_t, flat_y_p, average='macro') # micro on labels, macro on classes
             f1_pred_micro = f1_score(flat_y_t, flat_y_p, average='micro') # micro on labels, micro on classes
             f1_pred_kb = f1_score(flat_y_d, flat_y_p, average='macro')
-            f1_pred_final = w_data * f1_pred_macro + (1.-w_data) * f1_pred_kb
+            f1_pred_final = (w_data * (f1_pred_macro ** -p_integrate)\
+                    + (1.-w_data) * (f1_pred_kb ** -p_integrate)) ** (-1/p_integrate)
 
             ' performance of integrated result '
             confusion_refl = confusion_matrix(flat_y_t, flat_y_p, labels=[-1, 0,1])
@@ -713,7 +715,7 @@ if __name__ == '__main__':
     X_train = torch.tensor(load_npz(f'dataset/human/norman_X.npz').toarray(), dtype = torch.float32)
     Y_train = torch.tensor(load_npz(f'dataset/human/norman_Y_con.npz').toarray(), dtype = torch.float32)
 
-    p_train = .5
+    p_train = .05
     test_idx = np.zeros(shape=len(X_train), dtype=bool)
     test_idx[np.load(f'dataset/human/norman_test_idx.npy')] = True
 
@@ -726,25 +728,26 @@ if __name__ == '__main__':
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
 
-    learner = ReflectLearner(input_dim= X_test.shape[1],
-                             output_dim= Y_test.shape[1],
-                             hidden_dim= 64,
-                             base_learner_type= 'GNN',
-                             #adj_matrix= adj_matrix,
-                             device=device,
-                             discretized=False,
-                             log_path=log_file)
-
     reasoner = RegulatoryKB(pos_trn_pth= 'rules/human/norman_KB_P.npz',
                             neg_trn_pth= 'rules/human/norman_KB_N.npz',
                             output_idx_list= None,
                             device=device)#, T=4)
     reasoner.closure_(T=5, closure_type='weighted')
 
+    adj_matrix = torch.round(torch.clamp(torch.abs(reasoner.Regu_P_0 + reasoner.Regu_N_0), 0,1))
+    learner = ReflectLearner(input_dim= X_test.shape[1],
+                             output_dim= Y_test.shape[1],
+                             hidden_dim= 64,
+                             base_learner_type= 'GNN',
+                             adj_matrix= adj_matrix,
+                             device=device,
+                             discretized=False,
+                             log_path=log_file)
+
     learner.load_data(X_train, Y_train, X_test, Y_test)
     learner.train(KB= reasoner,
                   label_weight= None,
-                  epochs= 300,
+                  epochs= 3,
                   reinforce_epochs= 1,
                   C=10,
                   lr=1e-3,
