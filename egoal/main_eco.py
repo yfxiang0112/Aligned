@@ -8,30 +8,49 @@ from egoal.abl import abduce
 if __name__ == "__main__":
     log_file = f'log/EGOAL-eco-{datetime.now()}.txt'.replace(' ','-')
 
-    X_train = torch.tensor(np.load('dataset/precise1k/X_label.npy'), dtype = torch.float32)
-    Y_train = torch.tensor(np.load('dataset/precise1k/Y_label.npy'), dtype = int)
-
-    X_test = torch.tensor(np.load('dataset/ncbi-sra/X_label.npy'), dtype = torch.float32)
-    Y_test = torch.tensor(np.load('dataset/ncbi-sra/Y_label.npy'), dtype = int)
-
-    test_idx = [37,38,39,40,41,42,43,44,45,46,47,48, 49,50,51,52,53,54, 55,56,57, 28,29,30,58,59,60,61]
-    # arcZ, gcvB, micA, ryhB
-    X_test, Y_test = X_test[test_idx], Y_test[test_idx]
-
-    X_unlabel = torch.tensor(np.load('dataset/X_regulators.npy'), dtype = torch.float32)
-    #X_unlabel = X_train
+    model_type = 'GNN'
+    model_name = model_type + '_eco_Sep1'
+    seed = 42
+    print(model_name)
+    print(log_file)
+    print(f'random seed: {seed}')
 
     label_set = pd.read_csv('dataset/label_set_iml.csv', index_col=0)
     idx_list_p1k = list(label_set['precise1k_idx'])
     idx_list_sra = list(label_set['matrix_idx'])
 
-    Y_train = Y_train[:,idx_list_p1k]
-    Y_test = Y_test[:,idx_list_sra]
 
+    X_p1k = torch.tensor(np.load('dataset/precise1k/X_label.npy'), dtype = torch.float32)
+    Y_p1k = torch.tensor(np.load('dataset/precise1k/Y_label.npy'), dtype = int)
+
+    X_sra = torch.tensor(np.load('dataset/ncbi-sra/X_label.npy'), dtype = torch.float32)
+    Y_sra = torch.tensor(np.load('dataset/ncbi-sra/Y_label.npy'), dtype = int)
+
+    Y_p1k = Y_p1k[:,idx_list_p1k]
+    Y_sra = Y_sra[:,idx_list_sra]
+
+    test_idx_p1k = np.zeros(len(X_p1k), dtype=bool)
+    test_idx_p1k[[280,281,282,283,284,285,286,287,288,289,\ # b1109,b0734,b0978,
+            290,291,  292,293,294,295,296,297,298,299,\ # b2287,b0734,  b2287,b0734,b0978
+            300,301,302,303,304,305,306,307,308,309,\ # b1109,b0431
+            310,311,312,313,314,315,316,317,318,319,\ # b2287,b0431
+            320,321,  322,323]] = True # b1109,b0734,  b2287,b0734
+
+    test_idx_sra = np.zeros(len(X_sra), dtype=bool)
+    test_idx_sra[[37,38,39,40,41,42,43,44,45,46,47,48, 49,50,51,52,53,54, 55,56,57, 28,29,30,58,59,60,61]] = True
+    # arcZ, gcvB, micA, ryhB
+
+    X_test = torch.concat([X_p1k[test_idx_p1k], X_sra[test_idx_sra]])
+    Y_test = torch.concat([Y_p1k[test_idx_p1k], Y_sra[test_idx_sra]])
+    X_train = torch.concat([X_p1k[~test_idx_p1k], X_sra[~test_idx_sra]])
+    Y_train = torch.concat([Y_p1k[~test_idx_p1k], Y_sra[~test_idx_sra]])
+    print(f'train shape: {Y_train.shape}, test shape: {Y_test.shape}')
+
+    X_unlabel = torch.tensor(np.load('dataset/X_regulators.npy'), dtype = torch.float32)
     label_weight = torch.tensor(np.load('rules/label_weight.npy'))
 
 
-    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -43,15 +62,21 @@ if __name__ == "__main__":
 
            pos_trn_pth='rules/regu_pos.npz',
            neg_trn_pth='rules/regu_neg.npz',
+           closure = 5,
            closure_type= 'weighted',
+           adj_matrix_closure= True,
+           gnn_extra_layer= True,
+
            output_idx_list=idx_list_sra,
            label_weight=label_weight,
+           #weight_init_epc= 2000,
+           #weight_init_lr= 1e-3,
 
            X_label = X_train,
            Y_label = Y_train,
            #pretrained_model_pth= 'models/pretrained_7.18_label_weight.pt',
-           #model_save_pth= 'models/ecoli/MLP_Aug20.pt',
-           base_learner_type= 'GNN',
+           model_save_pth = f'models/{model_name}',
+           base_learner_type= model_type,
 
            T= 2,
 
@@ -59,9 +84,9 @@ if __name__ == "__main__":
            pretrain_rl_epc= 1,
            pretrain_lr= 1e-3,
 
-           retrain_epc= 200,
+           retrain_epc= 400,
            retrain_rl_epc= 100,
-           retrain_lr= 1e-4,
+           retrain_lr= 1e-3,
            refine_epc= 5000,
            refine_lr= 1e-3,
 
