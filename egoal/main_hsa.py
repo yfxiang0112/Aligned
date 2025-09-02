@@ -10,13 +10,15 @@ if __name__ == '__main__':
     log_file = f'log/EGOAL-hsa-{datetime.now()}.txt'.replace(' ','-')
     
     model_type = 'GNN'
-    model_name = model_type + '_human_Aug29'
+    model_name = model_type + '_human_Aug31'
+    seed = 42
     print(model_name)
     print(log_file)
+    print(f'random seed: {seed}')
 
     #########################################
 
-    np.random.seed(42)
+    np.random.seed(seed)
     X_train = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray(), dtype = torch.float32)
     Y_train = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray(), dtype = int)
 
@@ -31,6 +33,7 @@ if __name__ == '__main__':
     Y_test = Y_train[test_idx]
     X_train = X_train[~ test_idx][train_idx]
     Y_train = Y_train[~ test_idx][train_idx]
+    print('train:', X_train.shape)
 
     regulators = np.nonzero(np.sum(\
             load_npz(f'rules/human/{data_name}_KB_P.npz').toarray()\
@@ -42,7 +45,7 @@ if __name__ == '__main__':
 
     label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
 
-    device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -77,6 +80,6 @@ if __name__ == '__main__':
            refine_lr= 1e-3,
 
            device= device,
-           seed= 42,
+           seed= seed,
            log_file= log_file,
            verbose= True)

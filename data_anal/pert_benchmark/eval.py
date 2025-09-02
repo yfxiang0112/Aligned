@@ -8,7 +8,7 @@ from scipy.sparse import load_npz
 from egoal.reasoner import RegulatoryKB
 
 test_metadata = pd.read_csv('dataset/human/norman_test_set.csv', index_col=0)
-pred_result = json.load(open('data_anal/pert_benchmark/gears/all_predictions.json'))
+pred_result = json.load(open('data_anal/pert_benchmark/additive/all_predictions.json'))
 
 test_idx = np.load('dataset/human/norman_test_idx.npy')
 Y_true = load_npz('dataset/human/norman_Y.npz').toarray()[test_idx]
@@ -36,6 +36,12 @@ for i, (start, end) in enumerate(indices):
         # Repeat the array for the specified row range
         for row in range(start, end):
             Y[row, :len(a_array)] = a_array
+
+' eval MSE '
+Y_true_con = load_npz('dataset/human/norman_Y_con.npz').toarray()[test_idx]
+criterion = torch.nn.MSELoss(reduction='mean')
+print(f'MSE: {criterion(torch.tensor(Y), torch.tensor(Y_true_con))}')
+
 
 Y = np.where(np.abs(Y)>.1, np.sign(Y), 0)
 

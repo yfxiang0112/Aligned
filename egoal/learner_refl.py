@@ -38,6 +38,9 @@ class ReflectMLP(nn.Module):
 
         self.relu = nn.ReLU()
 
+        if not self.discretized:
+            self.bn = nn.BatchNorm1d(hidden_dim)
+
         ' Head 1: Classification (y) '
         if self.discretized:
             self.y_head = nn.Linear(hidden_dim, output_dim*3)
@@ -53,10 +56,13 @@ class ReflectMLP(nn.Module):
     def forward(self, x):
         emb = self.embedding(x)
 
+        if not self.discretized:
+            emb = self.bn(emb)
+
         ' clf head '
         output_y = self.y_head(emb)
         output_y = self.softmax(output_y.view(output_y.shape[0], -1, 3))\
-                if self.discretized else self.relu(output_y)
+                if self.discretized else output_y
 
         ' action head '
         #output_r = self.r_head(self.relu(self.fc(emb)))
@@ -84,6 +90,7 @@ class ReflectGNN(nn.Module):
                  hidden_dim,
                  num_layers,
                  output_dim,
+                 gnn_extra_layer=False,
                  device='cpu',
                  label_mask=None,
                  discretized=True):
@@ -127,16 +134,24 @@ class ReflectGNN(nn.Module):
                 nn.Linear(hidden_dim*2, 3 * self.output_dim)\
                 if self.discretized else\
                 nn.Linear(hidden_dim*2, self.output_dim),
+        ) if not gnn_extra_layer else nn.Sequential(
+                nn.Linear(hidden_dim, hidden_dim*2),
+                nn.ReLU(),
+                nn.Linear(hidden_dim*2, hidden_dim),
+                nn.ReLU(),
+                nn.Linear(hidden_dim, 3 * self.output_dim)\
+                if self.discretized else\
+                nn.Linear(hidden_dim, self.output_dim),
         )
         self.softmax = nn.Softmax(dim=-1)
 
         ' Head 2: REINFORCE (r): Logits for binary actions '
-        self.r_head = nn.Linear(hidden_dim, output_dim)
-        #self.r_head = nn.Sequential(
-        #        nn.Linear(hidden_dim, hidden_dim*2),
-        #        nn.ReLU(),
-        #        nn.Linear(hidden_dim*2, output_dim),
-        #        )
+        self.r_head = nn.Linear(hidden_dim, output_dim)\
+                if not gnn_extra_layer else nn.Sequential(
+                nn.Linear(hidden_dim, hidden_dim*2),
+                nn.ReLU(),
+                nn.Linear(hidden_dim*2, output_dim),
+                )
         self.sigmoid = nn.Sigmoid()
 
     def set_weighted_adjacency(self, adj_matrix):
@@ -223,6 +238,7 @@ class ReflectLearner():
         num_layers = 3,
         adj_matrix = None | torch.Tensor,
         discretized = True,
+        gnn_extra_layer = False,
         device = 'cpu',
         log_path = '',
     ) -> None:
@@ -262,6 +278,7 @@ class ReflectLearner():
                                     self.hidden_dim,
                                     num_layers,
                                     self.output_dim,
+                                    gnn_extra_layer,
                                     self.device,
                                     discretized=self.discretized)
             self.model.set_weighted_adjacency(adj_matrix)
@@ -430,6 +447,7 @@ class ReflectLearner():
         reinforce_epochs= 100,
         C= 1,
         lr= 1e-3, 
+        lr_decay= 1.,
         gamma= 0.95,
         verbose= False
     ):
@@ -450,9 +468,11 @@ class ReflectLearner():
         if self.discretized:
             criterion = nn.CrossEntropyLoss(weight=self.clf_weight)
         else:
-            criterion = nn.MSELoss()
+            criterion = nn.MSELoss(reduction='mean')
 
         optimizer = optim.Adam(self.model.parameters(), lr=lr)
+        if lr_decay < 1.:
+            scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=lr_decay)
         self.model.train()
 
         baseline = 0.
@@ -511,6 +531,8 @@ class ReflectLearner():
 
             total_loss = C1 * loss_y + C2 * loss_r  # Scale REINFORCE loss to balance
             optimizer.zero_grad()
+            if lr_decay < 1.:
+                scheduler.step()
             total_loss.backward()
             optimizer.step()
 
@@ -707,15 +729,16 @@ class ReflectLearner():
 if __name__ == '__main__':
     # NOTE tmp test
 
-    torch.manual_seed(42)
-    np.random.seed(42)
-    device = 'cuda'
+    torch.manual_seed(0)
+    np.random.seed(0)
+    device = 'cuda:0'
     log_file = 'log/learner.txt'
 
     X_train = torch.tensor(load_npz(f'dataset/human/norman_X.npz').toarray(), dtype = torch.float32)
     Y_train = torch.tensor(load_npz(f'dataset/human/norman_Y_con.npz').toarray(), dtype = torch.float32)
-
-    p_train = .05
+    label_weight = torch.tensor(np.load(f'dataset/human/norman_label_weight.npy'))
+    
+    p_train = .5
     test_idx = np.zeros(shape=len(X_train), dtype=bool)
     test_idx[np.load(f'dataset/human/norman_test_idx.npy')] = True
 
@@ -727,6 +750,7 @@ if __name__ == '__main__':
     Y_train = Y_train[~ test_idx][train_idx]
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
+    label_weight = label_weight.to(device)
 
     reasoner = RegulatoryKB(pos_trn_pth= 'rules/human/norman_KB_P.npz',
                             neg_trn_pth= 'rules/human/norman_KB_N.npz',
@@ -742,24 +766,30 @@ if __name__ == '__main__':
                              adj_matrix= adj_matrix,
                              device=device,
                              discretized=False,
+                             gnn_extra_layer=True,
                              log_path=log_file)
-
-    learner.load_data(X_train, Y_train, X_test, Y_test)
-    learner.train(KB= reasoner,
-                  label_weight= None,
-                  epochs= 3,
-                  reinforce_epochs= 1,
-                  C=10,
-                  lr=1e-3,
-                  verbose=True)
 
     criterion = nn.MSELoss(reduction='mean')
     Y_pred, _ = learner.forward(X_test)
-    print(f'MSE: {criterion(Y_pred, Y_test)}')
+    print(f'MSE baseline: {criterion(torch.zeros_like(Y_test).to(device), Y_test.detach())}')
+    print(f'MSE before training: {criterion(Y_pred.detach(), Y_test.detach())}')
+
+    learner.load_data(X_train, Y_train, X_test, Y_test)
+    learner.train(KB= reasoner,
+                  label_weight= label_weight,
+                  epochs= 500,
+                  reinforce_epochs= 1,
+                  C=1,
+                  lr=1e-3,
+                  lr_decay=.999,
+                  verbose=True)
+
+    Y_pred, _ = learner.forward(X_test)
+    print(f'MSE: {criterion(Y_pred.detach(), Y_test.detach())}')
 
     Y_test = torch.tensor(load_npz(f'dataset/human/norman_Y.npz').toarray(), dtype = int)[test_idx].to(device)
     learner.load_data(_, _, X_test, Y_test)
-    f1 = learner.eval(reasoner, .3)
+    f1 = learner.eval(reasoner, .3, verbose=True)
     print(f'pretrain: integrated f1 {f1:.4f}')
     
 
