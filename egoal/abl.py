@@ -22,7 +22,8 @@ def eval_weight(X: torch.Tensor, Y: torch.Tensor, KB: RegulatoryKB) -> float:
     '''
     size_y = int(Y.shape[0]*Y.shape[1])
     size_data= int(torch.count_nonzero(torch.sum(Y, dim=1)))
-    size_klg= int(torch.count_nonzero(torch.sum(KB.KB, dim=1)))
+    size_klg= .5* (int(torch.count_nonzero(torch.sum(KB.KB, dim=1)))\
+                    +int(torch.count_nonzero(torch.sum(KB.KB, dim=0))))
 
     Y_deduction = KB.deduce(X)
 
@@ -141,6 +142,7 @@ def abduce(X_unlabel: torch.Tensor,
             with open(log_file, 'a') as log:
                 log.write(f'\n\nbefore pretrain\n{"-"*20}\n')
         w_data = eval_weight(X_label, Y_label, reasoner)
+        print(f'Eval weight w_data: {w_data}')
         f1 = learner.eval(reasoner, w_data)
         print(f'Before pretrain: integrated f1 {f1:.4f}')
 
@@ -153,6 +155,7 @@ def abduce(X_unlabel: torch.Tensor,
             with open(log_file, 'a') as log:
                 log.write(f'\n\nbefore pretrain\n{"-"*20}\n')
         w_data = eval_weight(X_label, Y_label, reasoner)
+        print(f'Eval weight w_data: {w_data}')
         f1 = learner.eval(reasoner, w_data)
         print(f'Before pretrain: integrated f1 {f1:.4f}')
 

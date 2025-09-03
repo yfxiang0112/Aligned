@@ -30,11 +30,13 @@ if __name__ == "__main__":
     Y_sra = Y_sra[:,idx_list_sra]
 
     test_idx_p1k = np.zeros(len(X_p1k), dtype=bool)
-    test_idx_p1k[[280,281,282,283,284,285,286,287,288,289,\ # b1109,b0734,b0978,
-            290,291,  292,293,294,295,296,297,298,299,\ # b2287,b0734,  b2287,b0734,b0978
-            300,301,302,303,304,305,306,307,308,309,\ # b1109,b0431
-            310,311,312,313,314,315,316,317,318,319,\ # b2287,b0431
-            320,321,  322,323]] = True # b1109,b0734,  b2287,b0734
+    test_idx_p1k[[280,281,282,283,284,285,286,287,288,289,\
+            290,291,  292,293,294,295,296,297,298,299,\
+            300,301,302,303,304,305,306,307,308,309,\
+            310,311,312,313,314,315,316,317,318,319,\
+            320,321,  322,323]] = True
+            # b1109,b0734,b0978,  b2287,b0734,  b2287,b0734,b0978,
+            # b1109,b0431,  b2287,b0431,  b1109,b0734,  b2287,b0734
 
     test_idx_sra = np.zeros(len(X_sra), dtype=bool)
     test_idx_sra[[37,38,39,40,41,42,43,44,45,46,47,48, 49,50,51,52,53,54, 55,56,57, 28,29,30,58,59,60,61]] = True
@@ -50,7 +52,7 @@ if __name__ == "__main__":
     label_weight = torch.tensor(np.load('rules/label_weight.npy'))
 
 
-    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -91,6 +93,6 @@ if __name__ == "__main__":
            refine_lr= 1e-3,
 
            device= device,
-           seed= 42,
+           seed= seed,
            log_file= log_file,
            verbose= True)

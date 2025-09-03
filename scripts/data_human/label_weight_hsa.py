@@ -112,7 +112,9 @@ Y_r = np.where(R, Y_d, Y_p)
 print(f'f1 of Y_deduction: {f1_score(Y_test.flatten(), Y_d.flatten(), average="macro")}')
 
 size_y = Y.shape[0]*Y.shape[1]
-size_data, size_klg = np.count_nonzero(np.sum(Y, axis=1)), np.count_nonzero(np.sum(KB.KB.cpu().numpy(), axis=1))
+size_data = np.count_nonzero(np.sum(Y, axis=1))
+size_klg = .5*(np.count_nonzero(np.sum(KB.KB.cpu().numpy(), axis=1)) + np.count_nonzero(np.sum(KB.KB.cpu().numpy(), axis=1))) 
+print(size_data, size_klg)
 q_data = (np.count_nonzero(Y) / size_y) +\
         (size_data/(size_klg+size_data)) +\
         (np.count_nonzero((np.sum(Y, axis=1)!=0) & (np.sum(Y_deduction,axis=1)==0)) / len(Y))
