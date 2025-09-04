@@ -7,8 +7,13 @@ from scipy.sparse import load_npz
 
 from egoal.reasoner import RegulatoryKB
 
+def weighted_mean(f1_data,f1_kb,w):
+    p_integrate = 2
+    return (w * (f1_data ** -p_integrate)\
+            + (1.-w) * (f1_kb ** -p_integrate)) ** (-1/p_integrate)
+
 test_metadata = pd.read_csv('dataset/human/norman_test_set.csv', index_col=0)
-pred_result = json.load(open('data_anal/pert_benchmark/additive/all_predictions.json'))
+pred_result = json.load(open('data_anal/pert_benchmark/gears/all_predictions.json'))
 
 test_idx = np.load('dataset/human/norman_test_idx.npy')
 Y_true = load_npz('dataset/human/norman_Y.npz').toarray()[test_idx]
@@ -62,4 +67,4 @@ KB.closure_(T=5, closure_type='weighted')
 Y_deduction = KB.deduce(torch.tensor(X).float().to(device)).to('cpu').numpy()
 
 f1_kb = f1_score(Y_deduction.flatten(), Y.flatten(), average="macro")
-print(f'KB f1: {f1_kb}, integrated f1: {.3*f1_data + .7*f1_kb}')
+print(f'KB f1: {f1_kb}, balanced f1: {weighted_mean(f1_data, f1_kb, .3233)}')
