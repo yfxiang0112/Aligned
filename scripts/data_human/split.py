@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 np.random.seed(42)
-data_name = 'norman'
+data_name = 'adamson'
 
 metadata = pd.read_csv(f'dataset/human/{data_name}_metadata.csv',index_col=0)
 regulatory = pd.read_csv('rules/human/regulatory_dorothea.csv', index_col=0)

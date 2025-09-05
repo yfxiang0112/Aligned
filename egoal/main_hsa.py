@@ -10,7 +10,7 @@ if __name__ == '__main__':
     log_file = f'log/EGOAL-hsa-{datetime.now()}.txt'.replace(' ','-')
     
     model_type = 'GNN'
-    model_name = model_type + '_human_Aug31'
+    model_name = '{model_type}_{data_name}_human_Aug31'
     seed = 42
     device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
     print(model_name)

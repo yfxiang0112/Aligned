@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy.sparse import coo_matrix, save_npz
 
-data_name = 'norman'
+data_name = 'dixit'
 
 go_thrs = .2 #TODO
 

@@ -13,7 +13,7 @@ def weighted_mean(f1_data,f1_kb,w):
             + (1.-w) * (f1_kb ** -p_integrate)) ** (-1/p_integrate)
 
 test_metadata = pd.read_csv('dataset/human/norman_test_set.csv', index_col=0)
-pred_result = json.load(open('data_anal/pert_benchmark/gears/all_predictions.json'))
+pred_result = json.load(open('data_anal/pert_benchmark/scfoundation/all_predictions_4.json'))
 
 test_idx = np.load('dataset/human/norman_test_idx.npy')
 Y_true = load_npz('dataset/human/norman_Y.npz').toarray()[test_idx]

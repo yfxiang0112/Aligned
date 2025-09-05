@@ -9,7 +9,7 @@ from scipy.sparse import load_npz
 from egoal.reasoner import RegulatoryKB
 from egoal.learner_refl import ReflectLearner
 
-data_name = 'norman'
+data_name = 'adamson'
 
 device = 'cuda'
 
@@ -33,14 +33,20 @@ X_test = X[test_idx]
 Y_test = Y[test_idx]
 
 
-adj_matrix = torch.round(torch.clamp(torch.abs(KB.Regu_N_0 + KB.Regu_P_0), 0,1))
-learner = ReflectLearner(input_dim= X.shape[1],
-                         output_dim= Y.shape[1],
-                         hidden_dim= 64,
-                         base_learner_type= 'MLP',
-                         adj_matrix= adj_matrix,
-                         device=device)
-learner.load('models/MLP_human_Aug16.pt')
+#NOTE
+#adj_matrix = torch.round(torch.clamp(torch.abs(KB.Regu_N_0 + KB.Regu_P_0), 0,1))
+#learner = ReflectLearner(input_dim= X.shape[1],
+#                         output_dim= Y.shape[1],
+#                         hidden_dim= 64,
+#                         base_learner_type= 'MLP',
+#                         adj_matrix= adj_matrix,
+#                         device=device)
+#learner.load('models/MLP_human_Aug16.pt')
+#
+#Y_p = learner.predict(torch.tensor(X_test).float().to(device)).to('cpu').numpy()
+#R = learner.reflection(torch.tensor(X_test).float().to(device)).to('cpu').numpy().astype(bool)
+#print(Y_p.shape)
+#NOTE
 
 
 #test_df = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
@@ -49,13 +55,11 @@ learner.load('models/MLP_human_Aug16.pt')
 #X_test = X_test[pert_idx]
 #Y_test = Y_test[pert_idx]
 
-Y_p = learner.predict(torch.tensor(X_test).float().to(device)).to('cpu').numpy()
-R = learner.reflection(torch.tensor(X_test).float().to(device)).to('cpu').numpy().astype(bool)
+
 #Y_d = np.load('data_anal/abduction_results/Yd_ABL0_hsa.npy')
 #R = np.load('data_anal/abduction_results/R_ABL0_hsa.npy')
 Y_d = Y_deduction[test_idx]
 
-print(Y_p.shape)
 
 #Y_p = Y_p[pert_idx]
 #Y_deduction = Y_deduction[pert_idx]
