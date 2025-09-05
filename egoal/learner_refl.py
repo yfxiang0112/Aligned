@@ -415,8 +415,9 @@ class ReflectLearner():
         optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=lr)
 
         # Training loop
-        input_samples =  torch.eye(self.input_dim).to(self.device)
-        desired_output = label_weight.unsqueeze(0).expand(self.input_dim, -1)
+        input_samples =  torch.eye(self.input_dim).to(self.device)# if X == None else\
+                #torch.concat([X, torch.eye(self.input_dim).to(self.device)])
+        desired_output = label_weight.unsqueeze(0).expand(input_samples.shape[0], -1)
         for epoch in range(epochs):
             optimizer.zero_grad()
             _,outputs = self.model(input_samples)
@@ -731,7 +732,7 @@ if __name__ == '__main__':
 
     torch.manual_seed(0)
     np.random.seed(0)
-    device = 'cuda:0'
+    device = 'cuda:2'
     log_file = 'log/learner.txt'
 
     X_train = torch.tensor(load_npz(f'dataset/human/norman_X.npz').toarray(), dtype = torch.float32)

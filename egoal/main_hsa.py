@@ -12,6 +12,7 @@ if __name__ == '__main__':
     model_type = 'GNN'
     model_name = model_type + '_human_Aug31'
     seed = 42
+    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
     print(model_name)
     print(log_file)
     print(f'random seed: {seed}')
@@ -45,7 +46,6 @@ if __name__ == '__main__':
 
     label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
 
-    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)

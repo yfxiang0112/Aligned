@@ -9,8 +9,9 @@ if __name__ == "__main__":
     log_file = f'log/EGOAL-eco-{datetime.now()}.txt'.replace(' ','-')
 
     model_type = 'GNN'
-    model_name = model_type + '_eco_Sep1'
-    seed = 42
+    model_name = model_type + '_eco_Sep3_8'
+    seed = 6666
+    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
     print(model_name)
     print(log_file)
     print(f'random seed: {seed}')
@@ -52,7 +53,6 @@ if __name__ == "__main__":
     label_weight = torch.tensor(np.load('rules/label_weight.npy'))
 
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     X_unlabel = X_unlabel.to(device)
@@ -71,8 +71,8 @@ if __name__ == "__main__":
 
            output_idx_list=idx_list_sra,
            label_weight=label_weight,
-           #weight_init_epc= 2000,
-           #weight_init_lr= 1e-3,
+           weight_init_epc= 2000,
+           weight_init_lr= 1e-3,
 
            X_label = X_train,
            Y_label = Y_train,
@@ -87,7 +87,7 @@ if __name__ == "__main__":
            pretrain_lr= 1e-3,
 
            retrain_epc= 400,
-           retrain_rl_epc= 100,
+           retrain_rl_epc= 20,
            retrain_lr= 1e-3,
            refine_epc= 5000,
            refine_lr= 1e-3,

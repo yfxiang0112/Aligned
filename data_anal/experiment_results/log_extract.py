@@ -154,7 +154,7 @@ def save_results_to_file(analysis, output_file="f1_analysis_results.txt"):
 # Main execution
 if __name__ == "__main__":
     # Configuration
-    LOG_DIRECTORY = "data_anal/experiment_results/hsa_aug30/"  # Current directory, change as needed
+    LOG_DIRECTORY = "data_anal/experiment_results/eco_sep3/"  # Current directory, change as needed
     FILE_PATTERN = "log_MLP_*"  # Pattern for log files
 
     w_hsa = .3233
@@ -168,6 +168,8 @@ if __name__ == "__main__":
     if not f1_scores:
         print("No F1 scores found in any log files.")
         exit()
+
+    #print(f1_scores)
 
     keys = ['init', 'data_only',\
             'ABL1_refl', 'ABL1_refine', 'ABL2_refl', 'ABL2_refine']
@@ -187,6 +189,7 @@ if __name__ == "__main__":
         score_neur[k] = {'data consistency':f'{data_con:.4f} +- {data_tol:.4f}',\
                 'kb consistency': f'{kb_con:.4f} +- {kb_tol:.4f}',\
                 'balanced consistency': f'{bal_con:.4f} +- {bal_tol:.4f}'}
+        print(f'{k} neural scores:\ndata cons: {f1_scores[f"f1 on test_{i*2}"]},\nkb cons:   {f1_scores[f"f1 on kb_{i*2}"]}')
 
         data_con = .5*(max(f1_scores[f'f1 on test_{i*2+1}']) + min(f1_scores[f'f1 on test_{i*2+1}']))
         kb_con = .5*(max(f1_scores[f'f1 on kb_{i*2+1}']) + min(f1_scores[f'f1 on kb_{i*2+1}']))
@@ -199,6 +202,7 @@ if __name__ == "__main__":
         score_intg[k] = {'data consistency':f'{data_con:.4f} +- {data_tol:.4f}',\
                 'kb consistency': f'{kb_con:.4f} +- {kb_tol:.4f}',\
                 'balanced consistency': f'{bal_con:.4f} +- {bal_tol:.4f}'}
+        print(f'{k} integrated scores:\ndata cons: {f1_scores[f"f1 on test_{i*2+1}"]},\nkb cons:   {f1_scores[f"f1 on kb_{i*2+1}"]}\neuraln')
     
     print(pd.DataFrame(score_neur).transpose())
     print(pd.DataFrame(score_intg).transpose())

@@ -1,8 +1,6 @@
 import numpy as np
 import torch
 from scipy.sparse import save_npz, load_npz
-import cupy as cp
-from cupyx.scipy.sparse import coo_matrix as cp_coo_matrix
 import pandas as pd
 import time
 from sklearn.metrics import f1_score
@@ -445,23 +443,18 @@ class RegulatoryKB():
 if __name__ == '__main__':
     # NOTE tmp test
 
-    cp.cuda.Device(0).use()
     
     regulatoryKB = RegulatoryKB(pos_trn_pth='rules/regu_pos.npz',
                                 neg_trn_pth='rules/regu_neg.npz')
 
     print(regulatoryKB.KB_P, regulatoryKB.KB_P.shape)
-    print(len(cp.nonzero(regulatoryKB.KB_P)[0]))
     print('closure times:', regulatoryKB.T)
 
     print(np.count_nonzero(np.sum(regulatoryKB.KB_P & regulatoryKB.KB_N, axis=0)))
     print(np.count_nonzero(np.sum(regulatoryKB.KB_P | regulatoryKB.KB_N, axis=0)))
-    #save_npz('rules/regu_pos_clo.npz', cp_coo_matrix(regulatoryKB.KB_P))
-    #save_npz('rules/regu_neg_clo.npz', cp_coo_matrix(regulatoryKB.KB_N))
 
     #metabolicKB = MetabolicKB(pos_gem_pth='rules/gem_pos.npz', neg_gem_pth='rules/gem_neg.npz', annotation_pth='rules/gem_annot.npz')
     #print(metabolicKB.KB_P, metabolicKB.KB_P.shape)
-    #print(len(cp.nonzero(metabolicKB.KB_P)[0]))
     #print(type(metabolicKB.KB_P), metabolicKB.KB_P.device)
     #print('closure times:', metabolicKB.T)
 

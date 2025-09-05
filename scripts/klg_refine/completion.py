@@ -6,7 +6,7 @@ import gc
 
 from egoal.reasoner import RegulatoryKB
 
-seed = 42
+seed = 114
 device = 'cuda:6'
 
 np.random.seed(seed)
@@ -66,7 +66,7 @@ for p_incompl in [0., .05, .1, .2, .3, .4, .5]:
                     t= 1,
                     t0= 100,
                     epochs= 5000,
-                    init_lr= 1e-3,
+                    lr= 1e-3,
                     verbose= False)
 
     Omega = torch.any((torch.clamp(X.T @ Y.float(), -1,1)!=0), axis=1)
