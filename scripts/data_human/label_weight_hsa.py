@@ -33,20 +33,14 @@ X_test = X[test_idx]
 Y_test = Y[test_idx]
 
 
-#NOTE
-#adj_matrix = torch.round(torch.clamp(torch.abs(KB.Regu_N_0 + KB.Regu_P_0), 0,1))
-#learner = ReflectLearner(input_dim= X.shape[1],
-#                         output_dim= Y.shape[1],
-#                         hidden_dim= 64,
-#                         base_learner_type= 'MLP',
-#                         adj_matrix= adj_matrix,
-#                         device=device)
-#learner.load('models/MLP_human_Aug16.pt')
-#
-#Y_p = learner.predict(torch.tensor(X_test).float().to(device)).to('cpu').numpy()
-#R = learner.reflection(torch.tensor(X_test).float().to(device)).to('cpu').numpy().astype(bool)
-#print(Y_p.shape)
-#NOTE
+adj_matrix = torch.round(torch.clamp(torch.abs(KB.Regu_N_0 + KB.Regu_P_0), 0,1))
+learner = ReflectLearner(input_dim= X.shape[1],
+                         output_dim= Y.shape[1],
+                         hidden_dim= 64,
+                         base_learner_type= 'GNN',
+                         adj_matrix= adj_matrix,
+                         device=device)
+learner.load('models/GNN_adamson_human_Aug31.pt')
 
 
 #test_df = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
@@ -55,11 +49,13 @@ Y_test = Y[test_idx]
 #X_test = X_test[pert_idx]
 #Y_test = Y_test[pert_idx]
 
-
+Y_p = learner.predict(torch.tensor(X_test).float().to(device)).to('cpu').numpy()
+R = learner.reflection(torch.tensor(X_test).float().to(device)).to('cpu').numpy().astype(bool)
 #Y_d = np.load('data_anal/abduction_results/Yd_ABL0_hsa.npy')
 #R = np.load('data_anal/abduction_results/R_ABL0_hsa.npy')
 Y_d = Y_deduction[test_idx]
 
+print(Y_p.shape)
 
 #Y_p = Y_p[pert_idx]
 #Y_deduction = Y_deduction[pert_idx]
@@ -70,8 +66,10 @@ total = len(Y)
 #gt_con_idx = (np.nonzero(np.sum((Y_d!= Y_true) | (Y_p != Y_true), axis=0) / total < .2)[0].tolist())
 print('consistent 1:',np.sum((Y_deduction==1)&(Y==Y_deduction)))
 print('consistent -1:',np.sum((Y_deduction==-1)&(Y==Y_deduction)))
-kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist())
-kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist())
+kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .23)[0].tolist()) # adamson
+kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .2)[0].tolist()) # adamson
+#kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist()) # norman
+#kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist()) # norman
 kb_con_idx_1 = (np.nonzero((np.sum((Y_deduction == 1), axis=0) / total > .5) | (np.sum((Y_deduction == -1), axis=0) / total > .5))[0].tolist())
 
 data_idx = np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=1) > 150)[0].tolist()
@@ -170,7 +168,8 @@ print('f1 of Y_grn_weight:', f1_score(Y_test.flatten(), y_mask_regu.flatten(), a
 
 ' get label weight '
 weights = np.full(shape=Y_test.shape[1], fill_value=.1, dtype=np.float32)
-weights += (go_annot_num - .2) + (regulatory_num - .1)
+weights += (go_annot_num - .3) + (regulatory_num - .2) # adamson
+#weights += (go_annot_num - .2) + (regulatory_num - .1) # norman
 weights[kb_con_idx] += .8
 weights[kb_con_idx_0] += .3
 weights[kb_con_idx_1] += .2
