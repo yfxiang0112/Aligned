@@ -3,100 +3,140 @@ import torch
 from scipy.sparse import load_npz
 import os
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import seaborn as sns
+import json
+import gc
+import pandas as pd
 
-from egoal.reasoner import RegualtoryKB
+from egoal.reasoner import RegulatoryKB
 from egoal.learner_refl import ReflectLearner
 
 
-# Donut chart
-# Nested donut chart
-def nested_donut_chart():
-    """Create a nested donut chart"""
-    # Outer ring data
-    main_categories = ['Product A', 'Product B', 'Product C']
-    main_values = [50, 30, 20]
-    main_colors = ['#ff6b6b', '#4ecdc4', '#45b7d1']
-    
-    # Inner ring data (subcategories)
-    sub_values = [
-        [20, 15, 15],  # Subcategories for Product A
-        [10, 12, 8],   # Subcategories for Product B
-        [8, 7, 5]      # Subcategories for Product C
-    ]
-    sub_colors = ['#ff9999', '#ffcccc', '#ffe6e6']
-    
-    fig, ax = plt.subplots(figsize=(10, 8))
-    
-    # Outer ring
-    outer_wedges, outer_texts = ax.pie(main_values, 
-                                      radius=1.3,
-                                      colors=main_colors,
-                                      startangle=90,
-                                      wedgeprops=dict(width=0.3, edgecolor='w'))
-    
-    # Inner ring
-    inner_wedges, inner_texts = ax.pie([item for sublist in sub_values for item in sublist],
-                                      radius=1.3-0.3,
-                                      colors=sub_colors*3,
-                                      startangle=90,
-                                      wedgeprops=dict(width=0.2, edgecolor='w'))
-    
-    ax.axis('equal')
-    plt.title('Product Sales with Subcategories', fontsize=14, fontweight='bold')
-    
-    # Add legend
-    plt.legend(outer_wedges, main_categories, title="Main Products", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
-    plt.tight_layout()
-    plt.show()
+mpl.rcParams['text.usetex'] = True
+mpl.rcParams['font.family'] = 'Times New Roman'
+#mpl.rcParams['font.serif'] = ['Times New Roman']
+plt.rcParams['mathtext.fontset'] = 'custom'
+plt.rcParams['mathtext.rm'] = 'Times New Roman'
+plt.rcParams['mathtext.it'] = 'Times New Roman:italic'
+plt.rcParams['mathtext.bf'] = 'Times New Roman:bold'
 
 
-data_name = 'norman'
-kb_name = 'dorothea'
-
+combs = [('norman', 'omnipath'), ('norman', 'go'),
+         ('dixit', 'omnipath'), ('dixit', 'go'),
+         ('adamson', 'omnipath'), ('adamson', 'go'),
+         ('precise1k', 'ecocyc'), ('ncbi-sra', 'ecocyc')]
 device = 'cuda'
 
-Y = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()
-X = load_npz(f'dataset/human/{data_name}_X.npz').toarray()
+incons_dict_path = 'data_anal/incons_plots/incons_edges.json'
+if not os.path.exists(incons_dict_path):
+    incons_dict= {}
+    for data_name, kb_name in combs:
+        print(f'processing {data_name} data + {kb_name} kb')
 
+        if data_name not in ['precise1k','ncbi-sra']:
+            Y = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()
+            X = load_npz(f'dataset/human/{data_name}_X.npz').toarray()
+        else:
+            label_set = pd.read_csv('dataset/label_set_iml.csv', index_col=0)
+            Y = np.load(f'dataset/{data_name}/Y_label.npy')[:,list(label_set[\
+                    'precise1k_idx' if data_name=='precise1k' else 'matrix_idx'])]
+            X = np.load(f'dataset/{data_name}/X_label.npy')
+        
+        if kb_name == 'go':
+            Y = np.abs(Y)
 
-if os.path.exists(f'data_anal/incons_plots/{data_name}_Y_d.npy'):
-    Y_deduction = np.load(f'data_anal/incons_plots/{data_name}_Y_d.npy')
+        
+        #if os.path.exists(f'data_anal/incons_plots/data/{data_name}_Y_d.npy'):
+        #    Y_deduction = np.load(f'data_anal/incons_plots/data/{data_name}_Y_d.npy')
+        #else:
+        KB = RegulatoryKB(pos_trn_pth=f'data_anal/incons_plots/data/{data_name}_{kb_name}_KB_P.npz',\
+                neg_trn_pth=f'data_anal/incons_plots/data/{data_name}_{kb_name}_KB_N.npz'\
+                if kb_name!='go' else None, device=device)
+        KB.closure_(T=5, closure_type='weighted' if kb_name!='go' else 'naive')
+        
+        Y_deduction = KB.deduce(torch.tensor(X).float().to(device)).to('cpu').numpy()
+            #np.save(f'data_anal/incons_plots/data/{data_name}_Y_d.npy', Y_deduction)
+
+        if data_name in ['precise1k','ncbi-sra']:
+            Y_deduction = Y_deduction[:,list(label_set['matrix_idx'])]
+        
+        n_consit = np.sum((Y == Y_deduction) & (Y != 0))
+        n_incomp = np.sum((Y != Y_deduction) & (Y_deduction == 0))
+        n_incons = np.sum((Y != Y_deduction) & (Y_deduction != 0))
+        n_empty = np.sum((Y == Y_deduction) & (Y_deduction == 0))
+        total = n_consit + n_incomp + n_incons + n_empty
+        n_consit, n_incomp, n_incons, n_empty = n_consit/total, n_incomp/total, n_incons/total, n_empty/total
+
+        res = {'consistent': n_consit, 'missing': n_incomp, 'conflict': n_incons, 'empty': n_empty}
+        incons_dict[str((data_name, kb_name))] = res
+
+        del KB
+        gc.collect()
+        torch.cuda.empty_cache()
+
+    json.dump(incons_dict, open(incons_dict_path, 'w'), indent=4)
+
 else:
-    KB = RegualtoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz', neg_trn_pth=f'rules/human/{data_name}_KB_N.npz', device=device)
-    KB.closure_(T=5, closure_type='weighted')
+    incons_dict = json.load(open(incons_dict_path,'r'))
+
+
+for k, v in incons_dict.items():
+    data_name, kb_name = eval(k)[0], eval(k)[1]
+    n_consit = v['consistent']
+    n_incomp = v['missing']
+    n_incons = v['conflict']
+
+    green_palette = sns.color_palette("Greens", n_colors=3)  # Get 3 shades of green
+    warm_palette = sns.color_palette("YlOrRd", n_colors=5)  # One less for the highlight
     
-    Y_deduction = KB.deduce(torch.tensor(X).float().to(device)).to('cpu').numpy()
-    np.save(f'data_anal/incons_plots/{data_name}_Y_d.npy', Y_deduction)
-
-n_consit = np.sum((Y == Y_deduction) & (Y != 0))
-n_incomp = np.sum((Y != Y_deduction) & (Y_deduction == 0))
-n_incons = np.sum((Y != Y_deduction) & (Y_deduction != 0))
-n_empty = np.sum((Y == Y_deduction) & (Y_deduction == 0))
-total = n_consit + n_incomp + n_incons + n_empty
-n_consit, n_incomp, n_incons, n_empty = n_consit/total, n_incomp/total, n_incons/total, n_empty/total
-
-
-"""Create a donut chart"""
-categories = ['Consistent', 'Misssing in KB', 'Data-KB Conflict']#, 'Not Annotated']
-values = [n_consit, n_incomp, n_incons]
-colors = ['green', 'orange', 'red']
-#explode = [0, 0, 0, 0.1]
-
-fig, ax = plt.subplots(figsize=(8, 6))
-
-# Create pie chart and remove the center to make it a donut
-wedges, texts, autotexts = ax.pie(values, 
-                                 #explode=explode,
-                                 labels=categories,
-                                 colors=colors,
-                                 autopct='%1.1f%%',
-                                 startangle=90,
-                                 wedgeprops=dict(width=0.3))  # Width controls donut thickness
-
-
-ax.axis('equal')
-plt.title(f'Data-KB Consistency: {data_name} dataset vs {kb_name} KB', fontsize=14, fontweight='bold')
-plt.savefig(f'data_anal/incons_plots/{data_name}_{kb_name}_piechart.png', dpi=600)
-plt.show()
-
+    
+    """Create a donut chart"""
+    categories = ['Consistent', 'Misssing in KB', 'Data-KB Conflict']#, 'Not Annotated']
+    values = [n_consit, n_incomp, n_incons]
+    colors = [green_palette[1], warm_palette[1], warm_palette[3]]
+    #explode = [0, 0, 0, 0.1]
+    
+    fig, ax = plt.subplots(figsize=(7, 6))
+    
+    #ax.pie(values, labels=categories, autopct='%1.1f%%', startangle=90)
+    ax.axis('equal')  # Equal aspect ratio ensures the pie is circular.
+    
+    ax.pie([n_consit, n_incomp+n_incons],
+           colors=[green_palette[1], warm_palette[2]],
+           radius=1.2,
+           startangle=90,
+           wedgeprops=dict(width=0.3, edgecolor='white', linewidth=1, alpha=.9),)
+    
+    ax.pie(values,
+           labels=categories,
+           colors=colors, 
+           radius=0.9,
+           startangle=90,
+           wedgeprops=dict(width=0.3, edgecolor='white', linewidth=1, alpha=.85),
+           autopct='%1.1f%%',
+           pctdistance=0.85,
+           #textprops={'fontsize': 15, 'fontweight': 'bold'})
+           textprops={'fontsize': 15})
+    
+    # Add center circle and text
+    centre_circle = plt.Circle((0, 0), 0.5, color='white')
+    ax.add_artist(centre_circle)
+    ax.text(0, 0, 'Inconsistent\nInteractions', ha='center', va='center', fontsize=18, fontweight='bold')
+    
+    
+    ## Create pie chart and remove the center to make it a donut
+    #wedges, texts, autotexts = ax.pie(values, 
+    #                                 #explode=explode,
+    #                                 labels=categories,
+    #                                 colors=colors,
+    #                                 autopct='%1.1f%%',
+    #                                 startangle=90,
+    #                                 wedgeprops=dict(width=0.3))  # Width controls donut thickness
+    #
+    #
+    #ax.axis('equal')
+    plt.suptitle(f'(a) Inconsistenies in {kb_name.capitalize()} KB vs {data_name.capitalize()} dataset', fontsize=18, fontweight='bold', y=.07)
+    plt.savefig(f'data_anal/incons_plots/piechart_{data_name}_{kb_name}.pgf', dpi=600, format='pgf')
+    plt.savefig(f'data_anal/incons_plots/piechart_{data_name}_{kb_name}.png', dpi=600)
+    plt.show()

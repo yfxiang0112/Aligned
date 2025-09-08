@@ -2,16 +2,24 @@ import torch
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import argparse
 
 from egoal.abl import abduce
 
 if __name__ == "__main__":
-    log_file = f'log/EGOAL-eco-{datetime.now()}.txt'.replace(' ','-')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--log_file', dest= 'log_file', action= 'store', default= f'log/EGOAL-eco-{datetime.now()}.txt'.replace(' ','-'), type=str)
+    parser.add_argument('--model_type', dest= 'model_type', action= 'store', default= 'GNN', type=str)
+    parser.add_argument('--model_save_name', dest= 'model_name', action= 'store', default= 'eco', type=str)
+    parser.add_argument('--seed', dest= 'seed', action= 'store', default= 42, type=int)
+    parser.add_argument('--device', dest= 'device', action= 'store', default= 'cuda', type=str)
+    args = parser.parse_args()
 
-    model_type = 'GNN'
-    model_name = model_type + '_eco_Sep3_8'
-    seed = 6666
-    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
+    model_type = args.model_type
+    model_name = f'{model_type}_{args.model_name}'
+    seed = args.seed
+    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
+    log_file = args.log_file
     print(model_name)
     print(log_file)
     print(f'random seed: {seed}')

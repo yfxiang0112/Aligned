@@ -2,17 +2,27 @@ import torch
 import numpy as np
 from scipy.sparse import load_npz
 from datetime import datetime
+import argparse
 
 from egoal.abl import abduce
 
 if __name__ == '__main__':
-    data_name = 'adamson'
-    log_file = f'log/EGOAL-hsa-{datetime.now()}.txt'.replace(' ','-')
-    
-    model_type = 'MLP'
-    model_name = f'{model_type}_{data_name}_sep5_4'
-    seed = 114
-    device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data_name', dest= 'data_name', action= 'store', required= True, type=str)
+    parser.add_argument('--log_file', dest= 'log_file', action= 'store', default= f'log/EGOAL-hsa-{datetime.now()}.txt'.replace(' ','-'), type=str)
+    parser.add_argument('--model_type', dest= 'model_type', action= 'store', default= 'GNN', type=str)
+    parser.add_argument('--model_save_name', dest= 'model_name', action= 'store', default= '', type=str)
+    parser.add_argument('--seed', dest= 'seed', action= 'store', default= 42, type=int)
+    parser.add_argument('--device', dest= 'device', action= 'store', default= 'cuda', type=str)
+    parser.add_argument('--trainset_remove', dest= 'p_train', action= 'store', default= 1., type=float)
+    args = parser.parse_args()
+
+    data_name = args.data_name
+    log_file = args.log_file
+    model_type = args.model_type
+    model_name = f'{model_type}_{data_name}_{args.model_name}'
+    seed = args.seed
+    device = torch.device(args.seed if torch.cuda.is_available() else "cpu")
     print(model_name)
     print(log_file)
     print(f'random seed: {seed}')
@@ -24,7 +34,7 @@ if __name__ == '__main__':
     Y_train = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray(), dtype = int)
 
     #test_idx = np.random.choice([True, False], size=len(X_train), p=[.2, .8])
-    p_train = .5
+    p_train = args.p_train
     test_idx = np.zeros(shape=len(X_train), dtype=bool)
     test_idx[np.load(f'dataset/human/{data_name}_test_idx.npy')] = True
 
