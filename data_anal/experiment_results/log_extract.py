@@ -39,7 +39,7 @@ def extract_f1_scores_from_logs(log_directory="./logs", file_pattern="*.log"):
     
     # Process each log file
     for file_idx, log_file in enumerate(log_files, 1):
-        print(f"\nProcessing file {file_idx}/{len(log_files)}: {os.path.basename(log_file)}")
+        #print(f"\nProcessing file {file_idx}/{len(log_files)}: {os.path.basename(log_file)}")
         
         try:
             with open(log_file, 'r', encoding='utf-8') as f:
@@ -154,8 +154,9 @@ def save_results_to_file(analysis, output_file="f1_analysis_results.txt"):
 # Main execution
 if __name__ == "__main__":
     # Configuration
-    LOG_DIRECTORY = "data_anal/experiment_results/eco_sep3/"  # Current directory, change as needed
+    LOG_DIRECTORY = "data_anal/experiment_results/dixit_sep6/"  # Current directory, change as needed
     FILE_PATTERN = "log_MLP_*"  # Pattern for log files
+    print(f'{LOG_DIRECTORY}{FILE_PATTERN}:')
 
     w_hsa = .3233
     w_eco = .4231
@@ -189,7 +190,7 @@ if __name__ == "__main__":
         score_neur[k] = {'data consistency':f'{data_con:.4f} +- {data_tol:.4f}',\
                 'kb consistency': f'{kb_con:.4f} +- {kb_tol:.4f}',\
                 'balanced consistency': f'{bal_con:.4f} +- {bal_tol:.4f}'}
-        print(f'{k} neural scores:\ndata cons: {f1_scores[f"f1 on test_{i*2}"]},\nkb cons:   {f1_scores[f"f1 on kb_{i*2}"]}')
+        #print(f'{k} neural scores:\ndata cons: {f1_scores[f"f1 on test_{i*2}"]},\nkb cons:   {f1_scores[f"f1 on kb_{i*2}"]}')
 
         data_con = .5*(max(f1_scores[f'f1 on test_{i*2+1}']) + min(f1_scores[f'f1 on test_{i*2+1}']))
         kb_con = .5*(max(f1_scores[f'f1 on kb_{i*2+1}']) + min(f1_scores[f'f1 on kb_{i*2+1}']))
@@ -202,10 +203,10 @@ if __name__ == "__main__":
         score_intg[k] = {'data consistency':f'{data_con:.4f} +- {data_tol:.4f}',\
                 'kb consistency': f'{kb_con:.4f} +- {kb_tol:.4f}',\
                 'balanced consistency': f'{bal_con:.4f} +- {bal_tol:.4f}'}
-        print(f'{k} integrated scores:\ndata cons: {f1_scores[f"f1 on test_{i*2+1}"]},\nkb cons:   {f1_scores[f"f1 on kb_{i*2+1}"]}\neuraln')
+        #print(f'{k} integrated scores:\ndata cons: {f1_scores[f"f1 on test_{i*2+1}"]},\nkb cons:   {f1_scores[f"f1 on kb_{i*2+1}"]}\n')
     
-    print(pd.DataFrame(score_neur).transpose())
-    print(pd.DataFrame(score_intg).transpose())
+    print('neural scores:\n', pd.DataFrame(score_neur).transpose())
+    print('integrated scores:\n', pd.DataFrame(score_intg).transpose())
     ##print(f1_scores.keys())
     ## Analyze the scores
     #print("\nAnalyzing F1 scores...")

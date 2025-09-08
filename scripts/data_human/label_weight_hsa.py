@@ -9,7 +9,7 @@ from scipy.sparse import load_npz
 from egoal.reasoner import RegulatoryKB
 from egoal.learner_refl import ReflectLearner
 
-data_name = 'adamson'
+data_name = 'dixit'
 
 device = 'cuda'
 
@@ -40,7 +40,7 @@ learner = ReflectLearner(input_dim= X.shape[1],
                          base_learner_type= 'GNN',
                          adj_matrix= adj_matrix,
                          device=device)
-learner.load('models/GNN_adamson_human_Aug31.pt')
+learner.load('models/GNN_dixit_sep5_1.pt')
 
 
 #test_df = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
@@ -66,10 +66,13 @@ total = len(Y)
 #gt_con_idx = (np.nonzero(np.sum((Y_d!= Y_true) | (Y_p != Y_true), axis=0) / total < .2)[0].tolist())
 print('consistent 1:',np.sum((Y_deduction==1)&(Y==Y_deduction)))
 print('consistent -1:',np.sum((Y_deduction==-1)&(Y==Y_deduction)))
-kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .23)[0].tolist()) # adamson
-kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .2)[0].tolist()) # adamson
+
 #kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist()) # norman
 #kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist()) # norman
+#kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .23)[0].tolist()) # adamson
+#kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .2)[0].tolist()) # adamson
+kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .21)[0].tolist()) # dixit
+kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist()) # dixit
 kb_con_idx_1 = (np.nonzero((np.sum((Y_deduction == 1), axis=0) / total > .5) | (np.sum((Y_deduction == -1), axis=0) / total > .5))[0].tolist())
 
 data_idx = np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=1) > 150)[0].tolist()
@@ -168,8 +171,9 @@ print('f1 of Y_grn_weight:', f1_score(Y_test.flatten(), y_mask_regu.flatten(), a
 
 ' get label weight '
 weights = np.full(shape=Y_test.shape[1], fill_value=.1, dtype=np.float32)
-weights += (go_annot_num - .3) + (regulatory_num - .2) # adamson
 #weights += (go_annot_num - .2) + (regulatory_num - .1) # norman
+#weights += (go_annot_num - .3) + (regulatory_num - .2) # adamson
+weights += (go_annot_num - .35) + (regulatory_num - .25) # dixit
 weights[kb_con_idx] += .8
 weights[kb_con_idx_0] += .3
 weights[kb_con_idx_1] += .2

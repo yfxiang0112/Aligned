@@ -6,13 +6,13 @@ from datetime import datetime
 from egoal.abl import abduce
 
 if __name__ == '__main__':
-    data_name = 'norman'
+    data_name = 'adamson'
     log_file = f'log/EGOAL-hsa-{datetime.now()}.txt'.replace(' ','-')
     
-    model_type = 'GNN'
-    model_name = '{model_type}_{data_name}_human_Aug31'
-    seed = 42
-    device = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
+    model_type = 'MLP'
+    model_name = f'{model_type}_{data_name}_sep5_4'
+    seed = 114
+    device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
     print(model_name)
     print(log_file)
     print(f'random seed: {seed}')
