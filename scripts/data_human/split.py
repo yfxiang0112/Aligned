@@ -1,8 +1,9 @@
 import pandas as pd
 import numpy as np
+import json
 
 np.random.seed(42)
-data_name = 'adamson'
+data_name = 'dixit'
 
 metadata = pd.read_csv(f'dataset/human/{data_name}_metadata.csv',index_col=0)
 regulatory = pd.read_csv('rules/human/regulatory_dorothea.csv', index_col=0)
@@ -82,3 +83,9 @@ for i in range(len(test)):
 #print(len(test_data_idx))
 
 test.to_csv(f'dataset/human/{data_name}_test_set.csv') # NOTE
+
+split = {}
+split['train'] = list(train['pert'].apply(lambda x: f'{eval(x)[0]}+{eval(x)[1]}' if len(eval(x))>1 else eval(x)[0]))
+split['test'] = list(test['pert'].apply(lambda x: f'{eval(x)[0]}+{eval(x)[1]}' if len(eval(x))>1 else eval(x)[0]))
+split['val'] = split['test']
+json.dump(split, open(f'dataset/human/{data_name}_split.json', 'w'), indent=4)
