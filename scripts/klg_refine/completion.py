@@ -7,7 +7,7 @@ import gc
 from egoal.reasoner import RegulatoryKB
 
 seed = 114
-device = 'cuda:6'
+device = 'cuda'
 
 np.random.seed(seed)
 torch.manual_seed(seed)
@@ -26,6 +26,9 @@ reasoner_true = RegulatoryKB(
         neg_trn_pth=regu_n_pth,
         device=device)
 reasoner_true.closure_(T=5, closure_type='naive')
+
+reasoner_true.eval()
+exit()
 
 n_cols = reasoner_true.KB.shape[1]
 X = torch.eye(n_cols).to(device)

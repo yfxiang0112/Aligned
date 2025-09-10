@@ -92,9 +92,9 @@ for k, v in incons_dict.items():
     
     
     """Create a donut chart"""
-    categories = ['Consistent', 'Misssing in KB', 'Data-KB Conflict']#, 'Not Annotated']
+    categories = ['Consistent', 'Misssing\nin KB', 'Data-KB\nConflict']#, 'Not Annotated']
     values = [n_consit, n_incomp, n_incons]
-    colors = [green_palette[1], warm_palette[1], warm_palette[3]]
+    colors = [green_palette[0], warm_palette[1], warm_palette[3]]
     #explode = [0, 0, 0, 0.1]
     
     fig, ax = plt.subplots(figsize=(7, 6))
@@ -103,26 +103,26 @@ for k, v in incons_dict.items():
     ax.axis('equal')  # Equal aspect ratio ensures the pie is circular.
     
     ax.pie([n_consit, n_incomp+n_incons],
-           colors=[green_palette[1], warm_palette[2]],
+           colors=[green_palette[0], warm_palette[2]],
            radius=1.2,
            startangle=90,
-           wedgeprops=dict(width=0.3, edgecolor='white', linewidth=1, alpha=.9),)
+           wedgeprops=dict(width=0.3, edgecolor='white', linewidth=.5, alpha=.9),)
     
     ax.pie(values,
            labels=categories,
            colors=colors, 
            radius=0.9,
            startangle=90,
-           wedgeprops=dict(width=0.3, edgecolor='white', linewidth=1, alpha=.85),
+           wedgeprops=dict(width=0.4, edgecolor='white', linewidth=.5, alpha=.85),
            autopct='%1.1f%%',
            pctdistance=0.85,
            #textprops={'fontsize': 15, 'fontweight': 'bold'})
-           textprops={'fontsize': 15})
+           textprops={'fontsize': 20})
     
     # Add center circle and text
     centre_circle = plt.Circle((0, 0), 0.5, color='white')
     ax.add_artist(centre_circle)
-    ax.text(0, 0, 'Inconsistent\nInteractions', ha='center', va='center', fontsize=18, fontweight='bold')
+    ax.text(0, 0, f'Inconsistency:\n{kb_name.capitalize()} KB vs\n{data_name.capitalize()} Data', ha='center', va='center', fontsize=20, fontweight='bold')
     
     
     ## Create pie chart and remove the center to make it a donut
@@ -136,7 +136,7 @@ for k, v in incons_dict.items():
     #
     #
     #ax.axis('equal')
-    plt.suptitle(f'(a) Inconsistenies in {kb_name.capitalize()} KB vs {data_name.capitalize()} dataset', fontsize=18, fontweight='bold', y=.07)
-    plt.savefig(f'data_anal/incons_plots/piechart_{data_name}_{kb_name}.pgf', dpi=600, format='pgf')
-    plt.savefig(f'data_anal/incons_plots/piechart_{data_name}_{kb_name}.png', dpi=600)
+    plt.suptitle(f'(a) Inconsistent interactions in\n {kb_name.capitalize()} KB vs {data_name.capitalize()} dataset', fontsize=24, fontweight='bold', y=.12)
+    #plt.savefig(f'data_anal/incons_plots/piechart_{data_name}_{kb_name}.pgf', dpi=600, format='pgf')
+    #plt.savefig(f'data_anal/incons_plots/piechart_{data_name}_{kb_name}.png', dpi=600)
     plt.show()

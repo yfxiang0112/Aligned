@@ -4,6 +4,7 @@ from scipy.sparse import save_npz, load_npz
 import pandas as pd
 import time
 from sklearn.metrics import f1_score
+import networkx as nx
 
 def exp_soft(X,t):
     return 1 - torch.exp(-t * X)
@@ -212,6 +213,55 @@ class RegulatoryKB():
 
             self.Regu_P_0 = torch.clamp(torch.round(exp_soft(KB_P_opt, t0)), 0,1)
             self.Regu_N_0 = torch.clamp(torch.round(exp_soft(KB_N_opt, t0)), 0,1)
+
+
+    def eval(self):
+        G_p = nx.from_numpy_array(self.Regu_P_0.cpu().numpy(), create_using=nx.DiGraph)
+        G_n = nx.from_numpy_array(self.Regu_N_0.cpu().numpy(), create_using=nx.DiGraph)
+        G_k_p = nx.from_numpy_array(self.KB_P.cpu().numpy(), create_using=nx.DiGraph)
+        G_k_n = nx.from_numpy_array(self.KB_N.cpu().numpy(), create_using=nx.DiGraph)
+
+        # Basic stats
+        for G in (G_p,G_n, G_k_p, G_k_n):
+            scores = {}
+            scores['num_nodes'] = G.number_of_nodes()
+            scores['num_edges'] = G.number_of_edges()
+            scores['density'] = nx.density(G)
+            
+            # Degree-related
+            scores['avg_in_degree'] = sum(dict(G.in_degree()).values()) / G.number_of_nodes()
+            scores['avg_out_degree'] = sum(dict(G.out_degree()).values()) / G.number_of_nodes()
+            
+            # Clustering (need undirected projection)
+            scores['avg_clustering'] = nx.average_clustering(G.to_undirected())
+            
+            # Path-based (if connected)
+            if nx.is_weakly_connected(G):
+                UG = G.to_undirected()
+                scores['avg_path_length'] = nx.average_shortest_path_length(UG)
+                scores['diameter'] = nx.diameter(UG)
+            else:
+                scores['avg_path_length'] = None
+                scores['diameter'] = None
+            
+            # Assortativity
+            scores['degree_assortativity'] = nx.degree_assortativity_coefficient(G)
+            
+            # Modularity (via greedy community detection)
+            from networkx.algorithms.community import greedy_modularity_communities
+            communities = list(greedy_modularity_communities(G.to_undirected()))
+            scores['modularity'] = nx.algorithms.community.quality.modularity(G.to_undirected(), communities)
+            
+            # Centrality
+            bet = nx.betweenness_centrality(G)
+            clo = nx.closeness_centrality(G)
+            scores['avg_betweenness'] = np.mean(list(bet.values()))
+            scores['avg_closeness'] = np.mean(list(clo.values()))
+            
+            ''' Print results '''
+            for k, v in scores.items():
+                print(f"{k}: {v}")
+            print('\n')
 
 
 
