@@ -37,8 +37,8 @@ if not os.path.exists(incons_dict_path):
 
         if os.path.exists(f'data_anal/incons_plots/data/{data_name}_Corr_P.npy')\
             and os.path.exists(f'data_anal/incons_plots/data/{data_name}_Corr_N.npy'):
-            corr_P = load_npz(f'data_anal/incons_plots/data/{data_name}_Corr_P.npz').toarray()
-            corr_N = load_npz(f'data_anal/incons_plots/data/{data_name}_Corr_N.npz').toarray()
+            corr_P = torch.tensor(load_npz(f'data_anal/incons_plots/data/{data_name}_Corr_P.npz').toarray()).to(device)
+            corr_N = torch.tensor(load_npz(f'data_anal/incons_plots/data/{data_name}_Corr_N.npz').toarray()).to(device)
         else:
             if data_name not in ['precise1k','ncbi-sra']:
                 Y = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()
@@ -48,13 +48,13 @@ if not os.path.exists(incons_dict_path):
                 Y = np.load(f'dataset/{data_name}/Y_label.npy')
                 X = np.load(f'dataset/{data_name}/X_label.npy')
 
-            X,Y = torch.tensor(X).to(device), torch.tensor(Y).to(device)
+            X,Y = torch.tensor(X).to(device).float(), torch.tensor(Y).to(device).float()
 
             
             if kb_name == 'go':
                 Y = torch.abs(Y)
 
-            unique_X, inverse_indices = torch.unique(X, axis=0, return_inverse=True)
+            unique_X, inverse_indices = torch.unique(X, dim=0, return_inverse=True)
             Y_means_P = torch.zeros((len(unique_X), Y.shape[1])).to(device)
             Y_means_N = torch.zeros((len(unique_X), Y.shape[1])).to(device)
             for i in range(len(unique_X)):
@@ -83,10 +83,10 @@ if not os.path.exists(incons_dict_path):
             label_idx = np.array(label_set['precise1k_idx']!=-1)
             KB_true = KB_true[:,label_idx]
         
-        n_consit = torch.sum(corr_P[KB_true>0]) + torch.sum(corr_N[KB_true<0])
-        n_incomp = torch.sum((corr_P+corr_N)[KB_true==0])
-        n_incons = torch.sum((1-corr_P)[KB_true>0]) + torch.sum((1-corr_N)[KB_true<0])
-        n_empty = torch.sum((1-corr_P-corr_N)[KB_true==0])
+        n_consit = int(torch.sum(corr_P[KB_true>0]) + torch.sum(corr_N[KB_true<0]))
+        n_incomp = int(torch.sum((corr_P+corr_N)[KB_true==0]))
+        n_incons = int(torch.sum((1-corr_P)[KB_true>0]) + torch.sum((1-corr_N)[KB_true<0]))
+        n_empty = int(torch.sum((1-corr_P-corr_N)[KB_true==0]))
         total = n_consit + n_incomp + n_incons + n_empty
         n_consit, n_incomp, n_incons, n_empty = n_consit/total, n_incomp/total, n_incons/total, n_empty/total
 
@@ -172,4 +172,3 @@ for k, v in incons_dict.items():
     #plt.savefig(f'data_anal/incons_plots/piechart_{data_name}_{kb_name}.pgf', dpi=600, format='pgf')
     #plt.savefig(f'data_anal/incons_plots/piechart_{data_name}_{kb_name}.png', dpi=600)
     plt.show()
-    exit()
