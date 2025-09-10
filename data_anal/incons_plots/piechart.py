@@ -1,8 +1,9 @@
 import numpy as np
 import torch
-from scipy.sparse import load_npz
+from scipy.sparse import load_npz, save_npz, coo_matrix
 import os
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import matplotlib as mpl
 import seaborn as sns
 import json
@@ -34,37 +35,58 @@ if not os.path.exists(incons_dict_path):
     for data_name, kb_name in combs:
         print(f'processing {data_name} data + {kb_name} kb')
 
-        if data_name not in ['precise1k','ncbi-sra']:
-            Y = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()
-            X = load_npz(f'dataset/human/{data_name}_X.npz').toarray()
+        if os.path.exists(f'data_anal/incons_plots/data/{data_name}_Corr_P.npy')\
+            and os.path.exists(f'data_anal/incons_plots/data/{data_name}_Corr_N.npy'):
+            corr_P = load_npz(f'data_anal/incons_plots/data/{data_name}_Corr_P.npz').toarray()
+            corr_N = load_npz(f'data_anal/incons_plots/data/{data_name}_Corr_N.npz').toarray()
         else:
-            label_set = pd.read_csv('dataset/label_set_iml.csv', index_col=0)
-            Y = np.load(f'dataset/{data_name}/Y_label.npy')[:,list(label_set[\
-                    'precise1k_idx' if data_name=='precise1k' else 'matrix_idx'])]
-            X = np.load(f'dataset/{data_name}/X_label.npy')
-        
-        if kb_name == 'go':
-            Y = np.abs(Y)
+            if data_name not in ['precise1k','ncbi-sra']:
+                Y = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()
+                X = load_npz(f'dataset/human/{data_name}_X.npz').toarray()
+            else:
+                label_set = pd.read_csv('dataset/label_set_iml.csv', index_col=0)
+                Y = np.load(f'dataset/{data_name}/Y_label.npy')
+                X = np.load(f'dataset/{data_name}/X_label.npy')
+
+            X,Y = torch.tensor(X).to(device), torch.tensor(Y).to(device)
+
+            
+            if kb_name == 'go':
+                Y = torch.abs(Y)
+
+            unique_X, inverse_indices = torch.unique(X, axis=0, return_inverse=True)
+            Y_means_P = torch.zeros((len(unique_X), Y.shape[1])).to(device)
+            Y_means_N = torch.zeros((len(unique_X), Y.shape[1])).to(device)
+            for i in range(len(unique_X)):
+                mask = (inverse_indices == i)
+                Y_means_P[i] = torch.mean(torch.clamp(Y,min=0)[mask], dim=0)
+                Y_means_N[i] = torch.mean(torch.clamp(-Y,min=0)[mask], dim=0)
+            
+            corr_P = (torch.clamp(unique_X,min=0).T @ Y_means_P)\
+                    + (torch.clamp(-unique_X,min=0).T @ Y_means_N)
+            corr_N = (torch.clamp(unique_X,min=0).T @ Y_means_N)\
+                    + (torch.clamp(-unique_X,min=0).T @ Y_means_P)
+
+            save_npz(f'data_anal/incons_plots/data/{data_name}_Corr_P.npz', coo_matrix(corr_P.cpu().numpy()))
+            save_npz(f'data_anal/incons_plots/data/{data_name}_Corr_N.npz', coo_matrix(corr_N.cpu().numpy()))
 
         
-        #if os.path.exists(f'data_anal/incons_plots/data/{data_name}_Y_d.npy'):
-        #    Y_deduction = np.load(f'data_anal/incons_plots/data/{data_name}_Y_d.npy')
-        #else:
         KB = RegulatoryKB(pos_trn_pth=f'data_anal/incons_plots/data/{data_name}_{kb_name}_KB_P.npz',\
                 neg_trn_pth=f'data_anal/incons_plots/data/{data_name}_{kb_name}_KB_N.npz'\
                 if kb_name!='go' else None, device=device)
         KB.closure_(T=5, closure_type='weighted' if kb_name!='go' else 'naive')
-        
-        Y_deduction = KB.deduce(torch.tensor(X).float().to(device)).to('cpu').numpy()
-            #np.save(f'data_anal/incons_plots/data/{data_name}_Y_d.npy', Y_deduction)
+        KB_true = KB.KB#.cpu().numpy()
 
-        if data_name in ['precise1k','ncbi-sra']:
-            Y_deduction = Y_deduction[:,list(label_set['matrix_idx'])]
+
+        if data_name in ['precise1k']:
+            label_set = pd.read_csv('dataset/gene_idx.csv', index_col=0)
+            label_idx = np.array(label_set['precise1k_idx']!=-1)
+            KB_true = KB_true[:,label_idx]
         
-        n_consit = np.sum((Y == Y_deduction) & (Y != 0))
-        n_incomp = np.sum((Y != Y_deduction) & (Y_deduction == 0))
-        n_incons = np.sum((Y != Y_deduction) & (Y_deduction != 0))
-        n_empty = np.sum((Y == Y_deduction) & (Y_deduction == 0))
+        n_consit = torch.sum(corr_P[KB_true>0]) + torch.sum(corr_N[KB_true<0])
+        n_incomp = torch.sum((corr_P+corr_N)[KB_true==0])
+        n_incons = torch.sum((1-corr_P)[KB_true>0]) + torch.sum((1-corr_N)[KB_true<0])
+        n_empty = torch.sum((1-corr_P-corr_N)[KB_true==0])
         total = n_consit + n_incomp + n_incons + n_empty
         n_consit, n_incomp, n_incons, n_empty = n_consit/total, n_incomp/total, n_incons/total, n_empty/total
 
@@ -88,7 +110,7 @@ for k, v in incons_dict.items():
     n_incons = v['conflict']
 
     green_palette = sns.color_palette("Greens", n_colors=3)  # Get 3 shades of green
-    warm_palette = sns.color_palette("YlOrRd", n_colors=5)  # One less for the highlight
+    warm_palette = sns.color_palette("YlOrRd", n_colors=7)  # One less for the highlight
     
     
     """Create a donut chart"""
@@ -103,26 +125,36 @@ for k, v in incons_dict.items():
     ax.axis('equal')  # Equal aspect ratio ensures the pie is circular.
     
     ax.pie([n_consit, n_incomp+n_incons],
-           colors=[green_palette[0], warm_palette[2]],
-           radius=1.2,
+           colors=[green_palette[0], warm_palette[5]],
+           radius=0.9,
            startangle=90,
            wedgeprops=dict(width=0.3, edgecolor='white', linewidth=.5, alpha=.9),)
     
     ax.pie(values,
-           labels=categories,
+           #labels=categories,
            colors=colors, 
-           radius=0.9,
+           radius=1.2,
            startangle=90,
-           wedgeprops=dict(width=0.4, edgecolor='white', linewidth=.5, alpha=.85),
-           autopct='%1.1f%%',
+           wedgeprops=dict(width=0.3, edgecolor='white', linewidth=.5, alpha=.85),
+           autopct='%1.2f%%',
            pctdistance=0.85,
            #textprops={'fontsize': 15, 'fontweight': 'bold'})
            textprops={'fontsize': 20})
     
     # Add center circle and text
-    centre_circle = plt.Circle((0, 0), 0.5, color='white')
+    centre_circle = plt.Circle((0, 0), 0.4, color='white')
     ax.add_artist(centre_circle)
-    ax.text(0, 0, f'Inconsistency:\n{kb_name.capitalize()} KB vs\n{data_name.capitalize()} Data', ha='center', va='center', fontsize=20, fontweight='bold')
+    ax.text(0, 0, f'{kb_name.capitalize()} KB vs\n{data_name.capitalize()} Data', ha='center', va='center', fontsize=20, fontweight='bold')
+
+    legend_elements = [
+            mpatches.Patch(facecolor=green_palette[0], label='Consistent'),
+            mpatches.Patch(facecolor=warm_palette[5], label='Inconsistent'),
+            mpatches.Patch(facecolor=warm_palette[1], label='  Missing in KB (FP for data)'),
+            mpatches.Patch(facecolor=warm_palette[3], label='  Data-KB Conflict (FN for data)'),
+    ]
+    plt.legend(handles=legend_elements,
+               fontsize=20,
+               loc='lower right')
     
     
     ## Create pie chart and remove the center to make it a donut
@@ -140,3 +172,4 @@ for k, v in incons_dict.items():
     #plt.savefig(f'data_anal/incons_plots/piechart_{data_name}_{kb_name}.pgf', dpi=600, format='pgf')
     #plt.savefig(f'data_anal/incons_plots/piechart_{data_name}_{kb_name}.png', dpi=600)
     plt.show()
+    exit()
