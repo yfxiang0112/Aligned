@@ -27,7 +27,7 @@ combs = [('norman', 'omnipath'), ('norman', 'go'),
          ('dixit', 'omnipath'), ('dixit', 'go'),
          ('adamson', 'omnipath'), ('adamson', 'go'),
          ('precise1k', 'ecocyc'), ('ncbi-sra', 'ecocyc')]
-device = 'cuda:1'
+device = 'cuda'
 
 incons_dict_path = 'data_anal/incons_plots/incons_edges.json'
 if not os.path.exists(incons_dict_path):
@@ -54,18 +54,18 @@ if not os.path.exists(incons_dict_path):
             if kb_name == 'go':
                 Y = torch.abs(Y)
 
-            #unique_X, inverse_indices = torch.unique(X, dim=0, return_inverse=True)
-            #Y_means_P = torch.zeros((len(unique_X), Y.shape[1])).to(device)
-            #Y_means_N = torch.zeros((len(unique_X), Y.shape[1])).to(device)
-            #for i in range(len(unique_X)):
-            #    mask = (inverse_indices == i)
-            #    Y_means_P[i] = torch.mean(torch.clamp(Y,min=0)[mask], dim=0)
-            #    Y_means_N[i] = torch.mean(torch.clamp(-Y,min=0)[mask], dim=0)
+            unique_X, inverse_indices = torch.unique(X, dim=0, return_inverse=True)
+            Y_means_P = torch.zeros((len(unique_X), Y.shape[1])).to(device)
+            Y_means_N = torch.zeros((len(unique_X), Y.shape[1])).to(device)
+            for i in range(len(unique_X)):
+                mask = (inverse_indices == i)
+                Y_means_P[i] = torch.mean(torch.clamp(Y,min=0)[mask], dim=0)
+                Y_means_N[i] = torch.mean(torch.clamp(-Y,min=0)[mask], dim=0)
             
-            corr_P = (torch.clamp(X,min=0).T @ torch.clamp(Y,min=0))\
-                    + (torch.clamp(-X,min=0).T @ torch.clamp(-Y,min=0))
-            corr_N = (torch.clamp(X,min=0).T @ torch.clamp(-Y,min=0))\
-                    + (torch.clamp(-X,min=0).T @ torch.clamp(Y,min=0))
+            corr_P = (torch.clamp(unique_X,min=0).T @ Y_means_P)\
+                    + (torch.clamp(-unique_X,min=0).T @ Y_means_N)
+            corr_N = (torch.clamp(unique_X,min=0).T @ Y_means_N)\
+                    + (torch.clamp(-unique_X,min=0).T @ Y_means_P)
 
             save_npz(f'data_anal/incons_plots/data/{data_name}_Corr_P.npz', coo_matrix(corr_P.cpu().numpy()))
             save_npz(f'data_anal/incons_plots/data/{data_name}_Corr_N.npz', coo_matrix(corr_N.cpu().numpy()))
@@ -82,6 +82,9 @@ if not os.path.exists(incons_dict_path):
             label_set = pd.read_csv('dataset/gene_idx.csv', index_col=0)
             label_idx = np.array(label_set['precise1k_idx']!=-1)
             KB_true = KB_true[:,label_idx]
+
+        row_idx = torch.sum(corr_P+corr_N, axis=1)>0
+        corr_P, corr_N, KB_true = corr_P[row_idx], corr_N[row_idx], KB_true[row_idx]
         
         n_consit = int(torch.sum(corr_P[KB_true>0]) + torch.sum(corr_N[KB_true<0]))
         n_incomp = int(torch.sum((corr_P+corr_N)[KB_true==0]))
