@@ -731,17 +731,18 @@ if __name__ == '__main__':
     # NOTE tmp test
 
     torch.manual_seed(0)
+    data_name = 'norman'
     np.random.seed(0)
-    device = 'cuda:2'
+    device = 'cuda:3'
     log_file = 'log/learner.txt'
 
-    X_train = torch.tensor(load_npz(f'dataset/human/norman_X.npz').toarray(), dtype = torch.float32)
-    Y_train = torch.tensor(load_npz(f'dataset/human/norman_Y_con.npz').toarray(), dtype = torch.float32)
-    label_weight = torch.tensor(np.load(f'dataset/human/norman_label_weight.npy'))
+    X_train = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray(), dtype = torch.float32)
+    Y_train = torch.tensor(load_npz(f'dataset/human/{data_name}_Y_con.npz').toarray(), dtype = torch.float32)
+    label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
     
-    p_train = .5
+    p_train = 1.
     test_idx = np.zeros(shape=len(X_train), dtype=bool)
-    test_idx[np.load(f'dataset/human/norman_test_idx.npy')] = True
+    test_idx[np.load(f'dataset/human/{data_name}_test_idx.npy')] = True
 
     train_idx = np.random.choice([True, False], size=len(X_train)-np.count_nonzero(test_idx), p=[p_train, 1-p_train])
 
@@ -753,17 +754,17 @@ if __name__ == '__main__':
     X_test, Y_test = X_test.to(device), Y_test.to(device)
     label_weight = label_weight.to(device)
 
-    reasoner = RegulatoryKB(pos_trn_pth= 'rules/human/norman_KB_P.npz',
-                            neg_trn_pth= 'rules/human/norman_KB_N.npz',
+    reasoner = RegulatoryKB(pos_trn_pth= f'rules/human/{data_name}_GO.npz',
+                            neg_trn_pth= None,
                             output_idx_list= None,
-                            device=device)#, T=4)
-    reasoner.closure_(T=5, closure_type='weighted')
+                            device=device)
+    reasoner.closure_(T=5, closure_type='naive')
 
     adj_matrix = torch.round(torch.clamp(torch.abs(reasoner.Regu_P_0 + reasoner.Regu_N_0), 0,1))
     learner = ReflectLearner(input_dim= X_test.shape[1],
                              output_dim= Y_test.shape[1],
                              hidden_dim= 64,
-                             base_learner_type= 'GNN',
+                             base_learner_type= 'MLP',
                              adj_matrix= adj_matrix,
                              device=device,
                              discretized=False,
@@ -778,7 +779,7 @@ if __name__ == '__main__':
     learner.load_data(X_train, Y_train, X_test, Y_test)
     learner.train(KB= reasoner,
                   label_weight= label_weight,
-                  epochs= 500,
+                  epochs= 1000,
                   reinforce_epochs= 1,
                   C=1,
                   lr=1e-3,
@@ -788,7 +789,7 @@ if __name__ == '__main__':
     Y_pred, _ = learner.forward(X_test)
     print(f'MSE: {criterion(Y_pred.detach(), Y_test.detach())}')
 
-    Y_test = torch.tensor(load_npz(f'dataset/human/norman_Y.npz').toarray(), dtype = int)[test_idx].to(device)
+    Y_test = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray(), dtype = int)[test_idx].to(device)
     learner.load_data(_, _, X_test, Y_test)
     f1 = learner.eval(reasoner, .3, verbose=True)
     print(f'pretrain: integrated f1 {f1:.4f}')

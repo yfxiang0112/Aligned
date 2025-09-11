@@ -6,7 +6,7 @@ import gc
 
 from egoal.reasoner import RegulatoryKB
 
-seed = 114
+seed = 42
 device = 'cuda'
 
 np.random.seed(seed)
@@ -27,8 +27,8 @@ reasoner_true = RegulatoryKB(
         device=device)
 reasoner_true.closure_(T=5, closure_type='naive')
 
+print('original KB statics')
 reasoner_true.eval()
-exit()
 
 n_cols = reasoner_true.KB.shape[1]
 X = torch.eye(n_cols).to(device)
@@ -39,7 +39,7 @@ R_P = load_npz(regu_p_pth).toarray()
 R_N = load_npz(regu_n_pth).toarray()
 R = np.clip(R_P+R_N, 0,1)
 
-for p_incompl in [0., .05, .1, .2, .3, .4, .5]:
+for p_incompl in [0., .05, .1, .2, .3, .4, .5, .7, .9]:
 
     ' create mask for p% nonzero positions '
     nonzero_indices = np.argwhere(R != 0)
@@ -103,6 +103,8 @@ for p_incompl in [0., .05, .1, .2, .3, .4, .5]:
     print(f'--- KB recovery: incompleteness p = {p_incompl} ---')
     print(f'F1 on initial KB, pos: {f1_R0P: .5f}, neg: {f1_R0N: .5f}, combined: {f1_R0: .5f}, acc: {acc_R0: .5f}')
     print(f'F1 on closure KB, pos: {f1_RP: .5f}, neg: {f1_RN: .5f}, combined: {f1_R: .5f}, acc: {acc_R: .5f}')
+    print('KB statics:')
+    reasoner_train.eval()
     print('----------\n')
 
     del reasoner_train

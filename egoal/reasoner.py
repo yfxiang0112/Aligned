@@ -218,11 +218,12 @@ class RegulatoryKB():
     def eval(self):
         G_p = nx.from_numpy_array(self.Regu_P_0.cpu().numpy(), create_using=nx.DiGraph)
         G_n = nx.from_numpy_array(self.Regu_N_0.cpu().numpy(), create_using=nx.DiGraph)
-        G_k_p = nx.from_numpy_array(self.KB_P.cpu().numpy(), create_using=nx.DiGraph)
-        G_k_n = nx.from_numpy_array(self.KB_N.cpu().numpy(), create_using=nx.DiGraph)
+        #G_k_p = nx.from_numpy_array(self.KB_P.cpu().numpy(), create_using=nx.DiGraph)
+        #G_k_n = nx.from_numpy_array(self.KB_N.cpu().numpy(), create_using=nx.DiGraph)
 
         # Basic stats
-        for G in (G_p,G_n, G_k_p, G_k_n):
+        for k,G in {'R_0_P':G_p,'R_0_N':G_n}.items():#, 'R_k_P':G_k_p, 'R_k_N':G_k_n}.items():
+            print(f'\n{k}:')
             scores = {}
             scores['num_nodes'] = G.number_of_nodes()
             scores['num_edges'] = G.number_of_edges()
@@ -236,13 +237,13 @@ class RegulatoryKB():
             scores['avg_clustering'] = nx.average_clustering(G.to_undirected())
             
             # Path-based (if connected)
-            if nx.is_weakly_connected(G):
-                UG = G.to_undirected()
-                scores['avg_path_length'] = nx.average_shortest_path_length(UG)
-                scores['diameter'] = nx.diameter(UG)
-            else:
-                scores['avg_path_length'] = None
-                scores['diameter'] = None
+            #if nx.is_weakly_connected(G):
+            #    UG = G.to_undirected()
+            #    scores['avg_path_length'] = nx.average_shortest_path_length(UG)
+            #    scores['diameter'] = nx.diameter(UG)
+            #else:
+            #    scores['avg_path_length'] = None
+            #    scores['diameter'] = None
             
             # Assortativity
             scores['degree_assortativity'] = nx.degree_assortativity_coefficient(G)
@@ -261,7 +262,6 @@ class RegulatoryKB():
             ''' Print results '''
             for k, v in scores.items():
                 print(f"{k}: {v}")
-            print('\n')
 
 
 
