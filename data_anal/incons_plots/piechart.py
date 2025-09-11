@@ -101,7 +101,6 @@ if not os.path.exists(incons_dict_path):
         torch.cuda.empty_cache()
 
     json.dump(incons_dict, open(incons_dict_path, 'w'), indent=4)
-    exit()
 
 else:
     incons_dict = json.load(open(incons_dict_path,'r'))

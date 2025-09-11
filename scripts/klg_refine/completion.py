@@ -7,6 +7,7 @@ import gc
 from egoal.reasoner import RegulatoryKB
 
 seed = 42
+model_name = 'test'
 device = 'cuda'
 
 np.random.seed(seed)
@@ -71,6 +72,7 @@ for p_incompl in [0., .05, .1, .2, .3, .4, .5, .7, .9]:
                     epochs= 5000,
                     lr= 1e-3,
                     verbose= False)
+    reasoner_train.save(f'scripts/klg_refine/kb/restored_{p_incompl}_{model_name}.npz')
 
     Omega = torch.any((torch.clamp(X.T @ Y.float(), -1,1)!=0), axis=1)
 

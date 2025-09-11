@@ -220,6 +220,7 @@ def abduce(X_unlabel: torch.Tensor,
                         lr= refine_lr,
                         approx= 'tanh',
                         verbose= verbose)
+        reasoner.save(f'models/ABL_{t}.npz' if model_save_pth==None else model_save_pth+f'_ABL_{t}.npz')
 
         if log_file != '':
             with open(log_file, 'a') as log:

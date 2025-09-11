@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from scipy.sparse import save_npz, load_npz
+from scipy.sparse import coo_matrix, save_npz, load_npz
 import pandas as pd
 import time
 from sklearn.metrics import f1_score
@@ -191,6 +191,8 @@ class RegulatoryKB():
             self.KB_P = torch.clamp(self.KB, 0,1)
             self.KB_N = torch.clamp(-self.KB, 0,1)
             self.Regu_0 = torch.clamp(torch.round(KB_opt), -1,1)
+            self.Regu_P_0 = torch.clamp(torch.round(KB_opt), 0,1)
+            self.Regu_N_0 = torch.clamp(torch.round(-KB_opt), 0,1)
 
         else:
             KB_P_opt, KB_N_opt, _ = self.sparse_opt(Y = data,
@@ -215,53 +217,110 @@ class RegulatoryKB():
             self.Regu_N_0 = torch.clamp(torch.round(exp_soft(KB_N_opt, t0)), 0,1)
 
 
+    def save(self, path: str):
+        coo_R0_P = coo_matrix(self.Regu_P_0.cpu().numpy())
+        coo_R0_N = coo_matrix(self.Regu_N_0.cpu().numpy())
+        coo_Rk_P = coo_matrix(self.KB_P.cpu().numpy())
+        coo_Rk_N = coo_matrix(self.KB_N.cpu().numpy())
+        coo_KB =   coo_matrix(self.KB.cpu().numpy())
+
+        np.savez_compressed(path, 
+                    data1=  coo_R0_P.data,
+                    row1=   coo_R0_P.row,
+                    col1=   coo_R0_P.col,
+                    shape1= coo_R0_P.shape,
+                    data2=  coo_R0_N.data,
+                    row2=   coo_R0_N.row,
+                    col2=   coo_R0_N.col,
+                    shape2= coo_R0_N.shape,
+                    data3=  coo_Rk_P.data,
+                    row3=   coo_Rk_P.row,
+                    col3=   coo_Rk_P.col,
+                    shape3= coo_Rk_P.shape,
+                    data4=  coo_Rk_N.data,
+                    row4=   coo_Rk_N.row,
+                    col4=   coo_Rk_N.col,
+                    shape4= coo_Rk_N.shape,
+                    data5=  coo_KB.data,
+                    row5=   coo_KB.row,
+                    col5=   coo_KB.col,
+                    shape5= coo_KB.shape,)
+
+
+    def load(self, path: str):
+        loaded_data = np.load(path)
+
+        coo_R0_P = coo_matrix((loaded_data['data1'],
+                               (loaded_data['row1'], loaded_data['col1'])),
+                               shape=tuple(loaded_data['shape1']))
+        coo_R0_N = coo_matrix((loaded_data['data2'],
+                               (loaded_data['row2'], loaded_data['col2'])),
+                               shape=tuple(loaded_data['shape2']))
+        coo_Rk_P = coo_matrix((loaded_data['data3'],
+                               (loaded_data['row3'], loaded_data['col3'])),
+                               shape=tuple(loaded_data['shape3']))
+        coo_Rk_N = coo_matrix((loaded_data['data4'],
+                               (loaded_data['row4'], loaded_data['col4'])),
+                               shape=tuple(loaded_data['shape4']))
+        coo_KB =   coo_matrix((loaded_data['data5'],
+                               (loaded_data['row5'], loaded_data['col5'])),
+                               shape=tuple(loaded_data['shape5']))
+
+        self.Regu_P_0 = torch.tensor(coo_R0_P.toarray()).to(self.device)
+        self.Regu_N_0 = torch.tensor(coo_R0_N.toarray()).to(self.device)
+        self.KB_P = torch.tensor(coo_Rk_P.toarray()).to(self.device)
+        self.KB_N = torch.tensor(coo_Rk_N.toarray()).to(self.device)
+        self.KB = torch.tensor(coo_KB.toarray()).to(self.device)
+
+
     def eval(self):
-        G_p = nx.from_numpy_array(self.Regu_P_0.cpu().numpy(), create_using=nx.DiGraph)
-        G_n = nx.from_numpy_array(self.Regu_N_0.cpu().numpy(), create_using=nx.DiGraph)
+        G = nx.from_numpy_array(\
+                (torch.abs(self.Regu_P_0)+torch.abs(self.Regu_N_0))\
+                .cpu().numpy(), create_using=nx.DiGraph)
+        #G_n = nx.from_numpy_array(self.Regu_N_0.cpu().numpy(), create_using=nx.DiGraph)
         #G_k_p = nx.from_numpy_array(self.KB_P.cpu().numpy(), create_using=nx.DiGraph)
         #G_k_n = nx.from_numpy_array(self.KB_N.cpu().numpy(), create_using=nx.DiGraph)
 
         # Basic stats
-        for k,G in {'R_0_P':G_p,'R_0_N':G_n}.items():#, 'R_k_P':G_k_p, 'R_k_N':G_k_n}.items():
-            print(f'\n{k}:')
-            scores = {}
-            scores['num_nodes'] = G.number_of_nodes()
-            scores['num_edges'] = G.number_of_edges()
-            scores['density'] = nx.density(G)
-            
-            # Degree-related
-            scores['avg_in_degree'] = sum(dict(G.in_degree()).values()) / G.number_of_nodes()
-            scores['avg_out_degree'] = sum(dict(G.out_degree()).values()) / G.number_of_nodes()
-            
-            # Clustering (need undirected projection)
-            scores['avg_clustering'] = nx.average_clustering(G.to_undirected())
-            
-            # Path-based (if connected)
-            #if nx.is_weakly_connected(G):
-            #    UG = G.to_undirected()
-            #    scores['avg_path_length'] = nx.average_shortest_path_length(UG)
-            #    scores['diameter'] = nx.diameter(UG)
-            #else:
-            #    scores['avg_path_length'] = None
-            #    scores['diameter'] = None
-            
-            # Assortativity
-            scores['degree_assortativity'] = nx.degree_assortativity_coefficient(G)
-            
-            # Modularity (via greedy community detection)
-            from networkx.algorithms.community import greedy_modularity_communities
-            communities = list(greedy_modularity_communities(G.to_undirected()))
-            scores['modularity'] = nx.algorithms.community.quality.modularity(G.to_undirected(), communities)
-            
-            # Centrality
-            bet = nx.betweenness_centrality(G)
-            clo = nx.closeness_centrality(G)
-            scores['avg_betweenness'] = np.mean(list(bet.values()))
-            scores['avg_closeness'] = np.mean(list(clo.values()))
-            
-            ''' Print results '''
-            for k, v in scores.items():
-                print(f"{k}: {v}")
+        #for k,G in {'R_0_P':G_p,'R_0_N':G_n}.items():#, 'R_k_P':G_k_p, 'R_k_N':G_k_n}.items():
+        scores = {}
+        scores['num_nodes'] = G.number_of_nodes()
+        scores['num_edges'] = G.number_of_edges()
+        scores['density'] = nx.density(G)
+        
+        # Degree-related
+        scores['avg_degree'] = sum(dict(G.in_degree()).values()) / G.number_of_nodes()
+        #scores['avg_out_degree'] = sum(dict(G.out_degree()).values()) / G.number_of_nodes()
+        
+        # Clustering (need undirected projection)
+        scores['avg_clustering'] = nx.average_clustering(G.to_undirected())
+        
+        # Path-based (if connected)
+        #if nx.is_weakly_connected(G):
+        #    UG = G.to_undirected()
+        #    scores['avg_path_length'] = nx.average_shortest_path_length(UG)
+        #    scores['diameter'] = nx.diameter(UG)
+        #else:
+        #    scores['avg_path_length'] = None
+        #    scores['diameter'] = None
+        
+        # Assortativity
+        scores['degree_assortativity'] = nx.degree_assortativity_coefficient(G)
+        
+        # Modularity (via greedy community detection)
+        from networkx.algorithms.community import greedy_modularity_communities
+        communities = list(greedy_modularity_communities(G.to_undirected()))
+        scores['modularity'] = nx.algorithms.community.quality.modularity(G.to_undirected(), communities)
+        
+        # Centrality
+        bet = nx.betweenness_centrality(G)
+        clo = nx.closeness_centrality(G)
+        scores['avg_betweenness'] = np.mean(list(bet.values()))
+        scores['avg_closeness'] = np.mean(list(clo.values()))
+        
+        ''' Print results '''
+        for k, v in scores.items():
+            print(f"{k}: {v:.4f if type(v)==float else v}")
 
 
 
