@@ -35,8 +35,8 @@ if not os.path.exists(incons_dict_path):
     for data_name, kb_name in combs:
         print(f'processing {data_name} data + {kb_name} kb')
 
-        if os.path.exists(f'data_anal/incons_plots/data/{data_name}_Corr_P.npy')\
-            and os.path.exists(f'data_anal/incons_plots/data/{data_name}_Corr_N.npy'):
+        if os.path.exists(f'data_anal/incons_plots/data/{data_name}_Corr_P.npz')\
+            and os.path.exists(f'data_anal/incons_plots/data/{data_name}_Corr_N.npz'):
             corr_P = torch.tensor(load_npz(f'data_anal/incons_plots/data/{data_name}_Corr_P.npz').toarray()).to(device)
             corr_N = torch.tensor(load_npz(f'data_anal/incons_plots/data/{data_name}_Corr_N.npz').toarray()).to(device)
         else:
@@ -83,7 +83,10 @@ if not os.path.exists(incons_dict_path):
             label_idx = np.array(label_set['precise1k_idx']!=-1)
             KB_true = KB_true[:,label_idx]
 
-        row_idx = torch.sum(corr_P+corr_N, axis=1)>0
+        if kb_name != 'ecocyc':
+            row_idx = torch.sum(corr_P+corr_N, dim=1)>0
+        else:
+            row_idx = (torch.sum(corr_P+corr_N, dim=1)>0) & (torch.sum(KB_true, dim=1)>0)
         corr_P, corr_N, KB_true = corr_P[row_idx], corr_N[row_idx], KB_true[row_idx]
         
         n_consit = int(torch.sum(corr_P[KB_true>0]) + torch.sum(corr_N[KB_true<0]))

@@ -4,7 +4,7 @@ from scipy.sparse import coo_matrix, save_npz
 
 data_name = 'norman'
 
-go_thrs = .2 #TODO
+go_thrs = .2 #NOTE .27 for GO only
 
 
 df_go= pd.read_csv(f'rules/human/{data_name}_go.csv')
