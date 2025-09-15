@@ -113,6 +113,10 @@ def abduce(X_unlabel: torch.Tensor,
                             neg_trn_pth= neg_trn_pth,
                             output_idx_list= output_idx_list,
                             device=device)#, T=4)
+    #reasoner.eval()
+    #reasoner.load('models/GNN_norman_sep11_test_ABL_0.npz')
+    #reasoner.eval()
+    #exit()
     reasoner.closure_(T=closure, closure_type=closure_type)
 
     if base_learner_type == 'GNN':
@@ -213,6 +217,8 @@ def abduce(X_unlabel: torch.Tensor,
         print(f'integrated f1 {f1:.4f}')
 
         ' knowledge refine '
+        print('\nKB before refine:')
+        reasoner.eval()
         reasoner.refine(X= X_unlabel,
                         Y= Y_modified,
                         k= closure,
@@ -220,6 +226,8 @@ def abduce(X_unlabel: torch.Tensor,
                         lr= refine_lr,
                         approx= 'tanh',
                         verbose= verbose)
+        print('\nKB after refine:')
+        reasoner.eval()
         reasoner.save(f'models/ABL_{t}.npz' if model_save_pth==None else model_save_pth+f'_ABL_{t}.npz')
 
         if log_file != '':

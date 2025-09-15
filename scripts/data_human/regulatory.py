@@ -2,14 +2,14 @@ import pandas as pd
 import numpy as np
 from scipy.sparse import coo_matrix, save_npz
 
-data_name = 'dixit'
+data_name = 'norman'
 
 go_thrs = .2 #TODO
 
 
 df_go= pd.read_csv(f'rules/human/{data_name}_go.csv')
 df_genes = pd.read_csv(f'dataset/human/{data_name}_gene_ann.csv', index_col=0)
-df_go = df_go[df_go['importance'] >= go_thrs]
+df_go = df_go[(df_go['importance'] >= go_thrs) & (df_go['source']!=df_go['target'])]
 
 #df_regu = pd.read_csv('rules/human/regulatory_dorothea.csv', index_col=0)
 #df_regu.rename({'tf':'source'}, axis=1, inplace=True)

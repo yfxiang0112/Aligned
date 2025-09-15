@@ -22,7 +22,7 @@ if __name__ == '__main__':
     model_type = args.model_type
     model_name = f'{model_type}_{data_name}_{args.model_name}'
     seed = args.seed
-    device = torch.device(args.seed if torch.cuda.is_available() else "cpu")
+    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     print(model_name)
     print(log_file)
     print(f'random seed: {seed}')

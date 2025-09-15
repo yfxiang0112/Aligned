@@ -57,7 +57,7 @@ class RegulatoryKB():
             self.Regu_P_0 = self.Regu_P_0.to(self.device)
             self.Regu_N_0 = self.Regu_N_0.to(self.device) 
 
-        self.Regu_0 = torch.clamp(torch.abs(self.Regu_P_0)+torch.abs(self.Regu_N_0), 0,1)
+        self.Regu_0 = torch.clamp(torch.abs(self.Regu_P_0)-torch.abs(self.Regu_N_0), -1,1)
 
         #' transitive closure '
         #self.KB_P, self.KB_N, self.T = self.closure(Regu_P, Regu_N, T=T)
@@ -215,6 +215,8 @@ class RegulatoryKB():
 
             self.Regu_P_0 = torch.clamp(torch.round(exp_soft(KB_P_opt, t0)), 0,1)
             self.Regu_N_0 = torch.clamp(torch.round(exp_soft(KB_N_opt, t0)), 0,1)
+            self.Regu_0 = torch.clamp(torch.round(torch.where(KB_P_opt-KB_N_opt >= 0,
+                exp_soft(KB_P_opt-KB_N_opt, t0), -exp_soft(KB_N_opt-KB_P_opt, t0))), -1,1)
 
 
     def save(self, path: str):
@@ -275,11 +277,9 @@ class RegulatoryKB():
 
     def eval(self):
         G = nx.from_numpy_array(\
-                (torch.abs(self.Regu_P_0)+torch.abs(self.Regu_N_0))\
+                torch.clamp(torch.abs(self.Regu_P_0)+torch.abs(self.Regu_N_0), 0,1)\
                 .cpu().numpy(), create_using=nx.DiGraph)
-        #G_n = nx.from_numpy_array(self.Regu_N_0.cpu().numpy(), create_using=nx.DiGraph)
-        #G_k_p = nx.from_numpy_array(self.KB_P.cpu().numpy(), create_using=nx.DiGraph)
-        #G_k_n = nx.from_numpy_array(self.KB_N.cpu().numpy(), create_using=nx.DiGraph)
+        #G = nx.from_numpy_array(self.Regu_0.cpu().numpy(), create_using=nx.DiGraph)
 
         # Basic stats
         #for k,G in {'R_0_P':G_p,'R_0_N':G_n}.items():#, 'R_k_P':G_k_p, 'R_k_N':G_k_n}.items():
@@ -320,7 +320,7 @@ class RegulatoryKB():
         
         ''' Print results '''
         for k, v in scores.items():
-            print(f"{k}: {v:.4f if type(v)==float else v}")
+            print(f"{k}: {v:.4f}")
 
 
 
@@ -386,6 +386,7 @@ class RegulatoryKB():
                    label_set=None,
                    lr=1e-3,
                    epochs=1000,
+                   tol=1e-3,
                    device=torch.device('cpu'),
                    verbose=False):
         """
@@ -427,7 +428,8 @@ class RegulatoryKB():
             loss1 = torch.norm((Xk[:,label_set] - Y)[Omega], p='fro') ** 2
 
             loss2 = torch.norm(exp_soft(X_P, t0) - X0_P, p=1) + torch.norm(exp_soft(X_N, t0) - X0_N, p=1)
-            loss = loss1 + C * loss2
+            #loss3 = torch.norm(exp_soft(X_P, t0) - X0_P, p='nuc') + torch.norm(exp_soft(X_N, t0) - X0_N, p='nuc')
+            loss = loss1 + C * loss2 #+ C * loss3
 
             
             # Backpropagate
@@ -440,6 +442,10 @@ class RegulatoryKB():
             
             losses.append(loss.item())
             
+            #if epoch > 0 and abs(losses[-1] - losses[-2]) < tol:
+            #    if verbose:
+            #        print(f"Converged at iteration {epoch}")
+            #    break
             
             if verbose and (epoch % 20 == 0 or epoch == epochs - 1):
                 loss_round = torch.count_nonzero((torch.round(Xk[:,label_set])-Y)[Omega])
@@ -454,6 +460,7 @@ class RegulatoryKB():
                 
                 print(f"Iteration {epoch}: Loss = {loss.item():.6f}")
                 print(f'|Xk-Y|_F: {loss1.item(): .6f}, |X-X0|: {loss2.item(): .6f}')
+                #print(f'nuc: {loss3.item():.6f}')
                 print(f'rounded |X_k-Y|_0 = {loss_round}, f1 = {f1: .6f}, approx slack: {torch.count_nonzero(Xk_ - Xk)}')
 
         return X_P.detach(), X_N.detach(), losses

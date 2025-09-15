@@ -6,21 +6,21 @@ import gc
 
 from egoal.reasoner import RegulatoryKB
 
-seed = 42
-model_name = 'test'
-device = 'cuda'
+seed = 6666
+model_name = 'sep13'
+device = 'cuda:4'
 
 np.random.seed(seed)
 torch.manual_seed(seed)
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(seed)
 
-regu_p_pth = 'rules/human/norman_KB_P.npz'
-regu_n_pth = 'rules/human/norman_KB_N.npz'
+regu_p_pth = 'scripts/klg_refine/omnipath_P.npz'
+regu_n_pth = 'scripts/klg_refine/omnipath_N.npz'
 #regu_p_pth = 'rules/regu_pos.npz'
 #regu_n_pth = 'rules/regu_neg.npz'
-incomp_p_pth = 'scripts/klg_refine/KB_P.npz'
-incomp_n_pth = 'scripts/klg_refine/KB_N.npz'
+incomp_p_pth = 'scripts/klg_refine/kb/incomp_P.npz'
+incomp_n_pth = 'scripts/klg_refine/kb/incomp_N.npz'
 
 reasoner_true = RegulatoryKB(
         pos_trn_pth=regu_p_pth,
@@ -69,7 +69,7 @@ for p_incompl in [0., .05, .1, .2, .3, .4, .5, .7, .9]:
                     k= 5,
                     t= 1,
                     t0= 100,
-                    epochs= 5000,
+                    epochs= 3000,
                     lr= 1e-3,
                     verbose= False)
     reasoner_train.save(f'scripts/klg_refine/kb/restored_{p_incompl}_{model_name}.npz')
@@ -95,12 +95,14 @@ for p_incompl in [0., .05, .1, .2, .3, .4, .5, .7, .9]:
     f1_R0P = f1_score(true_R0P_flat, pred_R0P_flat, average='macro')
     f1_R0N = f1_score(true_R0N_flat, pred_R0N_flat, average='macro')
     f1_R0 = f1_score(true_R0_flat, pred_R0_flat, average='macro')
-    acc_R0 = np.sum(true_R0_flat == pred_R0_flat) / len(true_R0_flat)
+    idx_nonzero = (true_R0_flat != 0) | (pred_R0_flat != 0)
+    acc_R0 = np.sum(true_R0_flat[idx_nonzero] == pred_R0_flat[idx_nonzero]) / len(true_R0_flat[idx_nonzero])
 
     f1_RP = f1_score(true_RP_flat, pred_RP_flat, average='macro')
     f1_RN = f1_score(true_RN_flat, pred_RN_flat, average='macro')
     f1_R = f1_score(true_R_flat, pred_R_flat, average='macro')
-    acc_R = np.sum(true_R_flat == pred_R_flat) / len(true_R_flat)
+    idx_nonzero = (true_R_flat != 0) | (pred_R_flat != 0)
+    acc_R = np.sum(true_R_flat[idx_nonzero] == pred_R_flat[idx_nonzero]) / len(true_R_flat[idx_nonzero])
 
     print(f'--- KB recovery: incompleteness p = {p_incompl} ---')
     print(f'F1 on initial KB, pos: {f1_R0P: .5f}, neg: {f1_R0N: .5f}, combined: {f1_R0: .5f}, acc: {acc_R0: .5f}')
