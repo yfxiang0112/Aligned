@@ -14,9 +14,12 @@ def weighted_mean(f1_data,f1_kb,w):
     return (w * (f1_data ** -p_integrate)\
             + (1.-w) * (f1_kb ** -p_integrate)) ** (-1/p_integrate)
 
-test_metadata = pd.read_csv('dataset/human/norman_test_set.csv', index_col=0)
+data_name = 'dixit'
+model_name = 'additive'
 
-directory = 'data_anal/pert_benchmark/scgpt'
+test_metadata = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
+
+directory = f'data_anal/pert_benchmark/{model_name}_{data_name}'
 file_pattern = 'all_predictions*.json'
 log_files = glob.glob(os.path.join(directory, file_pattern))
 log_files.sort()  # Sort for consistent ordering
@@ -29,14 +32,16 @@ data_f1_lst, kb_f1_lst, bal_f1_lst = [],[],[]
 for file_idx, log_file in enumerate(log_files, 1):
     print(file_idx, log_file)
     pred_result = json.load(open(log_file, 'r'))
+
+    genome_size = len(list(pred_result.values())[0])
     
-    test_idx = np.load('dataset/human/norman_test_idx.npy')
-    Y_true = load_npz('dataset/human/norman_Y.npz').toarray()[test_idx]
-    X = load_npz('dataset/human/norman_X.npz').toarray()[test_idx]
+    test_idx = np.load(f'dataset/human/{data_name}_test_idx.npy')
+    Y_true = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()[test_idx]
+    X = load_npz(f'dataset/human/{data_name}_X.npz').toarray()[test_idx]
     
     indices = list(test_metadata.apply(lambda x: (x['data_start_idx'], x['data_end_idx+1']), axis=1))
     pert_keys = test_metadata['pert'].apply(lambda x: f'{eval(x)[0]}_{eval(x)[1]}' if 'ctrl' not in x else list(set(eval(x))-{'ctrl'})[0])
-    predictions = list(pert_keys.apply(lambda x: pred_result[x]))
+    predictions = list(pert_keys.apply(lambda x: pred_result[x] if x in pred_result else [0]*genome_size))
     
     
     # Find the maximum row index needed
@@ -58,7 +63,7 @@ for file_idx, log_file in enumerate(log_files, 1):
                 Y[row, :len(a_array)] = a_array
     
     ' eval MSE '
-    Y_true_con = load_npz('dataset/human/norman_Y_con.npz').toarray()[test_idx]
+    Y_true_con = load_npz(f'dataset/human/{data_name}_Y_con.npz').toarray()[test_idx]
     criterion = torch.nn.MSELoss(reduction='mean')
     print(f'MSE: {criterion(torch.tensor(Y), torch.tensor(Y_true_con))}')
     
@@ -77,7 +82,7 @@ for file_idx, log_file in enumerate(log_files, 1):
     
     ''' eval on KB deduction '''
     device = 'cuda'
-    KB = RegulatoryKB(pos_trn_pth=f'rules/human/norman_KB_P.npz', neg_trn_pth=f'rules/human/norman_KB_N.npz', device=device)
+    KB = RegulatoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz', neg_trn_pth=f'rules/human/{data_name}_KB_N.npz', device=device)
     KB.closure_(T=5, closure_type='weighted')
     Y_deduction = KB.deduce(torch.tensor(X).float().to(device)).to('cpu').numpy()
     
