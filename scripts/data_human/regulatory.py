@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy.sparse import coo_matrix, save_npz
 
-data_name = 'norman'
+data_name = 'dixit'
 
 go_thrs = .2 #NOTE .27 for GO only
 
@@ -57,3 +57,10 @@ print(f'shape {KB_P.shape}')
 print(f'#edges: pos {np.count_nonzero(KB_P)}, neg {np.count_nonzero(KB_N)}')
 print(f'#out nodes: pos {np.count_nonzero(np.sum(KB_P,axis=1))}, neg {np.count_nonzero(np.sum(KB_N,axis=1))}')
 print(f'>5% targets: pos {np.count_nonzero(np.sum(KB_P,axis=1)>(.05*KB_P.shape[1]))}, neg {np.count_nonzero(np.sum(KB_N,axis=1)>(.05*KB_N.shape[1]))}')
+
+#df_kb = pd.concat([df_regu_p[['source', 'target']],
+#                   df_regu_n[['source', 'target']],
+#                   df_go.loc[df_go['importance']>go_thrs, ['source','target']]]).drop_duplicates()
+#df_kb['importance']=[1.]*len(df_kb)
+#print(df_kb)
+#df_kb.to_csv(f'{data_name}_kb.csv')

@@ -15,6 +15,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', dest= 'seed', action= 'store', default= 42, type=int)
     parser.add_argument('--device', dest= 'device', action= 'store', default= 'cuda', type=str)
     parser.add_argument('--trainset_remove', dest= 'p_train', action= 'store', default= 1., type=float)
+    parser.add_argument('--random_split', dest= 'random_split', action= 'store', default= False, type=bool)
     args = parser.parse_args()
 
     data_name = args.data_name
@@ -34,10 +35,18 @@ if __name__ == '__main__':
     Y_train = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray(), dtype = int)
 
     #test_idx = np.random.choice([True, False], size=len(X_train), p=[.2, .8])
-    p_train = args.p_train
     test_idx = np.zeros(shape=len(X_train), dtype=bool)
-    test_idx[np.load(f'dataset/human/{data_name}_test_idx.npy')] = True
+    if not args.random_split:
+        test_idx[np.load(f'dataset/human/{data_name}_test_idx.npy')] = True
+    else:
+        metadata = pd.read_csv(f'dataset/human/{data_name}_metadata.csv',index_col=0)
+        test_pert = np.random.choice([True, False], size=len(metadata), p=[.2, .8])
+        test_data_idx = sum(metadata[(test_pert)\
+                & (metadata['pert'].apply(lambda x: len(eval(x))>1))]\
+                .apply(lambda x: list(range(x['data_start_idx'],x['data_end_idx+1'])), axis=1), [])
+        test_idx[test_data_idx] = True
 
+    p_train = args.p_train
     train_idx = np.random.choice([True, False], size=len(X_train)-np.count_nonzero(test_idx), p=[p_train, 1-p_train])
 
     X_test = X_train[test_idx]
