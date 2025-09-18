@@ -166,19 +166,25 @@ def get_gene_sets(gene_list,
 if __name__ == "__main__":
     # Load or build your network G
     data_name = 'norman'
+    load_model_pth = 'models/GNN_norman_Sep15_1_ABL_0.npz'
+    #database_lst = ['Reactome_2022']
+    database_lst = ['KEGG_2021_Human']
+
     ann = pd.read_csv(f'dataset/human/{data_name}_gene_ann.csv')
     genes = list(ann['gene_name'])
     
     KB = RegulatoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz',
                   neg_trn_pth=f'rules/human/{data_name}_KB_N.npz',
                   device='cpu')
-    #KB.load('models/GNN_norman_Sep15_2_ABL_0.npz')
+    if load_model_pth != None:
+        KB.load(load_model_pth)
 
     adj = torch.clamp(torch.abs(KB.Regu_P_0) + torch.abs(KB.Regu_N_0), 0,1).numpy()
     G = nx.from_numpy_array(adj, create_using=nx.DiGraph)
     G = nx.relabel_nodes(G, dict(enumerate(genes)))
 
-    gene_sets = get_gene_sets(genes)
+    gene_sets = get_gene_sets(genes,
+                              database_lst = database_lst)
     print('--- collected gene sets ---')
 
 
@@ -189,7 +195,9 @@ if __name__ == "__main__":
         print("  AUROC_true:", metrics['AUROC_true'])
         print("  AUPRC_true:", metrics['AUPRC_true'])
         # Compute p‐value: fraction of null ≥ true
-        p_auroc = sum(1 for x in metrics['null_AUROC'] if x >= metrics['AUROC_true']) / len(metrics['null_AUROC'])
-        print("  p-value (AUROC):", p_auroc)
+        #p_auroc = sum(1 for x in metrics['null_AUROC'] if x >= metrics['AUROC_true']) / len(metrics['null_AUROC'])
+        #print("  p-value (AUROC):", p_auroc)
         print()
+
+    json.dump(res, open(f'scripts/net_eval/{load_model_pth.split("/")[-1] if load_model_pth!= None else f"orig_{data_name}"}.json', 'w'), indent=4)
 
