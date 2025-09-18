@@ -153,6 +153,7 @@ def save_results_to_file(analysis, output_file="f1_analysis_results.txt"):
 
 # Main execution
 if __name__ == "__main__":
+    final_df = []
     for data_name in ['norman', 'dixit', 'adamson', 'ecoli']:
         df_lst = []
         for model_name in ['GNN', 'MLP']:
@@ -182,30 +183,30 @@ if __name__ == "__main__":
             score_intg = {}
             for i,k in enumerate(keys):
 
-                data_con = .5*(max(f1_scores[f'f1 on test_{i*2}']) + min(f1_scores[f'f1 on test_{i*2}']))
-                kb_con = .5*(max(f1_scores[f'f1 on kb_{i*2}']) + min(f1_scores[f'f1 on kb_{i*2}']))
-                data_tol = .5*(max(f1_scores[f'f1 on test_{i*2}']) - min(f1_scores[f'f1 on test_{i*2}']))
-                kb_tol = .5*(max(f1_scores[f'f1 on kb_{i*2}']) - min(f1_scores[f'f1 on kb_{i*2}']))
+                data_mean = .5*(max(f1_scores[f'f1 on test_{i*2}']) + min(f1_scores[f'f1 on test_{i*2}']))
+                kb_mean = .5*(max(f1_scores[f'f1 on kb_{i*2}']) + min(f1_scores[f'f1 on kb_{i*2}']))
+                data_stde = .5*(max(f1_scores[f'f1 on test_{i*2}']) - min(f1_scores[f'f1 on test_{i*2}']))
+                kb_stde = .5*(max(f1_scores[f'f1 on kb_{i*2}']) - min(f1_scores[f'f1 on kb_{i*2}']))
 
                 balanced = [weighted_mean(d,k, w_hsa) for d,k in zip(f1_scores[f'f1 on test_{i*2}'], f1_scores[f'f1 on kb_{i*2}'])]
-                bal_con = .5*(max(balanced)+min(balanced))
-                bal_tol = .5*(max(balanced)-min(balanced))
-                score_neur[k] = {'data consistency':f'{data_con:.4f} +- {data_tol:.4f}',\
-                        'kb consistency': f'{kb_con:.4f} +- {kb_tol:.4f}',\
-                        'balanced consistency': f'{bal_con:.4f} +- {bal_tol:.4f}'}
+                bal_mean = .5*(max(balanced)+min(balanced))
+                bal_stde = .5*(max(balanced)-min(balanced))
+                score_neur[k] = {'data_f1_mean': data_mean, 'data_f1_stde': data_stde,\
+                        'kb_f1_mean': kb_mean, 'kb_f1_stde': kb_stde,\
+                        'bal_f1_mean': bal_mean, 'bal_f1_stde': bal_stde}
                 #print(f'{k} neural scores:\ndata cons: {f1_scores[f"f1 on test_{i*2}"]},\nkb cons:   {f1_scores[f"f1 on kb_{i*2}"]}')
 
-                data_con = .5*(max(f1_scores[f'f1 on test_{i*2+1}']) + min(f1_scores[f'f1 on test_{i*2+1}']))
-                kb_con = .5*(max(f1_scores[f'f1 on kb_{i*2+1}']) + min(f1_scores[f'f1 on kb_{i*2+1}']))
-                data_tol = .5*(max(f1_scores[f'f1 on test_{i*2+1}']) - min(f1_scores[f'f1 on test_{i*2+1}']))
-                kb_tol = .5*(max(f1_scores[f'f1 on kb_{i*2+1}']) - min(f1_scores[f'f1 on kb_{i*2+1}']))
+                data_mean = .5*(max(f1_scores[f'f1 on test_{i*2+1}']) + min(f1_scores[f'f1 on test_{i*2+1}']))
+                kb_mean = .5*(max(f1_scores[f'f1 on kb_{i*2+1}']) + min(f1_scores[f'f1 on kb_{i*2+1}']))
+                data_stde = .5*(max(f1_scores[f'f1 on test_{i*2+1}']) - min(f1_scores[f'f1 on test_{i*2+1}']))
+                kb_stde = .5*(max(f1_scores[f'f1 on kb_{i*2+1}']) - min(f1_scores[f'f1 on kb_{i*2+1}']))
 
                 balanced = [weighted_mean(d,k, w_hsa) for d,k in zip(f1_scores[f'f1 on test_{i*2+1}'], f1_scores[f'f1 on kb_{i*2+1}'])]
-                bal_con = .5*(max(balanced)+min(balanced))
-                bal_tol = .5*(max(balanced)-min(balanced))
-                score_intg[k] = {'data consistency':f'{data_con:.4f} +- {data_tol:.4f}',\
-                        'kb consistency': f'{kb_con:.4f} +- {kb_tol:.4f}',\
-                        'balanced consistency': f'{bal_con:.4f} +- {bal_tol:.4f}'}
+                bal_mean = .5*(max(balanced)+min(balanced))
+                bal_stde = .5*(max(balanced)-min(balanced))
+                score_intg[k] = {'data_f1_mean': data_mean, 'data_f1_stde': data_stde,\
+                        'kb_f1_mean': kb_mean, 'kb_f1_stde': kb_stde,\
+                        'bal_f1_mean': bal_mean, 'bal_f1_stde': bal_stde}
                 #print(f'{k} integrated scores:\ndata cons: {f1_scores[f"f1 on test_{i*2+1}"]},\nkb cons:   {f1_scores[f"f1 on kb_{i*2+1}"]}\n')
             
             df_neur = pd.DataFrame(score_neur).transpose().reset_index()
@@ -217,7 +218,13 @@ if __name__ == "__main__":
             df_intg.insert(1, 'score', ['integrated']*len(df_intg))
             df_intg.insert(1, 'model', [model_name]*len(df_intg))
 
+            df_neur.insert(0, 'data_name', [data_name]*len(df_neur))
+            df_intg.insert(0, 'data_name', [data_name]*len(df_intg))
+
             df_lst.append(pd.concat([df_neur, df_intg]))
-        df = pd.concat(df_lst).reset_index(drop=True)
-        print(f'{data_name}:\n{df}')
-        df.to_csv(f'data_anal/experiment_results/{data_name}_results.csv')
+        df = pd.concat(df_lst)
+        final_df.append(df)
+
+    final_df = pd.concat(final_df, axis=0).reset_index(drop=True)
+    print(final_df)
+    final_df.to_csv(f'data_anal/experiment_results/results.csv')

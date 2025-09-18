@@ -16,8 +16,9 @@ def weighted_mean(f1_data, f1_kb, w):
             + (1.-w) * (f1_kb ** -p_integrate)) ** (-1/p_integrate)
 
 
-data_name = 'dixit'
-model_name = 'gears'
+#data_name = 'dixit'
+#model_name = 'gears'
+df_lst = []
 for data_name in ['norman', 'dixit', 'adamson']:
     mse_mean_lst, data_f1_mean_lst, kb_f1_mean_lst, bal_f1_mean_lst = [], [], [], []
     mse_stde_lst, data_f1_stde_lst, kb_f1_stde_lst, bal_f1_stde_lst = [], [], [], []
@@ -39,7 +40,8 @@ for data_name in ['norman', 'dixit', 'adamson']:
         X).float().to(device)).to('cpu').numpy()
         
         
-    for model_name in ['additive', 'gears', 'scgpt', 'scfoundation']:
+    model_lst =['additive', 'gears', 'scgpt', 'scfoundation'] 
+    for model_name in model_lst:
 
         directory = f'data_anal/pert_benchmark/{model_name}_{data_name}'
         file_pattern = 'all_predictions*.json'
@@ -103,7 +105,7 @@ for data_name in ['norman', 'dixit', 'adamson']:
         
             ''' eval on KB deduction '''
             f1_kb = f1_score(Y_deduction.flatten(), Y.flatten(), average="macro")
-            f1_bal = weighted_mean(f1_data, f1_kb, .3233)
+            f1_bal = weighted_mean(f1_data, f1_kb, .5)
             #print(f'KB f1: {f1_kb}, balanced f1: {f1_bal}')
         
             data_f1_lst.append(f1_data)
@@ -130,7 +132,8 @@ for data_name in ['norman', 'dixit', 'adamson']:
         print( f'{model_name}, {data_name} data, balanced F1: {bal_f1_mean: .4f} ± {bal_f1_stde: .4f}')
 
     res_df = pd.DataFrame({
-        'index': ['additive', 'gears', 'scgpt', 'scfoundation'],
+        'data_name': [data_name]*len(mse_mean_lst),
+        'model': model_lst,
         'mse_mean': mse_mean_lst,
         'mse_stde': mse_stde_lst,
         'data_f1_mean': data_f1_mean_lst,
@@ -139,5 +142,8 @@ for data_name in ['norman', 'dixit', 'adamson']:
         'kb_f1_stde': kb_f1_stde_lst,
         'bal_f1_mean': bal_f1_mean_lst,
         'bal_f1_stde': bal_f1_stde_lst,
-        }).set_index('index')
-    res_df.to_csv(f'data_anal/pert_benchmark/{data_name}_results.csv', index=True)
+        }).set_index(['data_name', 'model'])
+    #res_df.to_csv(f'data_anal/pert_benchmark/{data_name}_results.csv', index=True)
+    df_lst.append(res_df)
+final_df = pd.concat(df_lst, axis=0)
+final_df.to_csv(f'data_anal/pert_benchmark/benchmark_results.csv', index=True)
