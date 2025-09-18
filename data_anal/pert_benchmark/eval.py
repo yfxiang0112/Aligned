@@ -16,8 +16,8 @@ def weighted_mean(f1_data, f1_kb, w):
             + (1.-w) * (f1_kb ** -p_integrate)) ** (-1/p_integrate)
 
 
-data_name = 'adamson'
-model_name = 'additive'
+data_name = 'dixit'
+model_name = 'gears'
 
 test_metadata = pd.read_csv(
     f'dataset/human/{data_name}_test_set.csv', index_col=0)
