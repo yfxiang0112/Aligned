@@ -92,7 +92,7 @@ def gene_set_recovery(G, gene_sets, all_genes=None, shuffle_num=100, alpha=0.85)
     all_genes: optional set/list of all genes to consider
     shuffle_num: number of null shuffles
     alpha: diffusion parameter
-    Returns: dict {set_name: { 'AUROC': , 'AUPRC': , 'null_AUROC': [], 'null_AUPRC': [] } }
+    Returns: dict {set_name: { 'AUROC': , 'AUPRC': }}
     """
     if all_genes is None:
         all_genes = set(G.nodes())
@@ -122,25 +122,25 @@ def gene_set_recovery(G, gene_sets, all_genes=None, shuffle_num=100, alpha=0.85)
         auprc_true = average_precision_score(y_true, y_score)
 
         # Null: shuffle seed sets to get null score distributions
-        null_aurocs = []
-        null_auprcs = []
-        shuffles = degree_matched_shuffle(G, genes_in_net, num_shuffles=shuffle_num)
-        for sc in shuffles:
-            y_score_sh = [sc.get(node, 0.0) for node in all_genes]
-            try:
-                auroc_sh = roc_auc_score(y_true, y_score_sh)
-                auprc_sh = average_precision_score(y_true, y_score_sh)
-            except ValueError:
-                # possibly all y_true are 0 or all 1; skip
-                continue
-            null_aurocs.append(auroc_sh)
-            null_auprcs.append(auprc_sh)
+        #null_aurocs = []
+        #null_auprcs = []
+        #shuffles = degree_matched_shuffle(G, genes_in_net, num_shuffles=shuffle_num)
+        #for sc in shuffles:
+        #    y_score_sh = [sc.get(node, 0.0) for node in all_genes]
+        #    try:
+        #        auroc_sh = roc_auc_score(y_true, y_score_sh)
+        #        auprc_sh = average_precision_score(y_true, y_score_sh)
+        #    except ValueError:
+        #        # possibly all y_true are 0 or all 1; skip
+        #        continue
+        #    null_aurocs.append(auroc_sh)
+        #    null_auprcs.append(auprc_sh)
 
         results[setname] = {
             'AUROC_true': auroc_true,
             'AUPRC_true': auprc_true,
-            'null_AUROC': null_aurocs,
-            'null_AUPRC': null_auprcs,
+            #'null_AUROC': null_aurocs,
+            #'null_AUPRC': null_auprcs,
             # you might also compute empirical p-value, z-score etc.
         }
 
@@ -166,10 +166,11 @@ def get_gene_sets(gene_list,
 if __name__ == "__main__":
     # Load or build your network G
     data_name = 'norman'
-    load_model_pth = 'models/GNN_norman_Sep15_1_ABL_0.npz'
-    #database_lst = ['Reactome_2022']
-    database_lst = ['KEGG_2021_Human']
+    model_name = 'GNN_norman_Sep15_1_ABL_0'
+    load_model_pth = f'scripts/net_eval/models/{model_name}.npz'
+    database = 'kegg'
 
+    database_lst = ['Reactome_2022' if database=='reactome' else 'KEGG_2021_Human']
     ann = pd.read_csv(f'dataset/human/{data_name}_gene_ann.csv')
     genes = list(ann['gene_name'])
     
@@ -199,5 +200,5 @@ if __name__ == "__main__":
         #print("  p-value (AUROC):", p_auroc)
         print()
 
-    json.dump(res, open(f'scripts/net_eval/{load_model_pth.split("/")[-1] if load_model_pth!= None else f"orig_{data_name}"}.json', 'w'), indent=4)
+    json.dump(res, open(f'scripts/net_eval/results/{database}_{model_name}.json', 'w'), indent=4)
 
