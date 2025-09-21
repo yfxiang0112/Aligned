@@ -2,6 +2,7 @@ import networkx as nx
 import numpy as np
 import random
 from sklearn.metrics import roc_auc_score, average_precision_score
+from sklearn.metrics import f1_score, confusion_matrix
 from collections import defaultdict
 import copy
 import torch
@@ -12,7 +13,7 @@ from tqdm import tqdm
 
 from egoal.reasoner import RegulatoryKB
 
-def network_diffusion_scores(G, seed_genes, alpha=0.85, tol=1e-6, max_iter=1000):
+def network_diffusion_scores(G, seed_genes, alpha=0.85, tol=1e-7, max_iter=1000):
     """
     Do a simple random‐walk with restart / diffusion from seed_genes.
     Returns a dictionary: gene -> diffusion score.
@@ -113,13 +114,20 @@ def gene_set_recovery(G, gene_sets, all_genes=None, shuffle_num=100, alpha=0.85)
         # Define ground truth: whether each gene is in the gene set
         y_true = []
         y_score = []
+        y_pred = []
         for node in all_genes:
             y_true.append(1 if node in genes_in_net else 0)
             y_score.append(true_scores.get(node, 0.0))
+            y_pred.append(int(true_scores.get(node, 0.0) >= .01))
+        y_true, y_score, y_pred = np.array(y_true), np.array(y_score), np.array(y_pred)
+        w = np.sum(y_true == 0) / len(y_true)
 
         # Compute metrics on the true scores
         auroc_true = roc_auc_score(y_true, y_score)
-        auprc_true = average_precision_score(y_true, y_score)
+        auprc_weighted = average_precision_score(y_true, y_score, sample_weight=np.where(y_true==1, w, 1-w))
+        auprc_pos = average_precision_score(y_true, y_score, sample_weight=np.where(y_true==1, 1.,0.))
+        f1 = f1_score(y_true, y_pred)
+        confusion = confusion_matrix(y_true, y_pred)
 
         # Null: shuffle seed sets to get null score distributions
         #null_aurocs = []
@@ -138,7 +146,10 @@ def gene_set_recovery(G, gene_sets, all_genes=None, shuffle_num=100, alpha=0.85)
 
         results[setname] = {
             'AUROC_true': auroc_true,
-            'AUPRC_true': auprc_true,
+            'AUPRC_weighted': auprc_weighted,
+            'AUPRC_pos': auprc_pos,
+            'f1': f1,
+            'confusion': str(confusion),
             #'null_AUROC': null_aurocs,
             #'null_AUPRC': null_auprcs,
             # you might also compute empirical p-value, z-score etc.
@@ -166,11 +177,14 @@ def get_gene_sets(gene_list,
 if __name__ == "__main__":
     # Load or build your network G
     data_name = 'norman'
-    model_name = 'GNN_norman_Sep15_1_ABL_0'
-    load_model_pth = f'scripts/net_eval/models/{model_name}.npz'
+    model_name = 'GNN_norman_Sep18_3_ABL_0'
+    #model_name = 'orig_'+data_name
+    load_model_pth = f'scripts/net_eval/models/{model_name}.npz'\
+            if 'orig' not in model_name else None
     database = 'kegg'
+    #database = 'reactome'
 
-    database_lst = ['Reactome_2022' if database=='reactome' else 'KEGG_2021_Human']
+    database_lst = ['Reactome_2022'] if database=='reactome' else ['KEGG_2021_Human', 'KEGG_2021_Mouse']
     ann = pd.read_csv(f'dataset/human/{data_name}_gene_ann.csv')
     genes = list(ann['gene_name'])
     
@@ -186,6 +200,9 @@ if __name__ == "__main__":
 
     gene_sets = get_gene_sets(genes,
                               database_lst = database_lst)
+    #gene_sets = json.load(open('signor_pathways.json'))
+    #for k,v in gene_sets.items():
+    #    gene_sets[k] = [x for x in v if x in genes]
     print('--- collected gene sets ---')
 
 
@@ -194,7 +211,10 @@ if __name__ == "__main__":
     for setname, metrics in res.items():
         print(f"Gene set: {setname}")
         print("  AUROC_true:", metrics['AUROC_true'])
-        print("  AUPRC_true:", metrics['AUPRC_true'])
+        print("  AUPRC_weighted:", metrics['AUPRC_weighted'])
+        print("  AUPRC_pos:", metrics['AUPRC_pos'])
+        print("  f1 score:", metrics['f1'])
+        print( metrics['confusion'])
         # Compute p‐value: fraction of null ≥ true
         #p_auroc = sum(1 for x in metrics['null_AUROC'] if x >= metrics['AUROC_true']) / len(metrics['null_AUROC'])
         #print("  p-value (AUROC):", p_auroc)
