@@ -96,6 +96,7 @@ def gene_set_recovery(G, gene_sets, all_genes=None,  alpha=0.85):
 
         # Compute metrics on the true scores
         auroc_true = roc_auc_score(y_true, y_score)
+        auprc_true = average_precision_score(y_true, y_score)
         auprc_weighted = average_precision_score(y_true, y_score, sample_weight=np.where(y_true==1, w, 1-w))
         auprc_pos = average_precision_score(y_true, y_score, sample_weight=np.where(y_true==1, 1.,0.))
         #f1 = f1_score(y_true, y_pred)
@@ -103,6 +104,7 @@ def gene_set_recovery(G, gene_sets, all_genes=None,  alpha=0.85):
 
         results[setname] = {
             'AUROC_true': auroc_true,
+            'AUPRC_true': auprc_true,
             'AUPRC_weighted': auprc_weighted,
             'AUPRC_pos': auprc_pos,
             #'f1': f1,
@@ -129,7 +131,10 @@ def get_gene_sets(gene_list,
 if __name__ == "__main__":
     p_lst = [0.0, .05, .1, .2, .3, .4, .5, .7, .9]
     repl_num = 3
-    score_types = ['mean_auroc', 'stde_auroc', 'mean_auprc_w', 'stde_auprc_w', 'mean_auprc_p', 'stde_auprc_p']
+    model_name = 'mix'
+    save_path = 'data_anal/refine/gsr_mix.csv'
+
+    score_types = ['mean_auroc', 'stde_auroc', 'mean_auprc', 'stde_auprc', 'mean_auprc_w', 'stde_auprc_w', 'mean_auprc_p', 'stde_auprc_p']
 
     ann = pd.read_csv(f'dataset/human/norman_gene_ann.csv')
     genes = list(ann['gene_name'])
@@ -148,6 +153,7 @@ if __name__ == "__main__":
     pathways = res.keys()
 
     results = {k: [v['AUROC_true'], 0.,
+                   v['AUPRC_true'], 0.,
                    v['AUPRC_weighted'], 0.,
                    v['AUPRC_pos'],      0.] for k,v in res.items()}
     results['p_incomp'] = sum([[x]*len(score_types) for x in ['orig']+p_lst], [])
@@ -156,14 +162,15 @@ if __name__ == "__main__":
 
 
     for p_incomp in p_lst:
-        auroc, auprc_w, auprc_p = {k:[] for k in pathways},\
+        auroc, auprc, auprc_w, auprc_p = \
+                {k:[] for k in pathways},{k:[] for k in pathways},\
                 {k:[] for k in pathways},{k:[] for k in pathways}
 
         for repl in range(repl_num):
             print(f'--- Processing p = {p_incomp}, replicate {repl+1} ---')
 
             load_model_pth =\
-                    f'data_anal/refine/models/restored_{p_incomp}_mix_{repl+1}.npz'
+                    f'data_anal/refine/models/restored_{p_incomp}_{model_name}_{repl+1}.npz'
             KB.load(load_model_pth)
 
             adj = torch.clamp(torch.abs(KB.Regu_P_0) + torch.abs(KB.Regu_N_0), 0,1).numpy()
@@ -174,12 +181,16 @@ if __name__ == "__main__":
             res = gene_set_recovery(G, gene_sets, all_genes=genes, alpha=0.85)
             for k in pathways:
                 auroc[k].append(res[k]['AUROC_true'])
+                auprc[k].append(res[k]['AUPRC_true'])
                 auprc_w[k].append(res[k]['AUPRC_weighted'])
                 auprc_p[k].append(res[k]['AUPRC_pos'])
 
         for k in pathways:
             results[k] += [.5*(max(auroc[k])+min(auroc[k])),
                            .5*(max(auroc[k])-min(auroc[k])),
+
+                           .5*(max(auprc[k])+min(auprc[k])),
+                           .5*(max(auprc[k])-min(auprc[k])),
 
                            .5*(max(auprc_w[k])+min(auprc_w[k])),
                            .5*(max(auprc_w[k])-min(auprc_w[k])),
@@ -189,5 +200,5 @@ if __name__ == "__main__":
 
     results = pd.DataFrame(results).set_index(['p_incomp','score_type'])
     print(results)
-    results.to_csv('data_anal/refine/gsr_mix.csv')
+    results.to_csv(save_path)
 
