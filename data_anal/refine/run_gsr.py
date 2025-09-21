@@ -149,9 +149,10 @@ if __name__ == "__main__":
 
     results = {k: [v['AUROC_true'], 0.,
                    v['AUPRC_weighted'], 0.,
-                   v['AUPRC_pos'],      0.,] for k,v in res.items()}
-    results['p_incomp'] = ['orig']*len(score_types)
-    results['score_type'] = score_types
+                   v['AUPRC_pos'],      0.] for k,v in res.items()}
+    results['p_incomp'] = sum([[x]*len(score_types) for x in ['orig']+p_lst], [])
+    results['score_type'] = score_types * (len(p_lst)+1)
+    print(len(results['p_incomp']), len(results['score_type']))
 
 
     for p_incomp in p_lst:
@@ -176,8 +177,6 @@ if __name__ == "__main__":
                 auprc_w[k].append(res[k]['AUPRC_weighted'])
                 auprc_p[k].append(res[k]['AUPRC_pos'])
 
-        results['p_incomp'] += [p_incomp]*len(score_types)
-        results['score_type'] += score_types
         for k in pathways:
             results[k] += [.5*(max(auroc[k])+min(auroc[k])),
                            .5*(max(auroc[k])-min(auroc[k])),
