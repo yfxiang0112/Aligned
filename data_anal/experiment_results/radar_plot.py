@@ -46,8 +46,8 @@ def create_radar_plot(ax, dataset_name, algorithm_values, algorithm_names, categ
     """Create a publication-quality radar plot for one dataset comparing all algorithms"""
     # Define colors for each algorithm
     colors = {
-        'GNN': '#2E86AB',         
-        'MLP': '#A23B72',         
+        'ALIGNED (GNN)': '#2E86AB',         
+        'ALIGNED (MLP)': '#A23B72',         
         'scFoundation': '#F18F01',
         'scGPT': '#C73E1D',       
         'GEARS': '#2D5016',       
@@ -56,8 +56,8 @@ def create_radar_plot(ax, dataset_name, algorithm_values, algorithm_names, categ
     
     # Define markers for each algorithm
     markers = {
-        'GNN': 'o',
-        'MLP': 's', 
+        'ALIGNED (GNN)': 'o',
+        'ALIGNED (MLP)': 's', 
         'scFoundation': '^',
         'scGPT': 'D',
         'GEARS': 'v',
@@ -108,11 +108,14 @@ def create_radar_plot(ax, dataset_name, algorithm_values, algorithm_names, categ
 
 if __name__ == '__main__':
     datasets = ['norman', 'dixit', 'adamson']
-    algorithms = ['Linear', 'GEARS', 'scGPT', 'scFoundation', 'MLP', 'GNN']
+    algorithms = ['Linear', 'GEARS', 'scGPT', 'scFoundation', 'ALIGNED (MLP)', 'ALIGNED (GNN)']
 
     columns = ['data_f1_mean', 'kb_f1_mean', 'bal_f1_mean']
     df_benchmk = pd.read_csv('data_anal/pert_benchmark/benchmark_results.csv')
     df_experim = pd.read_csv('data_anal/experiment_results/results.csv', index_col=0)
+
+    plot_alg_names = {'GNN':'ALIGNED (GNN)', 'MLP':'ALIGNED (MLP)'}
+    df_experim['model'] = df_experim['model'].apply(lambda x: plot_alg_names[x])
     df_experim = df_experim[(df_experim['stage']=='ABL1_refl') &\
             (df_experim['score']=='integrated') &\
             (df_experim['data_name'].isin(datasets))].set_index(['data_name', 'model'], drop=True)
@@ -161,12 +164,12 @@ if __name__ == '__main__':
     # Add a single legend for all subplots if we have any plots
     if algorithm_values:
         handles, labels = ax.get_legend_handles_labels()
-        fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.02), 
+        fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.05), 
                    ncol=len(algorithm_names), fontsize=18, frameon=True, fancybox=True, shadow=True,
                    facecolor='white', edgecolor='gray')
 
     # Adjust layout with proper spacing
-    plt.subplots_adjust(top=0.85, bottom=0.05, left=0.05, right=0.95, wspace=0.1)
+    plt.subplots_adjust(top=0.85, bottom=0.08, left=0.05, right=0.95, wspace=0.1)
     plt.show()
 
     # Save high-resolution version for publication

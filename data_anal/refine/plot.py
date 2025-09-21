@@ -2,59 +2,127 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-# Generate base data
-df = pd.read_csv('data_anal/refine/log.csv', index_col=0)
-x = ['Original\nKB', 'Baseline\n0%', '5%', '10%', '20%', '30%', '40%', '50%', '70%', '90%']
-y_mod = df['modularity_mean']
-e_mod = df['modularity_tol']
-y_aso = df['degree_assortativity_mean']
-e_aso = df['degree_assortativity_tol']
+save_name = 'reconstruction_remove'
+log_path = 'data_anal/refine/log.csv'
 
-plt.figure(figsize=(12, 7))
+# Set publication-quality style
+plt.style.use('default')
+plt.rcParams.update({
+    'font.family': 'serif',
+    'font.serif': ['Times New Roman'],#, 'DejaVu Serif'],
+    'font.size': 10,
+    'axes.labelsize': 11,
+    'axes.titlesize': 12,
+    'legend.fontsize': 9,
+    'xtick.labelsize': 9,
+    'ytick.labelsize': 9,
+    'figure.dpi': 600,
+    'lines.linewidth': 1.8,
+    'lines.markersize': 6,
+    'errorbar.capsize': 3,
+    'axes.linewidth': 0.8,
+    'grid.linewidth': 0.5,
+    'grid.alpha': 0.3,
+})
 
-# Plot smooth line
-plt.plot(x, y_mod, 'b-', linewidth=2, label='Modularity (Ascend)', alpha=0.7)
-plt.plot(x, y_aso, 'g-', linewidth=2, label='Assortativity (Descend)', alpha=0.7)
+# Load data
+df = pd.read_csv(log_path, index_col=0)
+x_labels = ['Original\nKB', '0%\n(Control)', '5%', '10%', '20%', '30%', '40%', '50%', '70%', '90%']
+x_pos = np.arange(len(x_labels))
 
-# Plot points with variations
-plt.errorbar(x, y_mod, yerr=e_mod, fmt='o', color='blue', 
-             markersize=8, capsize=5, capthick=2, alpha=0.8)
+# Define color palette
+#colors = ['#1f77b4', '#2ca02c', '#d62728', '#9467bd']  # Blue, Green, Red, Purple
+colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D']  # Colorblind-friendly palette
+markers = ['o', 's']  # Circle, Square
 
-plt.errorbar(x, y_aso, yerr=e_aso, fmt='o', color='green', 
-             markersize=8, capsize=5, capthick=2, alpha=0.8)
-
-plt.legend(fontsize=12)
-plt.xlabel('Removed Arcs', fontsize=12)
-plt.ylabel('Scores', fontsize=12)
-plt.title('Structural Scores of Reconstructed GRNs with Different Removed Arc Portions', fontsize=14)
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.savefig('data_anal/refine/structural.png', dpi=300)
-plt.show()
+# =============================================================================
+# Figure 1: Reconstruction F1 Scores
+# =============================================================================
+fig = plt.figure(figsize=(20, 5.5))
+ax1 = fig.add_subplot(1, 3, 1)
 
 y_reg = df['f1_initial_KB_combined_mean']
 e_reg = df['f1_initial_KB_combined_tol']
 y_clo = df['f1_closure_KB_combined_mean']
 e_clo = df['f1_closure_KB_combined_tol']
 
-plt.figure(figsize=(12, 7))
+# Plot lines with error bars
+ax1.errorbar(x_pos, y_reg, yerr=e_reg, fmt=markers[0], color=colors[0],
+             markersize=5, capsize=2.5, capthick=1.2, elinewidth=1.2,
+             label='Reconstructed GRN', alpha=0.9, zorder=4)
+ax1.plot(x_pos, y_reg, '-', color=colors[0], linewidth=1.5, alpha=0.8, zorder=3)
 
-# Plot smooth line
-plt.plot(x, y_reg, 'b-', linewidth=2, label='F1 of Reconstructed GRN', alpha=0.7)
-plt.plot(x, y_clo, 'g-', linewidth=2, label='F1 of Reconstructed R^(k)', alpha=0.7)
+ax1.errorbar(x_pos, y_clo, yerr=e_clo, fmt=markers[1], color=colors[2],
+             markersize=5, capsize=2.5, capthick=1.2, elinewidth=1.2,
+             label=r'Reconstructed $R^{(k)}$', alpha=0.9, zorder=4)
+ax1.plot(x_pos, y_clo, '-', color=colors[2], linewidth=1.5, alpha=0.8, zorder=3)
 
-# Plot points with variations
-plt.errorbar(x, y_reg, yerr=e_reg, fmt='o', color='blue', 
-             markersize=8, capsize=5, capthick=2, alpha=0.8)
+# Customize axes
+ax1.set_xlabel('Removed edges (%)', fontsize=11, labelpad=5)
+ax1.set_ylabel('F1 score', fontsize=11, labelpad=5)
+ax1.set_xticks(x_pos)
+ax1.set_xticklabels(x_labels, rotation=45, ha='right')
+ax1.set_title('Reconstruction accuracy', fontsize=12, pad=10)
 
-plt.errorbar(x, y_clo, yerr=e_clo, fmt='o', color='green', 
-             markersize=8, capsize=5, capthick=2, alpha=0.8)
+# Set y-axis limits for better visualization
+y_min = min(y_reg.min(), y_clo.min()) - 0.05
+y_max = max(y_reg.max(), y_clo.max()) + 0.05
+ax1.set_ylim(y_min, y_max)
 
-plt.legend(fontsize=12)
-plt.xlabel('Removed Arcs', fontsize=12)
-plt.ylabel('Reconstructed F1 Scores', fontsize=12)
-plt.title('Reconstruction Accuracy of Reconstructed GRNs with Different Removed Arc Portions', fontsize=14)
-plt.grid(True, alpha=0.3)
+# Add grid and clean spines
+ax1.grid(True, alpha=0.2, linestyle='-', linewidth=0.5)
+ax1.spines['top'].set_visible(False)
+ax1.spines['right'].set_visible(False)
+
+# Add legend
+ax1.legend(loc='lower left', frameon=True, framealpha=1.0, edgecolor='black')
+
+# =============================================================================
+# Figure 2: Structural Scores
+# =============================================================================
+ax2 = fig.add_subplot(1, 3, 2)
+
+y_mod = df['modularity_mean']
+e_mod = df['modularity_tol']
+y_aso = df['degree_assortativity_mean']
+e_aso = df['degree_assortativity_tol']
+
+# Plot lines with error bars
+ax2.errorbar(x_pos, y_mod, yerr=e_mod, fmt=markers[0], color=colors[0],
+             markersize=5, capsize=2.5, capthick=1.2, elinewidth=1.2,
+             label='Modularity', alpha=0.9, zorder=4)
+ax2.plot(x_pos, y_mod, '-', color=colors[0], linewidth=1.5, alpha=0.8, zorder=3)
+
+ax2.errorbar(x_pos, y_aso, yerr=e_aso, fmt=markers[1], color=colors[1],
+             markersize=5, capsize=2.5, capthick=1.2, elinewidth=1.2,
+             label='Degree assortativity', alpha=0.9, zorder=4)
+ax2.plot(x_pos, y_aso, '-', color=colors[1], linewidth=1.5, alpha=0.8, zorder=3)
+
+# Customize axes
+ax2.set_xlabel('Removed edges (%)', fontsize=11, labelpad=5)
+ax2.set_ylabel('Structural score', fontsize=11, labelpad=5)
+ax2.set_xticks(x_pos)
+ax2.set_xticklabels(x_labels, rotation=45, ha='right')
+ax2.set_title('Structural properties of reconstructed networks', fontsize=12, pad=10)
+
+# Add grid and clean spines
+ax2.grid(True, alpha=0.2, linestyle='-', linewidth=0.5)
+ax2.spines['top'].set_visible(False)
+ax2.spines['right'].set_visible(False)
+
+# Add legend
+ax2.legend(loc='lower left', frameon=True, framealpha=1.0, edgecolor='black')
+
+
+# =============================================================================
+# Figure 3: Biological Meaningfulness
+# =============================================================================
+ax3 = fig.add_subplot(1, 3, 3)
+
+# Adjust layout and save
 plt.tight_layout()
-plt.savefig('data_anal/refine/reconstruction_f1.png', dpi=300)
+plt.savefig(f'data_anal/refine/{save_name}.png', bbox_inches='tight', pad_inches=0.05)
+plt.savefig(f'data_anal/refine/{save_name}.pdf', format='pdf', bbox_inches='tight', pad_inches=0.05)
+plt.savefig(f'data_anal/refine/{save_name}.pgf', format='pgf', dpi=600, bbox_inches='tight', pad_inches=0.05)
+
 plt.show()

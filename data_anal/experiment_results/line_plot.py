@@ -65,7 +65,7 @@ for i, dataset in enumerate(datasets):
     
     # Customize axes
     ax.set_xlabel('ABL Stage', fontsize=11, labelpad=5)
-    ax.set_ylabel('F_1 score', fontsize=11, labelpad=5)
+    ax.set_ylabel('$F_1$ score', fontsize=11, labelpad=5)
     ax.set_xticks(x_pos)
     ax.set_xticklabels(x_labels, rotation=45, ha='right')
     ax.set_title(f'{dataset.capitalize()} et al. Dataset', fontsize=12, pad=10)

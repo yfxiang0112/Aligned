@@ -84,13 +84,14 @@ def calculate_statistics(metrics_dict):
     
     return statistics
 
-def main():
+if __name__ == "__main__":
     # Specify your directory path here
-    directory_path = "data_anal/refine"
+    directory_path = "data_anal/refine/out_mix"
+    save_path = 'data_anal/refine/log_mix.csv'
     
     if not os.path.exists(directory_path):
         print(f"Directory '{directory_path}' does not exist.")
-        return
+        exit()
     
     # Process all files in the directory
     all_metrics, p_values = process_directory(directory_path)
@@ -98,7 +99,7 @@ def main():
     
     if not all_metrics:
         print("No valid metrics found in the files.")
-        return
+        exit()
     
     # Calculate statistics
     stats = calculate_statistics(all_metrics)
@@ -108,43 +109,4 @@ def main():
     stats['f1_initial_KB_combined_mean'].insert(0,1.)
     stats['f1_initial_KB_combined_tol'].insert(0,0.)
     df = pd.DataFrame(stats)
-    df.to_csv('data_anal/refine/log.csv')
-    
-    ## Print results
-    #print("\n" + "="*60)
-    #print("METRICS SUMMARY")
-    #print("="*60)
-    #
-    #for metric_name, stat in stats.items():
-    #    print(f"\n{metric_name}:")
-    #    print(f"  Mean: {stat['mean']:.6f}")
-    #    print(f"  Std: {stat['std']:.6f}")
-    #    print(f"  Min: {stat['min']:.6f}")
-    #    print(f"  Max: {stat['max']:.6f}")
-    #    print(f"  Count: {stat['count']}")
-    #
-    #print("\n" + "="*60)
-    #print("MEAN VALUES (what you requested):")
-    #print("="*60)
-    #print(f"f1_initial_KB_combined: {stats['f1_initial_KB_combined']['mean']:.6f}")
-    #print(f"f1_closure_KB_combined: {stats['f1_closure_KB_combined']['mean']:.6f}")
-    #print(f"degree_assortativity: {stats['degree_assortativity']['mean']:.6f}")
-    #print(f"modularity: {stats['modularity']['mean']:.6f}")
-    #
-    ## Also save results to a file
-    #output_file = "metrics_summary.txt"
-    #with open(output_file, 'w') as f:
-    #    f.write("METRICS SUMMARY\n")
-    #    f.write("="*60 + "\n")
-    #    for metric_name, stat in stats.items():
-    #        f.write(f"\n{metric_name}:\n")
-    #        f.write(f"  Mean: {stat['mean']:.6f}\n")
-    #        f.write(f"  Std: {stat['std']:.6f}\n")
-    #        f.write(f"  Min: {stat['min']:.6f}\n")
-    #        f.write(f"  Max: {stat['max']:.6f}\n")
-    #        f.write(f"  Count: {stat['count']}\n")
-    #
-    #print(f"\nDetailed results saved to {output_file}")
-
-if __name__ == "__main__":
-    main()
+    df.to_csv(save_path)
