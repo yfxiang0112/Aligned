@@ -6,9 +6,9 @@ import gc
 
 from egoal.reasoner import RegulatoryKB
 
-seed = 6666
-model_name = 'sep13'
-device = 'cuda:4'
+seed = 42
+model_name = 'mix_1'
+device = 'cuda:5'
 
 np.random.seed(seed)
 torch.manual_seed(seed)
@@ -44,20 +44,36 @@ for p_incompl in [0., .05, .1, .2, .3, .4, .5, .7, .9]:
 
     ' create mask for p% nonzero positions '
     nonzero_indices = np.argwhere(R != 0)
+    zero_indices = np.argwhere(R == 0)
     num_nonzero = len(nonzero_indices)
     if num_nonzero == 0:
         mask = np.zeros_like(R, dtype=bool)
+    num_to_select = int(p_incompl * num_nonzero)
 
-    num_to_select = max(1, int(p_incompl * num_nonzero))
-    selected_indices = np.random.choice(num_nonzero, size=num_to_select, replace=False)
-    mask = np.zeros_like(R, dtype=bool)
-    selected_positions = nonzero_indices[selected_indices]
-    for row, col in selected_positions:
-        mask[row, col] = True
+    remove_indices = np.random.choice(num_nonzero, size=int(num_to_select/2), replace=False)
+    remove_mask = np.zeros_like(R, dtype=bool)
+    remove_positions = nonzero_indices[remove_indices]
+    for row, col in remove_positions:
+        remove_mask[row, col] = True
+
+    positive_indices = np.random.choice(num_nonzero, size=int(num_to_select/4), replace=False)
+    positive_mask = np.zeros_like(R, dtype=bool)
+    positive_positions = zero_indices[positive_indices]
+    for row, col in positive_positions:
+        positive_mask[row, col] = True
+
+    negative_indices = np.random.choice(num_nonzero, size=int(num_to_select/4), replace=False)
+    negative_mask = np.zeros_like(R, dtype=bool)
+    negative_positions = zero_indices[negative_indices]
+    for row, col in negative_positions:
+        negative_mask[row, col] = True
+
 
     ' mask & save incomplete KB '
-    save_npz(incomp_p_pth, coo_matrix(np.where(mask, 0, R_P)))
-    save_npz(incomp_n_pth, coo_matrix(np.where(mask, 0, R_N)))
+    save_npz(incomp_p_pth, coo_matrix(np.where(remove_mask, 0, 
+        np.where(positive_mask, 1, R_P))))
+    save_npz(incomp_n_pth, coo_matrix(np.where(remove_mask, 0, 
+        np.where(negative_mask, 1, R_N))))
 
 
     reasoner_train = RegulatoryKB(
