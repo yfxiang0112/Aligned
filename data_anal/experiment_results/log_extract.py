@@ -55,6 +55,7 @@ def extract_f1_scores_from_logs(log_directory="./logs", file_pattern="*.log"):
                 continue
             
             # Process each match
+            metric_num = len(matches) // (6*2)
             for score_type, score_value, additional in matches:
                 # Convert to float and store
                 try:
@@ -64,7 +65,7 @@ def extract_f1_scores_from_logs(log_directory="./logs", file_pattern="*.log"):
                     # Check if this exact key already exists for this file
                     #while any(final_key in key and key.endswith(f"_{file_idx}") 
                     #         for key in f1_scores.keys()):
-                    final_key = f"{(score_type + additional).lower()}_{counter // 4}"
+                    final_key = f"{(score_type + additional).lower()}_{counter // metric_num}"
                     counter += 1
                     
                     ## Add file index to make keys unique across files
@@ -227,4 +228,4 @@ if __name__ == "__main__":
 
     final_df = pd.concat(final_df, axis=0).reset_index(drop=True)
     print(final_df)
-    #final_df.to_csv(f'data_anal/experiment_results/results.csv')
+    final_df.to_csv(f'data_anal/experiment_results/results.csv')

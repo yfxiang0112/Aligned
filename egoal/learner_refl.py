@@ -325,10 +325,10 @@ class ReflectLearner():
                     if label_weight != None else 0
         #weighted_restriction = torch.sum(r_binary @ (1-label_weight) + (1-r_binary) @ label_weight)
 
-        #total = r_binary.shape[0] * r_binary.shape[1]
-        #len_restriction = torch.max(torch.count_nonzero(r_binary) - th * total, other=torch.tensor(0))
+        total = r_binary.shape[0] * r_binary.shape[1]
+        len_restriction = torch.max(torch.count_nonzero(r_binary) - th * total, other=torch.tensor(0))
 
-        return - .1*violated -  weighted_restriction #- len_restriction
+        return - .1*violated -  weighted_restriction - 5*len_restriction
         #return - weighted_restriction
 
     def load_data(self,
@@ -538,7 +538,7 @@ class ReflectLearner():
             optimizer.step()
 
             if (epoch+1)%2000== 0: #NOTE tmp
-                self.eval(KB, w_data=.3, write_log=False, verbose=True)
+                self.eval(KB, None, w_data=.3, write_log=False, verbose=True)
 
             if (epoch+1)%100 == 0 and verbose:
                 print(f"Epoch {epoch+1}, Total loss: {total_loss.item():.4f}, CE loss: {loss_y.item():.4f}, RL loss: {loss_r.item():.4f}, Reward: {reward:.4f}")
@@ -576,13 +576,14 @@ class ReflectLearner():
 
     def eval(self,
              KB: RegulatoryKB,
-             w_data = None | float,
+             KB_orig: RegulatoryKB | None,
+             w_data = .5,
              p_integrate = 2,
              write_log=True,
              verbose=False):
 
         assert self.test_loader != None
-        w_data = .5 if w_data == None or w_data<0. or w_data>1. else w_data
+        #w_data = .5 if w_data == None or w_data<0. or w_data>1. else w_data
 
         self.model.eval()
         correct = 0
@@ -590,6 +591,8 @@ class ReflectLearner():
         with torch.no_grad():
 
             Y_test, Y_pred, Y_prob, Y_deduc = [],[],[],[]
+            if KB_orig != None:
+                Y_deduc_orig = []
             R_pred = []
 
             for X_batch, Y_batch in self.test_loader:
@@ -603,12 +606,16 @@ class ReflectLearner():
                 total += Y_batch.size(0)
                 correct += (outputs == Y_batch).sum(dim=0)
                 Y_deduc.append(KB.deduce(X_batch))
+                if KB_orig != None:
+                    Y_deduc_orig.append(KB_orig.deduce(X_batch))
 
             Y_test = torch.concat(Y_test, dim=0)
             Y_pred = torch.concat(Y_pred, dim=0)
             R_pred = torch.concat(R_pred, dim=0)
 
             Y_deduc = torch.concat(Y_deduc, dim=0)
+            if KB_orig != None:
+                Y_deduc_orig = torch.concat(Y_deduc_orig, dim=0)
             Y_refl = torch.where(R_pred.bool(), Y_deduc, Y_pred)
 
             if self.device != 'cpu':
@@ -616,6 +623,8 @@ class ReflectLearner():
                 Y_pred = Y_pred.cpu()
                 Y_refl = Y_refl.cpu()
                 Y_deduc = Y_deduc.cpu()
+                if KB_orig != None:
+                    Y_deduc_orig = Y_deduc_orig.cpu()
                 correct = correct.cpu()
 
             #Y_prob = torch.concat(Y_prob, dim=0)
@@ -625,6 +634,8 @@ class ReflectLearner():
             flat_y_p = Y_pred.flatten()
             flat_y_r = Y_refl.flatten()
             flat_y_d = Y_deduc.flatten()
+            if KB_orig != None:
+                flat_y_d_orig = Y_deduc_orig.flatten()
 
 
             ' performance of prediction result '
@@ -633,7 +644,12 @@ class ReflectLearner():
             f1_pred_macro = f1_score(flat_y_t, flat_y_p, average='macro') # micro on labels, macro on classes
             f1_pred_micro = f1_score(flat_y_t, flat_y_p, average='micro') # micro on labels, micro on classes
             f1_pred_kb = f1_score(flat_y_d, flat_y_p, average='macro')
-            f1_pred_final = (w_data * (f1_pred_macro ** -p_integrate)\
+            if KB_orig != None:
+                f1_pred_kb_orig = f1_score(flat_y_d_orig, flat_y_p, average='macro')
+                f1_pred_final = (w_data * (f1_pred_macro ** -p_integrate)\
+                    + (1.-w_data) * (f1_pred_kb_orig ** -p_integrate)) ** (-1/p_integrate)
+            else:
+                f1_pred_final = (w_data * (f1_pred_macro ** -p_integrate)\
                     + (1.-w_data) * (f1_pred_kb ** -p_integrate)) ** (-1/p_integrate)
 
             ' performance of integrated result '
@@ -642,7 +658,13 @@ class ReflectLearner():
             f1_refl_macro = f1_score(flat_y_t, flat_y_r, average='macro') # micro on labels, macro on classes
             f1_refl_micro = f1_score(flat_y_t, flat_y_r, average='micro') # micro on labels, micro on classes
             f1_refl_kb = f1_score(flat_y_d, flat_y_r, average='macro')
-            f1_refl_final = w_data * f1_refl_macro + (1.-w_data) * f1_refl_kb
+            if KB_orig != None:
+                f1_refl_kb_orig = f1_score(flat_y_d_orig, flat_y_r, average='macro')
+                f1_refl_final = (w_data * (f1_refl_macro ** -p_integrate)\
+                    + (1.-w_data) * (f1_refl_kb_orig ** -p_integrate)) ** (-1/p_integrate)
+            else:
+                f1_refl_final = (w_data * (f1_refl_macro ** -p_integrate)\
+                    + (1.-w_data) * (f1_refl_kb ** -p_integrate)) ** (-1/p_integrate)
 
 
             ''' compute acc & confusion matrix on each gene '''
@@ -675,12 +697,16 @@ class ReflectLearner():
                     f.write(f'f1 on test:    {f1_pred_macro}\n')
                     f.write(f'f1 on test:    {f1_pred_micro} (micro)\n')
                     f.write(f'f1 on KB:      {f1_pred_kb}\n')
+                    if KB_orig != None:
+                        f.write(f'f1 on orig KB: {f1_pred_kb_orig}\n')
                     f.write(f'integrated f1: {f1_pred_final}, w_data: {w_data}, w_klg: {1-w_data}\n\n')
 
                     f.write(f'\n\n------\nintegrated result:\nconfusion matrix:\n{confusion_refl}\n')
                     f.write(f'f1 on test:    {f1_refl_macro}\n')
                     f.write(f'f1 on test:    {f1_refl_micro} (micro)\n')
                     f.write(f'f1 on KB:      {f1_refl_kb}\n')
+                    if KB_orig != None:
+                        f.write(f'f1 on orig KB: {f1_refl_kb_orig}\n')
                     f.write(f'integrated f1: {f1_refl_final}, w_data: {w_data}, w_klg: {1-w_data}\n\n')
                     #f.write(f'weighted f1: {f1_weighted}\n')
                     #f.write(f'class -1 f1: {f1_class[0]}\n')
@@ -694,12 +720,16 @@ class ReflectLearner():
                 print(f'f1 on test:    {f1_pred_macro:.4f}')
                 print(f'f1 on test:    {f1_pred_micro:.4f} (micro)')
                 print(f'f1 on KB:      {f1_pred_kb:.4f}')
+                if KB_orig != None:
+                    print(f'f1 on orig KB: {f1_pred_kb_orig:.4f}')
                 print(f'integrated f1: {f1_pred_final:.4f}, w_data: {w_data:.4f}, w_klg: {1-w_data:.4f}')
 
                 print(f'\nintegrated result:')
                 print(f'f1 on test:    {f1_refl_macro:.4f}')
                 print(f'f1 on test:    {f1_refl_micro:.4f} (micro)')
                 print(f'f1 on KB:      {f1_refl_kb:.4f}')
+                if KB_orig != None:
+                    print(f'f1 on orig KB: {f1_refl_kb_orig:.4f}')
                 print(f'integrated f1: {f1_refl_final:.4f}, w_data: {w_data:.4f}, w_klg: {1-w_data:.4f}')
                 print('------------')
 

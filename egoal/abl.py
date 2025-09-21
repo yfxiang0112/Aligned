@@ -113,11 +113,14 @@ def abduce(X_unlabel: torch.Tensor,
                             neg_trn_pth= neg_trn_pth,
                             output_idx_list= output_idx_list,
                             device=device)#, T=4)
-    #reasoner.eval()
-    #reasoner.load('models/GNN_norman_sep11_test_ABL_0.npz')
-    #reasoner.eval()
-    #exit()
     reasoner.closure_(T=closure, closure_type=closure_type)
+
+    reasoner_orig = RegulatoryKB(pos_trn_pth= pos_trn_pth,
+                            neg_trn_pth= neg_trn_pth,
+                            output_idx_list= output_idx_list,
+                            device=device)#, T=4)
+    reasoner_orig.closure_(T=closure, closure_type=closure_type)
+
 
     if base_learner_type == 'GNN':
         adj_matrix = torch.round(torch.abs(reasoner.KB)) if adj_matrix_closure\
@@ -147,7 +150,7 @@ def abduce(X_unlabel: torch.Tensor,
                 log.write(f'\n\nbefore pretrain\n{"-"*20}\n')
         w_data = eval_weight(X_label, Y_label, reasoner)
         print(f'Eval weight w_data: {w_data}')
-        f1 = learner.eval(reasoner, w_data)
+        f1 = learner.eval(reasoner, reasoner_orig, w_data)
         print(f'Before pretrain: integrated f1 {f1:.4f}')
 
         learner.load(pretrained_model_pth)
@@ -160,7 +163,7 @@ def abduce(X_unlabel: torch.Tensor,
                 log.write(f'\n\nbefore pretrain\n{"-"*20}\n')
         w_data = eval_weight(X_label, Y_label, reasoner)
         print(f'Eval weight w_data: {w_data}')
-        f1 = learner.eval(reasoner, w_data)
+        f1 = learner.eval(reasoner, reasoner_orig, w_data)
         print(f'Before pretrain: integrated f1 {f1:.4f}')
 
         learner.train(KB= reasoner,
@@ -182,7 +185,7 @@ def abduce(X_unlabel: torch.Tensor,
 
     print('------ Before ABL ------')
     w_data = eval_weight(X_label, Y_label, reasoner)
-    f1 = learner.eval(reasoner, w_data, verbose=True)
+    f1 = learner.eval(reasoner, reasoner_orig, w_data, verbose=True)
     print(f'integrated f1 {f1:.4f}\n')
 
     ########################################
@@ -213,7 +216,7 @@ def abduce(X_unlabel: torch.Tensor,
 
         print(f'------ ABL Loop {t} ------')
         #w_data = eval_weight(X_label, Y_label, reasoner)
-        f1 = learner.eval(reasoner, w_data, verbose=True)
+        f1 = learner.eval(reasoner, reasoner_orig, w_data, verbose=True)
         print(f'integrated f1 {f1:.4f}')
 
         ' knowledge refine '
@@ -235,5 +238,5 @@ def abduce(X_unlabel: torch.Tensor,
                 log.write(f'\nafter refine:\n')
         print(f'------ ABL {t} after refine ------')
         #w_data = eval_weight(X_label, Y_label, reasoner)
-        f1 = learner.eval(reasoner, w_data, verbose=True)
+        f1 = learner.eval(reasoner, reasoner_orig, w_data, verbose=True)
         print(f'integrated f1 {f1:.4f}')

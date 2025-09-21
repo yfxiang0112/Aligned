@@ -3,6 +3,7 @@ import numpy as np
 from scipy.sparse import load_npz
 from datetime import datetime
 import argparse
+import pandas as pd
 
 from egoal.abl import abduce
 
@@ -34,15 +35,16 @@ if __name__ == '__main__':
     X_train = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray(), dtype = torch.float32)
     Y_train = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray(), dtype = int)
 
-    #test_idx = np.random.choice([True, False], size=len(X_train), p=[.2, .8])
+    #test_idx = np.random.choice([True, False], size=len(X_train), p=[.3, .7])
     test_idx = np.zeros(shape=len(X_train), dtype=bool)
     if not args.random_split:
         test_idx[np.load(f'dataset/human/{data_name}_test_idx.npy')] = True
     else:
         metadata = pd.read_csv(f'dataset/human/{data_name}_metadata.csv',index_col=0)
-        test_pert = np.random.choice([True, False], size=len(metadata), p=[.2, .8])
-        test_data_idx = sum(metadata[(test_pert)\
-                & (metadata['pert'].apply(lambda x: len(eval(x))>1))]\
+        test_pert = np.random.choice([True, False], size=len(metadata), p=[.2, .8])\
+                & (metadata['pert'].apply(lambda x: len(eval(x))>1))
+        print(f'test perts: {list(metadata.loc[test_pert, "pert"])}')
+        test_data_idx = sum(metadata[test_pert]
                 .apply(lambda x: list(range(x['data_start_idx'],x['data_end_idx+1'])), axis=1), [])
         test_idx[test_data_idx] = True
 
