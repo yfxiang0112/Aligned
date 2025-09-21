@@ -89,9 +89,9 @@ for data_name in ['norman', 'dixit', 'adamson']:
             criterion = torch.nn.MSELoss(reduction='mean')
             mse_score = criterion(torch.tensor(Y), torch.tensor(Y_true_con))
             #print(f'MSE: {mse_score}')
-            mse_lst.append(int(mse_score))
+            mse_lst.append(float(mse_score))
         
-            Y = np.where(np.abs(Y) > .1, np.sign(Y), 0)
+            Y = np.where(np.abs(Y) > .27, np.sign(Y), 0)
         
             ''' eval data consistency '''
             print(Y.shape)
