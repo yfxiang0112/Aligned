@@ -1,0 +1,3535 @@
+============================ Script ============================
+import torch
+import numpy as np
+from scipy.sparse import load_npz
+from datetime import datetime
+import argparse
+import pandas as pd
+
+from egoal.abl import abduce
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data_name', dest= 'data_name', action= 'store', required= True, type=str)
+    parser.add_argument('--log_file', dest= 'log_file', action= 'store', default= f'log/EGOAL-hsa-{datetime.now()}.txt'.replace(' ','-'), type=str)
+    parser.add_argument('--model_type', dest= 'model_type', action= 'store', default= 'GNN', type=str)
+    parser.add_argument('--model_save_name', dest= 'model_name', action= 'store', default= '', type=str)
+    #     parser.add_argument('--seed', dest= 'seed', action= 'store', default= 42, type=int)
+    parser.add_argument('--device', dest= 'device', action= 'store', default= 'cuda', type=str)
+    parser.add_argument('--trainset_remove', dest= 'p_train', action= 'store', default= 1., type=float)
+    parser.add_argument('--random_split', dest= 'random_split', action= 'store', default= False, type=bool)
+    args = parser.parse_args()
+
+    data_name = args.data_name
+    log_file = args.log_file
+    model_type = args.model_type
+    model_name = f'{model_type}_{data_name}_{args.model_name}'
+
+#     seed = args.seed
+#     device = torch.device(args.seed if torch.cuda.is_available() else "cpu")
+    rng = np.random.default_rng()
+    seed = int(rng.integers(low=0, high=2**32 - 1, dtype=np.uint32))
+    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
+    print(f'using device: {device} (cuda_available={torch.cuda.is_available()}, cuda_count={torch.cuda.device_count() if torch.cuda.is_available() else 0})')
+    print(model_name)
+    print(log_file)
+    print(f'random seed: {seed}')
+
+    #########################################
+
+    np.random.seed(seed)
+    X_train = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray(), dtype = torch.float32)
+    Y_train = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray(), dtype = int)
+
+    #test_idx = np.random.choice([True, False], size=len(X_train), p=[.2, .8])
+    test_idx = np.zeros(shape=len(X_train), dtype=bool)
+    if not args.random_split:
+        test_idx[np.load(f'dataset/human/{data_name}_test_idx.npy')] = True
+    else:
+        metadata = pd.read_csv(f'dataset/human/{data_name}_metadata.csv',index_col=0)
+        test_pert = np.random.choice([True, False], size=len(metadata), p=[.2, .8])
+        test_data_idx = sum(metadata[(test_pert)\
+                & (metadata['pert'].apply(lambda x: len(eval(x))>1))]\
+                .apply(lambda x: list(range(x['data_start_idx'],x['data_end_idx+1'])), axis=1), [])
+        test_idx[test_data_idx] = True
+
+    p_train = args.p_train
+    train_idx = np.random.choice([True, False], size=len(X_train)-np.count_nonzero(test_idx), p=[p_train, 1-p_train])
+
+    X_test = X_train[test_idx]
+    Y_test = Y_train[test_idx]
+    X_train = X_train[~ test_idx][train_idx]
+    Y_train = Y_train[~ test_idx][train_idx]
+    print('train:', X_train.shape)
+
+    regulators = np.nonzero(np.sum(\
+            load_npz(f'rules/human/{data_name}_KB_P.npz').toarray()\
+            +load_npz(f'rules/human/{data_name}_KB_N.npz').toarray(), axis=1))[0]
+    X_unlabel = np.zeros(shape=(len(regulators), X_train.shape[1]))
+    X_unlabel[range(len(X_unlabel)), regulators] = 1.
+    X_unlabel = torch.tensor(X_unlabel, dtype=torch.float32)
+    print('unlabel:', X_unlabel.shape)
+
+    label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
+
+    X_train, Y_train = X_train.to(device), Y_train.to(device)
+    X_test, Y_test = X_test.to(device), Y_test.to(device)
+    X_unlabel = X_unlabel.to(device)
+    label_weight = label_weight.to(device)
+
+    abduce(X_unlabel= X_unlabel,
+           X_test= X_test,
+           Y_test= Y_test,
+           X_label = X_train,
+           Y_label = Y_train,
+
+           pos_trn_pth=f'rules/human/{data_name}_KB_P.npz',
+           neg_trn_pth=f'rules/human/{data_name}_KB_N.npz',
+           closure = 5,
+           closure_type = 'weighted',
+
+           label_weight=label_weight,
+           #pretrained_model_pth = 'models/MLP_human_Aug19.pt',
+           model_save_pth = f'models/{model_name}',
+           base_learner_type= model_type,
+
+           T= 2,
+
+           pretrain_epc= 300,
+           pretrain_rl_epc= 1,
+           pretrain_lr= 1e-3,
+
+           retrain_epc= 150,
+           retrain_rl_epc= 100,
+           retrain_lr= 1e-3,
+           refine_epc= 5000,
+           refine_lr= 1e-3,
+
+           device= device,
+           seed= seed,
+           log_file= log_file,
+           verbose= True)
+============================ Script ============================
+using device: cuda (cuda_available=True, cuda_count=1)
+GNN_adamson_benchmark_egoal_46065844
+log/EGOAL-hsa-2025-09-20-12:26:50.598495.txt
+random seed: 1806441859
+train: torch.Size([56642, 5060])
+unlabel: torch.Size([3737, 5060])
+cuda availability: True
+Epoch 0, Loss: 0.1519
+Epoch 100, Loss: 0.1409
+Epoch 200, Loss: 0.1307
+Epoch 300, Loss: 0.1211
+Epoch 400, Loss: 0.1122
+Epoch 500, Loss: 0.1040
+Epoch 600, Loss: 0.0963
+Epoch 700, Loss: 0.0892
+Epoch 800, Loss: 0.0827
+Epoch 900, Loss: 0.0766
+Final loss: 0.07113005220890045
+Achieved outputs: tensor([[0.3944, 0.4207, 0.3672,  ..., 0.3535, 0.3721, 0.3932],
+        [0.3665, 0.3676, 0.3116,  ..., 0.3221, 0.3175, 0.3692],
+        [0.3804, 0.3986, 0.3626,  ..., 0.3604, 0.3532, 0.3859],
+        ...,
+        [0.3814, 0.4114, 0.3570,  ..., 0.3465, 0.3598, 0.3831],
+        [0.3683, 0.3854, 0.3395,  ..., 0.3361, 0.3443, 0.3753],
+        [0.3794, 0.4027, 0.3532,  ..., 0.3528, 0.3579, 0.3817]],
+       device='cuda:0')
+Eval weight w_data: 0.28094744320106374
+Before pretrain: integrated f1 0.3009
+Epoch 100, Total loss: -6114765312.0000, CE loss: 703.7357, RL loss: -611476608.0000, Reward: -45086070.0674
+    full cols: 545, non-full cols: 815
+   r - labels: 695, labels - r: 0
+    violated: 81202, weighted: 6622.8583984375, len: 0.0, nonzero: 0.17723257839679718
+Epoch 200, Total loss: -5313575936.0000, CE loss: 651.8883, RL loss: -531357632.0000, Reward: -45077159.9442
+    full cols: 546, non-full cols: 813
+   r - labels: 694, labels - r: 0
+    violated: 78198, weighted: 7400.2744140625, len: 0.0, nonzero: 0.18256546556949615
+Epoch 300, Total loss: -8924137472.0000, CE loss: 646.9737, RL loss: -892413888.0000, Reward: -45085843.0514
+    full cols: 545, non-full cols: 813
+   r - labels: 694, labels - r: 1
+    violated: 94550, weighted: 6380.462890625, len: 0.0, nonzero: 0.1754848062992096
+------ Before ABL ------
+--- eval ---
+prediction result:
+f1 on test:    0.5673
+f1 on test:    0.7672 (micro)
+f1 on KB:      0.3617
+integrated f1: 0.3963, w_data: 0.2809, w_klg: 0.7191
+
+integrated result:
+f1 on test:    0.5459
+f1 on test:    0.7414 (micro)
+f1 on KB:      0.4471
+integrated f1: 0.4749, w_data: 0.2809, w_klg: 0.7191
+------------
+integrated f1 0.3963
+
+Epoch 100, Total loss: 4491743744.0000, CE loss: 41.3530, RL loss: 44917436.0000, Reward: -2342914.7891
+    full cols: 662, non-full cols: 18
+   r - labels: 21, labels - r: 6
+    violated: 142566, weighted: 13.522003173828125, len: 0.0, nonzero: 0.13228446245193481
+Epoch 200, Total loss: -3426781952.0000, CE loss: 38.4941, RL loss: -34267820.0000, Reward: -2344598.7383
+    full cols: 664, non-full cols: 16
+   r - labels: 21, labels - r: 6
+    violated: 145162, weighted: 13.552388191223145, len: 0.0, nonzero: 0.13232460618019104
+Epoch 300, Total loss: -4517143552.0000, CE loss: 37.7342, RL loss: -45171436.0000, Reward: -2343948.4062
+    full cols: 663, non-full cols: 17
+   r - labels: 21, labels - r: 6
+    violated: 141102, weighted: 13.23975658416748, len: 0.0, nonzero: 0.13227519392967224
+Epoch 400, Total loss: 2831941376.0000, CE loss: 37.4426, RL loss: 28319414.0000, Reward: -2343590.8828
+    full cols: 662, non-full cols: 19
+   r - labels: 22, labels - r: 6
+    violated: 147600, weighted: 13.538726806640625, len: 0.0, nonzero: 0.13219182193279266
+Epoch 500, Total loss: -6621118976.0000, CE loss: 37.2833, RL loss: -66211188.0000, Reward: -2341126.4873
+    full cols: 663, non-full cols: 18
+   r - labels: 22, labels - r: 6
+    violated: 143143, weighted: 12.742716789245605, len: 0.0, nonzero: 0.13210226595401764
+Epoch 600, Total loss: -6567383040.0000, CE loss: 37.1909, RL loss: -65673832.0000, Reward: -2341482.8281
+    full cols: 662, non-full cols: 18
+   r - labels: 22, labels - r: 7
+    violated: 143044, weighted: 12.800161361694336, len: 0.0, nonzero: 0.13187994062900543
+Epoch 700, Total loss: 11863919616.0000, CE loss: 37.1052, RL loss: 118639192.0000, Reward: -2335059.6309
+    full cols: 663, non-full cols: 17
+   r - labels: 22, labels - r: 7
+    violated: 139831, weighted: 14.48226547241211, len: 0.0, nonzero: 0.13199728727340698
+Epoch 800, Total loss: -6539663360.0000, CE loss: 37.0858, RL loss: -65396632.0000, Reward: -2336380.6992
+    full cols: 662, non-full cols: 15
+   r - labels: 19, labels - r: 7
+    violated: 145300, weighted: 13.978456497192383, len: 0.0, nonzero: 0.13189537823200226
+Epoch 900, Total loss: 3185499904.0000, CE loss: 37.0489, RL loss: 31855000.0000, Reward: -2332397.8662
+    full cols: 661, non-full cols: 19
+   r - labels: 22, labels - r: 7
+    violated: 143758, weighted: 15.426794052124023, len: 0.0, nonzero: 0.1321732997894287
+Epoch 1000, Total loss: -10231860224.0000, CE loss: 37.0239, RL loss: -102318600.0000, Reward: -2334136.4570
+    full cols: 659, non-full cols: 25
+   r - labels: 24, labels - r: 5
+    violated: 144694, weighted: 14.577120780944824, len: 0.0, nonzero: 0.1322937160730362
+Epoch 1100, Total loss: 6298276864.0000, CE loss: 37.0165, RL loss: 62982768.0000, Reward: -2328517.5586
+    full cols: 662, non-full cols: 23
+   r - labels: 25, labels - r: 5
+    violated: 138243, weighted: 16.04140853881836, len: 0.0, nonzero: 0.1322072595357895
+Epoch 1200, Total loss: 5414209024.0000, CE loss: 36.9695, RL loss: 54142088.0000, Reward: -2328635.7500
+    full cols: 660, non-full cols: 21
+   r - labels: 22, labels - r: 6
+    violated: 148545, weighted: 18.78741455078125, len: 0.0, nonzero: 0.13227210938930511
+Epoch 1300, Total loss: 2002493952.0000, CE loss: 36.9685, RL loss: 20024940.0000, Reward: -2328891.3770
+    full cols: 659, non-full cols: 24
+   r - labels: 24, labels - r: 6
+    violated: 135921, weighted: 19.087627410888672, len: 0.0, nonzero: 0.13249753415584564
+Epoch 1400, Total loss: -23342694400.0000, CE loss: 36.9130, RL loss: -233426944.0000, Reward: -2331568.5674
+    full cols: 660, non-full cols: 19
+   r - labels: 22, labels - r: 8
+    violated: 146992, weighted: 19.482648849487305, len: 0.0, nonzero: 0.13197875022888184
+Epoch 1500, Total loss: -11335324672.0000, CE loss: 36.8637, RL loss: -113353248.0000, Reward: -2328636.3398
+    full cols: 656, non-full cols: 28
+   r - labels: 26, labels - r: 7
+    violated: 137945, weighted: 20.146907806396484, len: 0.0, nonzero: 0.13222269713878632
+Epoch 1600, Total loss: -15132387328.0000, CE loss: 36.8553, RL loss: -151323872.0000, Reward: -2328339.9961
+    full cols: 661, non-full cols: 16
+   r - labels: 22, labels - r: 10
+    violated: 140521, weighted: 21.94869613647461, len: 0.0, nonzero: 0.13208065927028656
+Epoch 1700, Total loss: -4815656448.0000, CE loss: 36.7573, RL loss: -48156564.0000, Reward: -2327588.7031
+    full cols: 653, non-full cols: 26
+   r - labels: 25, labels - r: 11
+    violated: 144504, weighted: 24.071252822875977, len: 0.0, nonzero: 0.13166378438472748
+Epoch 1800, Total loss: -6264052224.0000, CE loss: 36.7205, RL loss: -62640524.0000, Reward: -2330956.9434
+    full cols: 654, non-full cols: 25
+   r - labels: 23, labels - r: 9
+    violated: 143815, weighted: 24.402700424194336, len: 0.0, nonzero: 0.13116353750228882
+Epoch 1900, Total loss: -14457403392.0000, CE loss: 36.6735, RL loss: -144574032.0000, Reward: -2329311.1162
+    full cols: 654, non-full cols: 25
+   r - labels: 23, labels - r: 9
+    violated: 147282, weighted: 25.465938568115234, len: 0.0, nonzero: 0.13110795617103577
+--- eval ---
+prediction result:
+f1 on test:    0.5573
+f1 on test:    0.7596 (micro)
+f1 on KB:      0.3760
+integrated f1: 0.4111, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5472
+f1 on test:    0.7398 (micro)
+f1 on KB:      0.4483
+integrated f1: 0.4780, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 2000, Total loss: 4679609344.0000, CE loss: 36.6320, RL loss: 46796092.0000, Reward: -2324498.8633
+    full cols: 656, non-full cols: 23
+   r - labels: 25, labels - r: 11
+    violated: 146848, weighted: 27.38271141052246, len: 0.0, nonzero: 0.13147541880607605
+Epoch 2100, Total loss: 7499577344.0000, CE loss: 36.5416, RL loss: 74995776.0000, Reward: -2324409.1328
+    full cols: 657, non-full cols: 21
+   r - labels: 25, labels - r: 12
+    violated: 145093, weighted: 31.163394927978516, len: 0.0, nonzero: 0.1315433531999588
+Epoch 2200, Total loss: 11471963136.0000, CE loss: 36.4705, RL loss: 114719632.0000, Reward: -2325913.8633
+    full cols: 661, non-full cols: 16
+   r - labels: 23, labels - r: 11
+    violated: 146502, weighted: 30.836366653442383, len: 0.0, nonzero: 0.13204051554203033
+Epoch 2300, Total loss: -3045445888.0000, CE loss: 36.4007, RL loss: -30454458.0000, Reward: -2329086.5840
+    full cols: 661, non-full cols: 18
+   r - labels: 26, labels - r: 12
+    violated: 150030, weighted: 31.777124404907227, len: 0.0, nonzero: 0.1321702003479004
+Epoch 2400, Total loss: -25016338432.0000, CE loss: 36.3540, RL loss: -250163392.0000, Reward: -2331169.7490
+    full cols: 664, non-full cols: 19
+   r - labels: 28, labels - r: 10
+    violated: 140545, weighted: 33.970306396484375, len: 0.0, nonzero: 0.13298851251602173
+Epoch 2500, Total loss: -10622169088.0000, CE loss: 36.2890, RL loss: -106221688.0000, Reward: -2331114.8721
+    full cols: 666, non-full cols: 18
+   r - labels: 30, labels - r: 11
+    violated: 141673, weighted: 32.46324920654297, len: 0.0, nonzero: 0.13347332179546356
+Epoch 2600, Total loss: -16326462464.0000, CE loss: 36.2528, RL loss: -163264624.0000, Reward: -2337017.1484
+    full cols: 661, non-full cols: 25
+   r - labels: 31, labels - r: 10
+    violated: 141680, weighted: 33.90827178955078, len: 0.0, nonzero: 0.1334053874015808
+Epoch 2700, Total loss: -31011727360.0000, CE loss: 36.1707, RL loss: -310117280.0000, Reward: -2344536.6465
+    full cols: 663, non-full cols: 21
+   r - labels: 32, labels - r: 13
+    violated: 137839, weighted: 35.78929138183594, len: 0.0, nonzero: 0.13343626260757446
+Epoch 2800, Total loss: -24837431296.0000, CE loss: 36.1312, RL loss: -248374320.0000, Reward: -2364900.2168
+    full cols: 670, non-full cols: 19
+   r - labels: 38, labels - r: 14
+    violated: 144896, weighted: 96.71989440917969, len: 0.0, nonzero: 0.1347332000732422
+Epoch 2900, Total loss: 24729937920.0000, CE loss: 36.1366, RL loss: 247299376.0000, Reward: -2363796.4141
+    full cols: 670, non-full cols: 22
+   r - labels: 41, labels - r: 14
+    violated: 138782, weighted: 98.18882751464844, len: 0.0, nonzero: 0.13469305634498596
+Epoch 3000, Total loss: 64055828480.0000, CE loss: 36.0061, RL loss: 640558272.0000, Reward: -2364617.1758
+    full cols: 673, non-full cols: 21
+   r - labels: 44, labels - r: 15
+    violated: 141445, weighted: 142.63516235351562, len: 0.0, nonzero: 0.13483509421348572
+Epoch 3100, Total loss: 13717253120.0000, CE loss: 35.9714, RL loss: 137172528.0000, Reward: -2383001.6631
+    full cols: 676, non-full cols: 19
+   r - labels: 49, labels - r: 19
+    violated: 140113, weighted: 249.2904052734375, len: 0.0, nonzero: 0.13534769415855408
+Epoch 3200, Total loss: -41268613120.0000, CE loss: 35.9811, RL loss: -412686112.0000, Reward: -2391068.3281
+    full cols: 676, non-full cols: 23
+   r - labels: 52, labels - r: 18
+    violated: 137557, weighted: 345.84954833984375, len: 0.0, nonzero: 0.13635745644569397
+Epoch 3300, Total loss: -55558975488.0000, CE loss: 35.9552, RL loss: -555589760.0000, Reward: -2405281.1543
+    full cols: 678, non-full cols: 23
+   r - labels: 57, labels - r: 21
+    violated: 136138, weighted: 382.35986328125, len: 0.0, nonzero: 0.13629260659217834
+Epoch 3400, Total loss: -9494489088.0000, CE loss: 35.8397, RL loss: -94944888.0000, Reward: -2405344.0020
+    full cols: 683, non-full cols: 19
+   r - labels: 56, labels - r: 19
+    violated: 142857, weighted: 417.5462341308594, len: 0.0, nonzero: 0.13682682812213898
+Epoch 3500, Total loss: -6924888064.0000, CE loss: 35.7524, RL loss: -69248880.0000, Reward: -2408605.5557
+    full cols: 678, non-full cols: 16
+   r - labels: 53, labels - r: 24
+    violated: 149970, weighted: 416.8280944824219, len: 0.0, nonzero: 0.13574296236038208
+Epoch 3600, Total loss: 84813307904.0000, CE loss: 35.7399, RL loss: 848133056.0000, Reward: -2407534.0215
+    full cols: 674, non-full cols: 26
+   r - labels: 58, labels - r: 23
+    violated: 136845, weighted: 407.9578857421875, len: 0.0, nonzero: 0.13545577228069305
+Epoch 3700, Total loss: -7229253632.0000, CE loss: 35.8516, RL loss: -72292536.0000, Reward: -2426615.9951
+    full cols: 680, non-full cols: 22
+   r - labels: 61, labels - r: 24
+    violated: 140261, weighted: 569.1312255859375, len: 0.0, nonzero: 0.13642847537994385
+Epoch 3800, Total loss: 3990655488.0000, CE loss: 35.6798, RL loss: 39906556.0000, Reward: -2429061.3857
+    full cols: 682, non-full cols: 28
+   r - labels: 66, labels - r: 21
+    violated: 139267, weighted: 549.0189819335938, len: 0.0, nonzero: 0.1367805004119873
+Epoch 3900, Total loss: 7667420160.0000, CE loss: 35.6135, RL loss: 76674200.0000, Reward: -2438291.0898
+    full cols: 692, non-full cols: 21
+   r - labels: 71, labels - r: 23
+    violated: 136164, weighted: 756.710693359375, len: 0.0, nonzero: 0.13885252177715302
+--- eval ---
+prediction result:
+f1 on test:    0.5494
+f1 on test:    0.7498 (micro)
+f1 on KB:      0.3839
+integrated f1: 0.4173, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5431
+f1 on test:    0.7360 (micro)
+f1 on KB:      0.4546
+integrated f1: 0.4811, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 4000, Total loss: 18184019968.0000, CE loss: 35.6756, RL loss: 181840192.0000, Reward: -2448890.8184
+    full cols: 689, non-full cols: 26
+   r - labels: 72, labels - r: 22
+    violated: 146131, weighted: 700.29736328125, len: 0.0, nonzero: 0.13859622180461884
+Epoch 4100, Total loss: 155293335552.0000, CE loss: 44.0217, RL loss: 1552933376.0000, Reward: -2718925.7910
+    full cols: 9, non-full cols: 5043
+   r - labels: 4387, labels - r: 0
+    violated: 123538, weighted: 17162.64453125, len: 0.0, nonzero: 0.24316945672035217
+Epoch 4200, Total loss: -62373081088.0000, CE loss: 43.9507, RL loss: -623730816.0000, Reward: -2903691.9121
+    full cols: 5, non-full cols: 5051
+   r - labels: 4391, labels - r: 0
+    violated: 109111, weighted: 26883.4453125, len: 1095.0, nonzero: 0.3033812940120697
+Epoch 4300, Total loss: 30666199040.0000, CE loss: 39.9964, RL loss: 306661984.0000, Reward: -2873175.1133
+    full cols: 16, non-full cols: 5035
+   r - labels: 4387, labels - r: 1
+    violated: 107650, weighted: 23362.7265625, len: 0.0, nonzero: 0.2805860936641693
+Epoch 4400, Total loss: -79947300864.0000, CE loss: 36.1362, RL loss: -799473024.0000, Reward: -2879427.5977
+    full cols: 13, non-full cols: 5036
+   r - labels: 4385, labels - r: 1
+    violated: 103470, weighted: 23834.85546875, len: 0.0, nonzero: 0.2837141752243042
+Epoch 4500, Total loss: 37740396544.0000, CE loss: 35.3055, RL loss: 377403968.0000, Reward: -2880443.6992
+    full cols: 12, non-full cols: 5037
+   r - labels: 4384, labels - r: 0
+    violated: 99411, weighted: 32103.828125, len: 11273.0, nonzero: 0.33481040596961975
+Epoch 4600, Total loss: 41530728448.0000, CE loss: 35.2093, RL loss: 415307264.0000, Reward: -2859633.9570
+    full cols: 20, non-full cols: 5008
+   r - labels: 4363, labels - r: 0
+    violated: 109188, weighted: 25151.232421875, len: 0.0, nonzero: 0.2912765443325043
+Epoch 4700, Total loss: 53873041408.0000, CE loss: 35.1876, RL loss: 538730432.0000, Reward: -2860037.0859
+    full cols: 15, non-full cols: 5025
+   r - labels: 4376, labels - r: 1
+    violated: 96646, weighted: 34027.203125, len: 14996.0, nonzero: 0.34630680084228516
+Epoch 4800, Total loss: -7911631360.0000, CE loss: 35.1530, RL loss: -79116312.0000, Reward: -2869928.6660
+    full cols: 18, non-full cols: 5021
+   r - labels: 4375, labels - r: 1
+    violated: 114841, weighted: 18088.974609375, len: 0.0, nonzero: 0.2477828562259674
+Epoch 4900, Total loss: 3056122624.0000, CE loss: 35.1382, RL loss: 30561226.0000, Reward: -2869047.8242
+    full cols: 15, non-full cols: 5027
+   r - labels: 4377, labels - r: 0
+    violated: 109309, weighted: 23631.01953125, len: 0.0, nonzero: 0.28203433752059937
+Epoch 5000, Total loss: 22767933440.0000, CE loss: 35.1149, RL loss: 227679344.0000, Reward: -2855413.7773
+    full cols: 17, non-full cols: 5022
+   r - labels: 4374, labels - r: 0
+    violated: 112106, weighted: 24340.40625, len: 0.0, nonzero: 0.28633275628089905
+Epoch 5100, Total loss: 1376024064.0000, CE loss: 35.1096, RL loss: 13760241.0000, Reward: -2865859.2383
+    full cols: 13, non-full cols: 5030
+   r - labels: 4378, labels - r: 0
+    violated: 108721, weighted: 21036.552734375, len: 0.0, nonzero: 0.2660048007965088
+Epoch 5200, Total loss: 75424923648.0000, CE loss: 35.1285, RL loss: 754249216.0000, Reward: -2871344.2090
+    full cols: 17, non-full cols: 5031
+   r - labels: 4383, labels - r: 0
+    violated: 105262, weighted: 35125.49609375, len: 17331.0, nonzero: 0.35351717472076416
+Epoch 5300, Total loss: 4000537088.0000, CE loss: 35.0897, RL loss: 40005372.0000, Reward: -2873516.1699
+    full cols: 14, non-full cols: 5030
+   r - labels: 4379, labels - r: 0
+    violated: 103793, weighted: 30243.671875, len: 7573.0, nonzero: 0.32338500022888184
+Epoch 5400, Total loss: -21122273280.0000, CE loss: 35.1043, RL loss: -211222736.0000, Reward: -2867830.8457
+    full cols: 16, non-full cols: 5021
+   r - labels: 4372, labels - r: 0
+    violated: 116601, weighted: 22031.841796875, len: 0.0, nonzero: 0.27269020676612854
+Epoch 5500, Total loss: -27175297024.0000, CE loss: 35.0828, RL loss: -271752960.0000, Reward: -2862707.1309
+    full cols: 22, non-full cols: 4987
+   r - labels: 4344, labels - r: 0
+    violated: 112889, weighted: 24126.18359375, len: 0.0, nonzero: 0.2854773998260498
+Epoch 5600, Total loss: -6561721856.0000, CE loss: 35.0708, RL loss: -65617220.0000, Reward: -2866119.6230
+    full cols: 21, non-full cols: 5009
+   r - labels: 4367, labels - r: 2
+    violated: 113261, weighted: 24412.216796875, len: 0.0, nonzero: 0.28719738125801086
+Epoch 5700, Total loss: 20104443904.0000, CE loss: 35.0968, RL loss: 201044448.0000, Reward: -2864633.0156
+    full cols: 17, non-full cols: 4998
+   r - labels: 4352, labels - r: 2
+    violated: 110738, weighted: 23728.85546875, len: 0.0, nonzero: 0.28309041261672974
+Epoch 5800, Total loss: 18370179072.0000, CE loss: 35.0814, RL loss: 183701792.0000, Reward: -2872748.4434
+    full cols: 8, non-full cols: 5037
+   r - labels: 4381, labels - r: 1
+    violated: 101720, weighted: 32823.171875, len: 12721.0, nonzero: 0.33928173780441284
+Epoch 5900, Total loss: 111759671296.0000, CE loss: 35.0803, RL loss: 1117596672.0000, Reward: -2810375.5234
+    full cols: 4, non-full cols: 5040
+   r - labels: 4383, labels - r: 4
+    violated: 111844, weighted: 20900.607421875, len: 0.0, nonzero: 0.2657979130744934
+--- eval ---
+prediction result:
+f1 on test:    0.5465
+f1 on test:    0.7412 (micro)
+f1 on KB:      0.3936
+integrated f1: 0.4255, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5396
+f1 on test:    0.7281 (micro)
+f1 on KB:      0.4659
+integrated f1: 0.4880, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 6000, Total loss: 8759425024.0000, CE loss: 35.2303, RL loss: 87594248.0000, Reward: -2454416.3564
+    full cols: 54, non-full cols: 4924
+   r - labels: 4323, labels - r: 10
+    violated: 126499, weighted: 14319.15234375, len: 0.0, nonzero: 0.22455841302871704
+Epoch 6100, Total loss: -11216660480.0000, CE loss: 35.1599, RL loss: -112166608.0000, Reward: -2456014.8281
+    full cols: 105, non-full cols: 4583
+   r - labels: 4037, labels - r: 14
+    violated: 136687, weighted: 6470.125, len: 0.0, nonzero: 0.17598505318164825
+Epoch 6200, Total loss: 23886471168.0000, CE loss: 35.1267, RL loss: 238864704.0000, Reward: -2453580.3164
+    full cols: 60, non-full cols: 4913
+   r - labels: 4321, labels - r: 13
+    violated: 134304, weighted: 7186.2177734375, len: 0.0, nonzero: 0.18067872524261475
+Epoch 6300, Total loss: -15706035200.0000, CE loss: 35.1067, RL loss: -157060352.0000, Reward: -2457316.1055
+    full cols: 67, non-full cols: 4888
+   r - labels: 4303, labels - r: 13
+    violated: 136248, weighted: 6356.8916015625, len: 0.0, nonzero: 0.17535819113254547
+Epoch 6400, Total loss: -22744401920.0000, CE loss: 35.1213, RL loss: -227444016.0000, Reward: -2457291.0332
+    full cols: 78, non-full cols: 4828
+   r - labels: 4254, labels - r: 13
+    violated: 136266, weighted: 9405.74609375, len: 0.0, nonzero: 0.19412055611610413
+Epoch 6500, Total loss: 15361959936.0000, CE loss: 35.1255, RL loss: 153619600.0000, Reward: -2456214.2666
+    full cols: 47, non-full cols: 4941
+   r - labels: 4334, labels - r: 11
+    violated: 133982, weighted: 7263.0634765625, len: 0.0, nonzero: 0.1811295598745346
+Epoch 6600, Total loss: 7566270464.0000, CE loss: 35.1048, RL loss: 75662704.0000, Reward: -2458091.6836
+    full cols: 65, non-full cols: 4871
+   r - labels: 4283, labels - r: 12
+    violated: 133077, weighted: 8454.501953125, len: 0.0, nonzero: 0.1881762593984604
+Epoch 6700, Total loss: -32250576896.0000, CE loss: 35.1195, RL loss: -322505760.0000, Reward: -2461360.8125
+    full cols: 57, non-full cols: 4923
+   r - labels: 4328, labels - r: 13
+    violated: 130713, weighted: 12296.5029296875, len: 0.0, nonzero: 0.21203988790512085
+Epoch 6800, Total loss: 20061786112.0000, CE loss: 35.1126, RL loss: 200617856.0000, Reward: -2458270.7871
+    full cols: 47, non-full cols: 4948
+   r - labels: 4341, labels - r: 11
+    violated: 130633, weighted: 10984.8251953125, len: 0.0, nonzero: 0.20411930978298187
+Epoch 6900, Total loss: 39901995008.0000, CE loss: 35.1168, RL loss: 399019936.0000, Reward: -2458639.5234
+    full cols: 47, non-full cols: 4934
+   r - labels: 4325, labels - r: 9
+    violated: 127467, weighted: 12665.447265625, len: 0.0, nonzero: 0.21440216898918152
+Epoch 7000, Total loss: 29792585728.0000, CE loss: 35.1023, RL loss: 297925856.0000, Reward: -2458839.2266
+    full cols: 50, non-full cols: 4938
+   r - labels: 4335, labels - r: 12
+    violated: 136733, weighted: 8160.6748046875, len: 0.0, nonzero: 0.1867465376853943
+Epoch 7100, Total loss: -22721708032.0000, CE loss: 35.1234, RL loss: -227217072.0000, Reward: -2461615.6816
+    full cols: 58, non-full cols: 4908
+   r - labels: 4314, labels - r: 13
+    violated: 126884, weighted: 12785.341796875, len: 0.0, nonzero: 0.21490859985351562
+Epoch 7200, Total loss: 5538103808.0000, CE loss: 35.1029, RL loss: 55381040.0000, Reward: -2459354.4316
+    full cols: 46, non-full cols: 4928
+   r - labels: 4322, labels - r: 13
+    violated: 136818, weighted: 9315.55859375, len: 0.0, nonzero: 0.1934257596731186
+Epoch 7300, Total loss: 5194516480.0000, CE loss: 35.1176, RL loss: 51945164.0000, Reward: -2461623.1719
+    full cols: 44, non-full cols: 4951
+   r - labels: 4339, labels - r: 9
+    violated: 138828, weighted: 5744.2646484375, len: 0.0, nonzero: 0.17159399390220642
+Epoch 7400, Total loss: 16590798848.0000, CE loss: 35.1298, RL loss: 165907984.0000, Reward: -2459617.0889
+    full cols: 64, non-full cols: 4890
+   r - labels: 4302, labels - r: 13
+    violated: 133664, weighted: 10169.2587890625, len: 0.0, nonzero: 0.19861967861652374
+Epoch 7500, Total loss: 41759297536.0000, CE loss: 35.1060, RL loss: 417592960.0000, Reward: -2457358.3271
+    full cols: 52, non-full cols: 4929
+   r - labels: 4327, labels - r: 11
+    violated: 132922, weighted: 11387.611328125, len: 0.0, nonzero: 0.2061944156885147
+Epoch 7600, Total loss: -8876086272.0000, CE loss: 35.1347, RL loss: -88760864.0000, Reward: -2463057.2637
+    full cols: 50, non-full cols: 4901
+   r - labels: 4299, labels - r: 13
+    violated: 138099, weighted: 5872.60791015625, len: 0.0, nonzero: 0.17206953465938568
+Epoch 7700, Total loss: -53205348352.0000, CE loss: 35.1320, RL loss: -532053472.0000, Reward: -2465884.2441
+    full cols: 50, non-full cols: 4943
+   r - labels: 4340, labels - r: 12
+    violated: 134146, weighted: 10587.5400390625, len: 0.0, nonzero: 0.20125369727611542
+Epoch 7800, Total loss: 49397379072.0000, CE loss: 35.1154, RL loss: 493973792.0000, Reward: -2458924.8633
+    full cols: 65, non-full cols: 4817
+   r - labels: 4228, labels - r: 11
+    violated: 139067, weighted: 6088.30859375, len: 0.0, nonzero: 0.17307621240615845
+Epoch 7900, Total loss: -23875930112.0000, CE loss: 35.1162, RL loss: -238759296.0000, Reward: -2463437.8975
+    full cols: 64, non-full cols: 4886
+   r - labels: 4297, labels - r: 12
+    violated: 126537, weighted: 10510.26953125, len: 0.0, nonzero: 0.20063301920890808
+--- eval ---
+prediction result:
+f1 on test:    0.5465
+f1 on test:    0.7406 (micro)
+f1 on KB:      0.3939
+integrated f1: 0.4258, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5395
+f1 on test:    0.7274 (micro)
+f1 on KB:      0.4663
+integrated f1: 0.4883, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 8000, Total loss: 17299345408.0000, CE loss: 35.0830, RL loss: 172993456.0000, Reward: -2461507.7686
+    full cols: 49, non-full cols: 4950
+   r - labels: 4346, labels - r: 12
+    violated: 130386, weighted: 14159.5546875, len: 0.0, nonzero: 0.22327692806720734
+Epoch 8100, Total loss: 32546099200.0000, CE loss: 35.1290, RL loss: 325460992.0000, Reward: -2461630.9648
+    full cols: 48, non-full cols: 4935
+   r - labels: 4329, labels - r: 11
+    violated: 136451, weighted: 10627.404296875, len: 0.0, nonzero: 0.2013988345861435
+Epoch 8200, Total loss: -4404414976.0000, CE loss: 35.0841, RL loss: -44044148.0000, Reward: -2464155.5967
+    full cols: 165, non-full cols: 4096
+   r - labels: 3608, labels - r: 12
+    violated: 142948, weighted: 3433.930419921875, len: 0.0, nonzero: 0.15679039061069489
+Epoch 8300, Total loss: 6681229824.0000, CE loss: 35.0743, RL loss: 66812300.0000, Reward: -2463459.3242
+    full cols: 42, non-full cols: 4959
+   r - labels: 4346, labels - r: 10
+    violated: 117660, weighted: 24780.791015625, len: 0.0, nonzero: 0.28927555680274963
+Epoch 8400, Total loss: 29088346112.0000, CE loss: 35.0833, RL loss: 290883456.0000, Reward: -2465484.3965
+    full cols: 47, non-full cols: 4942
+   r - labels: 4332, labels - r: 8
+    violated: 136403, weighted: 13088.36328125, len: 0.0, nonzero: 0.21710720658302307
+Epoch 8500, Total loss: 15431406592.0000, CE loss: 35.1160, RL loss: 154314064.0000, Reward: -2466728.0254
+    full cols: 39, non-full cols: 4972
+   r - labels: 4352, labels - r: 6
+    violated: 130044, weighted: 13743.1787109375, len: 0.0, nonzero: 0.22119565308094025
+Epoch 8600, Total loss: 63097073664.0000, CE loss: 35.0967, RL loss: 630970752.0000, Reward: -2466027.1973
+    full cols: 59, non-full cols: 4919
+   r - labels: 4322, labels - r: 9
+    violated: 132427, weighted: 11275.015625, len: 0.0, nonzero: 0.2058362066745758
+Epoch 8700, Total loss: 6989794304.0000, CE loss: 35.0891, RL loss: 69897944.0000, Reward: -2469647.4922
+    full cols: 47, non-full cols: 4945
+   r - labels: 4330, labels - r: 3
+    violated: 128262, weighted: 9991.5576171875, len: 0.0, nonzero: 0.19847145676612854
+Epoch 8800, Total loss: 19291473920.0000, CE loss: 35.1000, RL loss: 192914736.0000, Reward: -2473173.0371
+    full cols: 42, non-full cols: 4958
+   r - labels: 4341, labels - r: 6
+    violated: 130750, weighted: 10585.568359375, len: 0.0, nonzero: 0.2023252248764038
+Epoch 8900, Total loss: 31910316032.0000, CE loss: 35.0278, RL loss: 319103168.0000, Reward: -2469064.3828
+    full cols: 50, non-full cols: 4943
+   r - labels: 4337, labels - r: 9
+    violated: 130846, weighted: 9527.974609375, len: 0.0, nonzero: 0.19545453786849976
+Epoch 9000, Total loss: -25228748800.0000, CE loss: 35.0361, RL loss: -252287488.0000, Reward: -2472331.5273
+    full cols: 40, non-full cols: 4968
+   r - labels: 4346, labels - r: 3
+    violated: 122786, weighted: 17452.50390625, len: 0.0, nonzero: 0.24459917843341827
+Epoch 9100, Total loss: 29387724800.0000, CE loss: 35.0743, RL loss: 293877248.0000, Reward: -2468135.9668
+    full cols: 47, non-full cols: 4944
+   r - labels: 4333, labels - r: 7
+    violated: 126759, weighted: 15742.1484375, len: 0.0, nonzero: 0.23399518430233002
+Epoch 9200, Total loss: -10274191360.0000, CE loss: 35.0867, RL loss: -102741912.0000, Reward: -2471074.1562
+    full cols: 59, non-full cols: 4904
+   r - labels: 4306, labels - r: 8
+    violated: 132439, weighted: 10265.9658203125, len: 0.0, nonzero: 0.20060832798480988
+Epoch 9300, Total loss: 6428107776.0000, CE loss: 35.0309, RL loss: 64281076.0000, Reward: -2469471.3047
+    full cols: 45, non-full cols: 4960
+   r - labels: 4346, labels - r: 6
+    violated: 130505, weighted: 10141.4765625, len: 0.0, nonzero: 0.19962327182292938
+Epoch 9400, Total loss: -16811042816.0000, CE loss: 35.0195, RL loss: -168110432.0000, Reward: -2474116.1729
+    full cols: 41, non-full cols: 4950
+   r - labels: 4330, labels - r: 4
+    violated: 129336, weighted: 11320.4140625, len: 0.0, nonzero: 0.20689846575260162
+Epoch 9500, Total loss: -55966072832.0000, CE loss: 35.0786, RL loss: -559660736.0000, Reward: -2475419.3730
+    full cols: 50, non-full cols: 4951
+   r - labels: 4342, labels - r: 6
+    violated: 133974, weighted: 7338.3681640625, len: 0.0, nonzero: 0.18250061571598053
+Epoch 9600, Total loss: -6327685632.0000, CE loss: 35.0091, RL loss: -63276856.0000, Reward: -2472397.2891
+    full cols: 69, non-full cols: 4868
+   r - labels: 4280, labels - r: 8
+    violated: 125398, weighted: 9550.916015625, len: 0.0, nonzero: 0.19592082500457764
+Epoch 9700, Total loss: -203046448.0000, CE loss: 34.9913, RL loss: -2030464.5000, Reward: -2473378.6875
+    full cols: 50, non-full cols: 4919
+   r - labels: 4311, labels - r: 7
+    violated: 138905, weighted: 8773.7548828125, len: 0.0, nonzero: 0.1905910223722458
+Epoch 9800, Total loss: 44961431552.0000, CE loss: 35.0356, RL loss: 449614336.0000, Reward: -2472733.2305
+    full cols: 41, non-full cols: 4951
+   r - labels: 4333, labels - r: 6
+    violated: 135877, weighted: 7767.70703125, len: 0.0, nonzero: 0.18453556299209595
+Epoch 9900, Total loss: -34297161728.0000, CE loss: 35.0074, RL loss: -342971616.0000, Reward: -2480167.4297
+    full cols: 36, non-full cols: 4965
+   r - labels: 4341, labels - r: 5
+    violated: 122910, weighted: 13971.158203125, len: 0.0, nonzero: 0.2231009155511856
+--- eval ---
+prediction result:
+f1 on test:    0.5460
+f1 on test:    0.7415 (micro)
+f1 on KB:      0.3940
+integrated f1: 0.4258, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5388
+f1 on test:    0.7284 (micro)
+f1 on KB:      0.4678
+integrated f1: 0.4891, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 10000, Total loss: 25569556480.0000, CE loss: 35.0566, RL loss: 255695568.0000, Reward: -2481343.1641
+    full cols: 42, non-full cols: 4940
+   r - labels: 4325, labels - r: 8
+    violated: 130809, weighted: 9672.052734375, len: 0.0, nonzero: 0.19606904685497284
+Epoch 10100, Total loss: -26296023040.0000, CE loss: 35.0290, RL loss: -262960224.0000, Reward: -2484031.6123
+    full cols: 32, non-full cols: 4980
+   r - labels: 4352, labels - r: 5
+    violated: 133320, weighted: 12478.267578125, len: 0.0, nonzero: 0.21362091600894928
+Epoch 10200, Total loss: -44535201792.0000, CE loss: 35.0465, RL loss: -445352032.0000, Reward: -2488785.3145
+    full cols: 30, non-full cols: 4985
+   r - labels: 4355, labels - r: 5
+    violated: 126537, weighted: 14850.4951171875, len: 0.0, nonzero: 0.22795207798480988
+Epoch 10300, Total loss: -12996605952.0000, CE loss: 35.0004, RL loss: -129966056.0000, Reward: -2487264.2402
+    full cols: 52, non-full cols: 4926
+   r - labels: 4322, labels - r: 9
+    violated: 138748, weighted: 6774.98095703125, len: 0.0, nonzero: 0.17844922840595245
+Epoch 10400, Total loss: -11372359680.0000, CE loss: 35.0253, RL loss: -113723600.0000, Reward: -2486439.0664
+    full cols: 36, non-full cols: 4977
+   r - labels: 4355, labels - r: 7
+    violated: 134576, weighted: 9476.240234375, len: 0.0, nonzero: 0.19498208165168762
+Epoch 10500, Total loss: -11275789312.0000, CE loss: 35.0546, RL loss: -112757896.0000, Reward: -2487909.5195
+    full cols: 33, non-full cols: 4981
+   r - labels: 4356, labels - r: 7
+    violated: 136869, weighted: 8493.3154296875, len: 0.0, nonzero: 0.188620924949646
+Epoch 10600, Total loss: 48672927744.0000, CE loss: 35.0014, RL loss: 486729280.0000, Reward: -2484777.4395
+    full cols: 38, non-full cols: 4980
+   r - labels: 4359, labels - r: 6
+    violated: 132944, weighted: 14103.544921875, len: 0.0, nonzero: 0.2239500880241394
+Epoch 10700, Total loss: 79852118016.0000, CE loss: 35.0161, RL loss: 798521152.0000, Reward: -2485479.8340
+    full cols: 28, non-full cols: 4995
+   r - labels: 4364, labels - r: 6
+    violated: 132994, weighted: 10136.4970703125, len: 0.0, nonzero: 0.1997004598379135
+Epoch 10800, Total loss: 56758022144.0000, CE loss: 35.0063, RL loss: 567580224.0000, Reward: -2489327.5732
+    full cols: 37, non-full cols: 4969
+   r - labels: 4348, labels - r: 7
+    violated: 136009, weighted: 10178.490234375, len: 0.0, nonzero: 0.19987647235393524
+Epoch 10900, Total loss: -87574413312.0000, CE loss: 35.0019, RL loss: -875744128.0000, Reward: -2495006.3838
+    full cols: 36, non-full cols: 4974
+   r - labels: 4354, labels - r: 9
+    violated: 131399, weighted: 10832.4609375, len: 0.0, nonzero: 0.20305396616458893
+Epoch 11000, Total loss: -31910457344.0000, CE loss: 35.0281, RL loss: -319104576.0000, Reward: -2494954.9941
+    full cols: 30, non-full cols: 4990
+   r - labels: 4363, labels - r: 8
+    violated: 131866, weighted: 12273.048828125, len: 0.0, nonzero: 0.21212635934352875
+Epoch 11100, Total loss: -46775418880.0000, CE loss: 34.9942, RL loss: -467754208.0000, Reward: -2498711.0059
+    full cols: 28, non-full cols: 4992
+   r - labels: 4361, labels - r: 6
+    violated: 129704, weighted: 11198.697265625, len: 0.0, nonzero: 0.2057991623878479
+Epoch 11200, Total loss: 70454886400.0000, CE loss: 34.9959, RL loss: 704548864.0000, Reward: -2499663.1602
+    full cols: 27, non-full cols: 4999
+   r - labels: 4367, labels - r: 6
+    violated: 123630, weighted: 18836.0, len: 0.0, nonzero: 0.2530292570590973
+Epoch 11300, Total loss: 33021673472.0000, CE loss: 35.0199, RL loss: 330216736.0000, Reward: -2506137.5254
+    full cols: 31, non-full cols: 4992
+   r - labels: 4365, labels - r: 7
+    violated: 135458, weighted: 10331.494140625, len: 0.0, nonzero: 0.20069169998168945
+Epoch 11400, Total loss: 29611378688.0000, CE loss: 35.0340, RL loss: 296113792.0000, Reward: -2504063.7109
+    full cols: 27, non-full cols: 5002
+   r - labels: 4370, labels - r: 6
+    violated: 139636, weighted: 6978.12890625, len: 0.0, nonzero: 0.17938487231731415
+Epoch 11500, Total loss: 110969053184.0000, CE loss: 35.0155, RL loss: 1109690496.0000, Reward: -2504895.5098
+    full cols: 32, non-full cols: 4994
+   r - labels: 4368, labels - r: 7
+    violated: 136672, weighted: 4016.5419921875, len: 0.0, nonzero: 0.16174963116645813
+Epoch 11600, Total loss: -18426638336.0000, CE loss: 35.0307, RL loss: -184266384.0000, Reward: -2509058.0381
+    full cols: 24, non-full cols: 5006
+   r - labels: 4371, labels - r: 6
+    violated: 134243, weighted: 11228.6865234375, len: 0.0, nonzero: 0.20628705620765686
+Epoch 11700, Total loss: -11281610752.0000, CE loss: 35.0029, RL loss: -112816104.0000, Reward: -2510011.8750
+    full cols: 29, non-full cols: 4998
+   r - labels: 4367, labels - r: 5
+    violated: 128559, weighted: 12894.546875, len: 0.0, nonzero: 0.2165205031633377
+Epoch 11800, Total loss: -30448777216.0000, CE loss: 34.9961, RL loss: -304487776.0000, Reward: -2506042.6777
+    full cols: 28, non-full cols: 4998
+   r - labels: 4367, labels - r: 6
+    violated: 126167, weighted: 12607.8388671875, len: 0.0, nonzero: 0.21460288763046265
+Epoch 11900, Total loss: 64677281792.0000, CE loss: 34.9968, RL loss: 646772800.0000, Reward: -2499510.1172
+    full cols: 39, non-full cols: 4979
+   r - labels: 4361, labels - r: 8
+    violated: 135484, weighted: 8798.18359375, len: 0.0, nonzero: 0.19167490303516388
+--- eval ---
+prediction result:
+f1 on test:    0.5476
+f1 on test:    0.7384 (micro)
+f1 on KB:      0.4019
+integrated f1: 0.4330, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5358
+f1 on test:    0.7206 (micro)
+f1 on KB:      0.4765
+integrated f1: 0.4943, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 12000, Total loss: -1022253568.0000, CE loss: 35.1113, RL loss: -10222536.0000, Reward: -2503788.1387
+    full cols: 31, non-full cols: 4997
+   r - labels: 4368, labels - r: 5
+    violated: 126277, weighted: 16695.90234375, len: 0.0, nonzero: 0.23998887836933136
+Epoch 12100, Total loss: 32135401472.0000, CE loss: 35.0848, RL loss: 321354016.0000, Reward: -2506911.9688
+    full cols: 39, non-full cols: 4983
+   r - labels: 4364, labels - r: 7
+    violated: 138816, weighted: 7994.7109375, len: 0.0, nonzero: 0.18617527186870575
+Epoch 12200, Total loss: 67603300352.0000, CE loss: 35.0379, RL loss: 676033024.0000, Reward: -2509262.7744
+    full cols: 17, non-full cols: 5018
+   r - labels: 4376, labels - r: 6
+    violated: 129252, weighted: 12763.4169921875, len: 0.0, nonzero: 0.2152884155511856
+Epoch 12300, Total loss: 81270054912.0000, CE loss: 34.9877, RL loss: 812700544.0000, Reward: -2509945.4219
+    full cols: 26, non-full cols: 5007
+   r - labels: 4375, labels - r: 7
+    violated: 126909, weighted: 17443.8203125, len: 0.0, nonzero: 0.24427802860736847
+Epoch 12400, Total loss: 36884398080.0000, CE loss: 34.9815, RL loss: 368843968.0000, Reward: -2513575.5059
+    full cols: 20, non-full cols: 5017
+   r - labels: 4379, labels - r: 7
+    violated: 133961, weighted: 10587.720703125, len: 0.0, nonzero: 0.20205965638160706
+Epoch 12500, Total loss: 12821564416.0000, CE loss: 34.9969, RL loss: 128215640.0000, Reward: -2516664.0410
+    full cols: 21, non-full cols: 5017
+   r - labels: 4378, labels - r: 5
+    violated: 133316, weighted: 13651.947265625, len: 0.0, nonzero: 0.22123269736766815
+Epoch 12600, Total loss: 73651314688.0000, CE loss: 34.9933, RL loss: 736513152.0000, Reward: -2511279.1084
+    full cols: 27, non-full cols: 5003
+   r - labels: 4372, labels - r: 7
+    violated: 134799, weighted: 10817.947265625, len: 0.0, nonzero: 0.20284707844257355
+Epoch 12700, Total loss: -46651531264.0000, CE loss: 34.9993, RL loss: -466515328.0000, Reward: -2511461.1621
+    full cols: 40, non-full cols: 4981
+   r - labels: 4362, labels - r: 6
+    violated: 130606, weighted: 11073.755859375, len: 0.0, nonzero: 0.20366539061069489
+Epoch 12800, Total loss: 3929071616.0000, CE loss: 35.0117, RL loss: 39290716.0000, Reward: -2507089.5898
+    full cols: 28, non-full cols: 4994
+   r - labels: 4362, labels - r: 5
+    violated: 128736, weighted: 12283.36328125, len: 0.0, nonzero: 0.2117743343114853
+Epoch 12900, Total loss: -73521643520.0000, CE loss: 35.0093, RL loss: -735216448.0000, Reward: -2506783.7949
+    full cols: 41, non-full cols: 4976
+   r - labels: 4358, labels - r: 6
+    violated: 131496, weighted: 14519.6640625, len: 0.0, nonzero: 0.22638338804244995
+Epoch 13000, Total loss: -16331964416.0000, CE loss: 34.9991, RL loss: -163319648.0000, Reward: -2514477.6582
+    full cols: 37, non-full cols: 4990
+   r - labels: 4366, labels - r: 4
+    violated: 140341, weighted: 7162.22900390625, len: 0.0, nonzero: 0.18159276247024536
+Epoch 13100, Total loss: -37119098880.0000, CE loss: 35.0340, RL loss: -371190976.0000, Reward: -2514233.3926
+    full cols: 39, non-full cols: 4980
+   r - labels: 4358, labels - r: 4
+    violated: 129699, weighted: 13966.265625, len: 0.0, nonzero: 0.22239376604557037
+Epoch 13200, Total loss: -22234224640.0000, CE loss: 35.0629, RL loss: -222342240.0000, Reward: -2510823.1445
+    full cols: 38, non-full cols: 4983
+   r - labels: 4361, labels - r: 5
+    violated: 132558, weighted: 12327.2607421875, len: 0.0, nonzero: 0.21389265358448029
+Epoch 13300, Total loss: -29005926400.0000, CE loss: 35.0088, RL loss: -290059264.0000, Reward: -2517853.9609
+    full cols: 43, non-full cols: 4978
+   r - labels: 4362, labels - r: 6
+    violated: 136450, weighted: 10594.9453125, len: 0.0, nonzero: 0.20306941866874695
+Epoch 13400, Total loss: -5196499386368.0000, CE loss: 37.2180, RL loss: -51964993536.0000, Reward: -3397644.1680
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 94104, weighted: 53259.52734375, len: 54076.0, nonzero: 0.4669836759567261
+Epoch 13500, Total loss: 66715144192.0000, CE loss: 37.0163, RL loss: 667151424.0000, Reward: -3488470.1367
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 92496, weighted: 51479.2109375, len: 50512.0, nonzero: 0.45597824454307556
+Epoch 13600, Total loss: 65177382912.0000, CE loss: 35.2103, RL loss: 651773824.0000, Reward: -3531090.0410
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 69115, weighted: 67488.859375, len: 82563.0, nonzero: 0.554949939250946
+Epoch 13700, Total loss: 97783857152.0000, CE loss: 35.1649, RL loss: 977838592.0000, Reward: -3528415.0117
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 94766, weighted: 48830.921875, len: 45209.0, nonzero: 0.43960288166999817
+Epoch 13800, Total loss: -90141138944.0000, CE loss: 35.1459, RL loss: -901411392.0000, Reward: -3524380.6895
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 101094, weighted: 40797.33203125, len: 29128.0, nonzero: 0.3899456560611725
+Epoch 13900, Total loss: 11333085184.0000, CE loss: 35.1148, RL loss: 113330848.0000, Reward: -3525378.9707
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 79256, weighted: 55039.8359375, len: 57640.0, nonzero: 0.4779891073703766
+--- eval ---
+prediction result:
+f1 on test:    0.5466
+f1 on test:    0.7395 (micro)
+f1 on KB:      0.3964
+integrated f1: 0.4280, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.4610
+f1 on test:    0.6120 (micro)
+f1 on KB:      0.6894
+integrated f1: 0.6209, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 14000, Total loss: 31521574912.0000, CE loss: 35.1305, RL loss: 315215744.0000, Reward: -3516740.2559
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 85420, weighted: 53259.52734375, len: 54076.0, nonzero: 0.4669836759567261
+Epoch 14100, Total loss: -86546497536.0000, CE loss: 35.1228, RL loss: -865464960.0000, Reward: -3524186.2773
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 83904, weighted: 55039.83984375, len: 57640.0, nonzero: 0.4779891073703766
+Epoch 14200, Total loss: 90158858240.0000, CE loss: 35.1229, RL loss: 901588544.0000, Reward: -3513638.0762
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 87199, weighted: 51479.2109375, len: 50512.0, nonzero: 0.45597824454307556
+Epoch 14300, Total loss: 75247484928.0000, CE loss: 35.1061, RL loss: 752474880.0000, Reward: -3432598.7559
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 78498, weighted: 62161.09375, len: 71896.0, nonzero: 0.522010862827301
+Epoch 14400, Total loss: 41483833344.0000, CE loss: 35.1038, RL loss: 414838336.0000, Reward: -3432284.4863
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 100563, weighted: 37862.203125, len: 23242.0, nonzero: 0.3717699944972992
+Epoch 14500, Total loss: -10933710848.0000, CE loss: 35.1032, RL loss: -109337112.0000, Reward: -3432246.1230
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 94853, weighted: 43061.578125, len: 33678.0, nonzero: 0.4039957821369171
+Epoch 14600, Total loss: -54763085824.0000, CE loss: 35.1017, RL loss: -547630848.0000, Reward: -3436645.1895
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 86214, weighted: 53259.5234375, len: 54076.0, nonzero: 0.4669836759567261
+Epoch 14700, Total loss: -15393618944.0000, CE loss: 35.1203, RL loss: -153936192.0000, Reward: -3441815.5801
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 100459, weighted: 42595.515625, len: 32727.0, nonzero: 0.4010591506958008
+Epoch 14800, Total loss: 20796338176.0000, CE loss: 35.1069, RL loss: 207963376.0000, Reward: -3442365.8574
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 80298, weighted: 56820.15625, len: 61204.0, nonzero: 0.4889945685863495
+Epoch 14900, Total loss: -40670523392.0000, CE loss: 35.1184, RL loss: -406705216.0000, Reward: -3437520.2715
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 74397, weighted: 60380.78125, len: 68332.0, nonzero: 0.5110054016113281
+Epoch 15000, Total loss: 570043924480.0000, CE loss: 35.1230, RL loss: 5700439552.0000, Reward: -3394346.5996
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 105165, weighted: 37235.1484375, len: 21999.0, nonzero: 0.36793169379234314
+------ ABL Loop 0 ------
+--- eval ---
+prediction result:
+f1 on test:    0.5466
+f1 on test:    0.7397 (micro)
+f1 on KB:      0.3963
+integrated f1: 0.4257, w_data: 0.2809, w_klg: 0.7191
+
+integrated result:
+f1 on test:    0.4721
+f1 on test:    0.6286 (micro)
+f1 on KB:      0.6668
+integrated f1: 0.6121, w_data: 0.2809, w_klg: 0.7191
+------------
+integrated f1 0.4257
+
+KB before refine:
+num_nodes: 5060.0000
+num_edges: 173493.0000
+density: 0.0068
+avg_degree: 34.2872
+avg_clustering: 0.2880
+degree_assortativity: 0.1845
+modularity: 0.4495
+avg_betweenness: 0.0002
+avg_closeness: 0.1414
+Iteration 0: Loss = 11716366.000000
+|Xk-Y|_F:  11716366.000000, |X-X0|:  0.000000
+rounded |X_k-Y|_0 = 8570003, f1 =  0.418693, approx slack: 2562578
+rounded before pow |X_k-Y|_0 = 8407904, f1 =  0.374293
+
+Iteration 20: Loss = 14426822.000000
+|Xk-Y|_F:  13261626.000000, |X-X0|:  1165195.750000
+rounded |X_k-Y|_0 = 9419319, f1 =  0.345872, approx slack: 2513187
+rounded before pow |X_k-Y|_0 = 8407904, f1 =  0.374293
+
+Iteration 40: Loss = 14387160.000000
+|Xk-Y|_F:  13236311.000000, |X-X0|:  1150848.500000
+rounded |X_k-Y|_0 = 9396002, f1 =  0.346678, approx slack: 34961
+rounded before pow |X_k-Y|_0 = 9379637, f1 =  0.347241
+
+Iteration 60: Loss = 14323539.000000
+|Xk-Y|_F:  13226540.000000, |X-X0|:  1096998.625000
+rounded |X_k-Y|_0 = 9390006, f1 =  0.346884, approx slack: 55958
+rounded before pow |X_k-Y|_0 = 9360999, f1 =  0.347884
+
+Iteration 80: Loss = 14254774.000000
+|Xk-Y|_F:  13203075.000000, |X-X0|:  1051699.250000
+rounded |X_k-Y|_0 = 9373299, f1 =  0.347455, approx slack: 77427
+rounded before pow |X_k-Y|_0 = 9334821, f1 =  0.348786
+
+Iteration 100: Loss = 14208382.000000
+|Xk-Y|_F:  13192791.000000, |X-X0|:  1015590.875000
+rounded |X_k-Y|_0 = 9368147, f1 =  0.347632, approx slack: 78972
+rounded before pow |X_k-Y|_0 = 9338461, f1 =  0.348645
+
+Iteration 120: Loss = 14151844.000000
+|Xk-Y|_F:  13165863.000000, |X-X0|:  985981.250000
+rounded |X_k-Y|_0 = 9346926, f1 =  0.348361, approx slack: 83721
+rounded before pow |X_k-Y|_0 = 9335024, f1 =  0.348762
+
+Iteration 140: Loss = 14113522.000000
+|Xk-Y|_F:  13152505.000000, |X-X0|:  961017.250000
+rounded |X_k-Y|_0 = 9340852, f1 =  0.348568, approx slack: 91105
+rounded before pow |X_k-Y|_0 = 9329930, f1 =  0.348934
+
+Iteration 160: Loss = 14070621.000000
+|Xk-Y|_F:  13131336.000000, |X-X0|:  939285.125000
+rounded |X_k-Y|_0 = 9327516, f1 =  0.349023, approx slack: 97259
+rounded before pow |X_k-Y|_0 = 9326074, f1 =  0.349067
+
+Iteration 180: Loss = 14020175.000000
+|Xk-Y|_F:  13099838.000000, |X-X0|:  920337.187500
+rounded |X_k-Y|_0 = 9306818, f1 =  0.349730, approx slack: 101126
+rounded before pow |X_k-Y|_0 = 9318377, f1 =  0.349330
+
+Iteration 200: Loss = 13954368.000000
+|Xk-Y|_F:  13050610.000000, |X-X0|:  903758.375000
+rounded |X_k-Y|_0 = 9274282, f1 =  0.350837, approx slack: 88751
+rounded before pow |X_k-Y|_0 = 9314372, f1 =  0.349483
+
+Iteration 220: Loss = 13909095.000000
+|Xk-Y|_F:  13020256.000000, |X-X0|:  888838.875000
+rounded |X_k-Y|_0 = 9264223, f1 =  0.351172, approx slack: 108169
+rounded before pow |X_k-Y|_0 = 9316763, f1 =  0.349384
+
+Iteration 240: Loss = 13856093.000000
+|Xk-Y|_F:  12980860.000000, |X-X0|:  875232.812500
+rounded |X_k-Y|_0 = 9248800, f1 =  0.351689, approx slack: 129570
+rounded before pow |X_k-Y|_0 = 9317616, f1 =  0.349319
+
+Iteration 260: Loss = 13806778.000000
+|Xk-Y|_F:  12943970.000000, |X-X0|:  862807.812500
+rounded |X_k-Y|_0 = 9235809, f1 =  0.352124, approx slack: 142927
+rounded before pow |X_k-Y|_0 = 9315804, f1 =  0.349381
+
+Iteration 280: Loss = 13751142.000000
+|Xk-Y|_F:  12899835.000000, |X-X0|:  851306.812500
+rounded |X_k-Y|_0 = 9223736, f1 =  0.352519, approx slack: 160543
+rounded before pow |X_k-Y|_0 = 9314972, f1 =  0.349410
+
+Iteration 300: Loss = 13699771.000000
+|Xk-Y|_F:  12859258.000000, |X-X0|:  840512.937500
+rounded |X_k-Y|_0 = 9211489, f1 =  0.352928, approx slack: 182582
+rounded before pow |X_k-Y|_0 = 9314530, f1 =  0.349425
+
+Iteration 320: Loss = 13606609.000000
+|Xk-Y|_F:  12774235.000000, |X-X0|:  832374.000000
+rounded |X_k-Y|_0 = 9195504, f1 =  0.353453, approx slack: 258454
+rounded before pow |X_k-Y|_0 = 9318707, f1 =  0.349281
+
+Iteration 340: Loss = 13525204.000000
+|Xk-Y|_F:  12702394.000000, |X-X0|:  822809.750000
+rounded |X_k-Y|_0 = 9180436, f1 =  0.353932, approx slack: 281225
+rounded before pow |X_k-Y|_0 = 9309447, f1 =  0.349587
+
+Iteration 360: Loss = 13469163.000000
+|Xk-Y|_F:  12652496.000000, |X-X0|:  816667.437500
+rounded |X_k-Y|_0 = 9167109, f1 =  0.354371, approx slack: 235690
+rounded before pow |X_k-Y|_0 = 9309281, f1 =  0.349508
+
+Iteration 380: Loss = 13407003.000000
+|Xk-Y|_F:  12598924.000000, |X-X0|:  808078.812500
+rounded |X_k-Y|_0 = 9146394, f1 =  0.355062, approx slack: 253879
+rounded before pow |X_k-Y|_0 = 9306883, f1 =  0.349586
+
+Iteration 400: Loss = 13342917.000000
+|Xk-Y|_F:  12543120.000000, |X-X0|:  799796.750000
+rounded |X_k-Y|_0 = 9121240, f1 =  0.355900, approx slack: 292432
+rounded before pow |X_k-Y|_0 = 9304794, f1 =  0.349640
+
+Iteration 420: Loss = 13268668.000000
+|Xk-Y|_F:  12476754.000000, |X-X0|:  791914.250000
+rounded |X_k-Y|_0 = 9088291, f1 =  0.356993, approx slack: 336732
+rounded before pow |X_k-Y|_0 = 9304370, f1 =  0.349654
+
+Iteration 440: Loss = 13181268.000000
+|Xk-Y|_F:  12396965.000000, |X-X0|:  784303.437500
+rounded |X_k-Y|_0 = 9041426, f1 =  0.358550, approx slack: 403906
+rounded before pow |X_k-Y|_0 = 9304121, f1 =  0.349661
+
+Iteration 460: Loss = 13054099.000000
+|Xk-Y|_F:  12277260.000000, |X-X0|:  776839.250000
+rounded |X_k-Y|_0 = 8968568, f1 =  0.360963, approx slack: 511032
+rounded before pow |X_k-Y|_0 = 9303829, f1 =  0.349671
+
+Iteration 480: Loss = 12822614.000000
+|Xk-Y|_F:  12053001.000000, |X-X0|:  769612.625000
+rounded |X_k-Y|_0 = 8830093, f1 =  0.365533, approx slack: 696482
+rounded before pow |X_k-Y|_0 = 9290905, f1 =  0.350109
+
+Iteration 500: Loss = 12335800.000000
+|Xk-Y|_F:  11572956.000000, |X-X0|:  762844.000000
+rounded |X_k-Y|_0 = 8507322, f1 =  0.376119, approx slack: 999670
+rounded before pow |X_k-Y|_0 = 9172814, f1 =  0.354138
+
+Iteration 520: Loss = 11704272.000000
+|Xk-Y|_F:  10947407.000000, |X-X0|:  756865.125000
+rounded |X_k-Y|_0 = 8069119, f1 =  0.390193, approx slack: 1283839
+rounded before pow |X_k-Y|_0 = 8866516, f1 =  0.364479
+
+Iteration 540: Loss = 10979110.000000
+|Xk-Y|_F:  10223110.000000, |X-X0|:  756000.000000
+rounded |X_k-Y|_0 = 7601690, f1 =  0.404859, approx slack: 2458767
+rounded before pow |X_k-Y|_0 = 9296617, f1 =  0.349936
+
+Iteration 560: Loss = 10175777.000000
+|Xk-Y|_F:  9411856.000000, |X-X0|:  763920.812500
+rounded |X_k-Y|_0 = 7094001, f1 =  0.420484, approx slack: 3056132
+rounded before pow |X_k-Y|_0 = 9168281, f1 =  0.354315
+
+Iteration 580: Loss = 9323392.000000
+|Xk-Y|_F:  8545936.000000, |X-X0|:  777456.000000
+rounded |X_k-Y|_0 = 6556353, f1 =  0.437020, approx slack: 3692232
+rounded before pow |X_k-Y|_0 = 9056167, f1 =  0.358151
+
+Iteration 600: Loss = 8368047.000000
+|Xk-Y|_F:  7571936.000000, |X-X0|:  796110.875000
+rounded |X_k-Y|_0 = 5957961, f1 =  0.455887, approx slack: 4740856
+rounded before pow |X_k-Y|_0 = 9266829, f1 =  0.350940
+
+Iteration 620: Loss = 7282076.500000
+|Xk-Y|_F:  6465730.500000, |X-X0|:  816345.812500
+rounded |X_k-Y|_0 = 5249099, f1 =  0.479591, approx slack: 5414796
+rounded before pow |X_k-Y|_0 = 9077420, f1 =  0.357382
+
+Iteration 640: Loss = 6079870.500000
+|Xk-Y|_F:  5241490.500000, |X-X0|:  838379.937500
+rounded |X_k-Y|_0 = 4457497, f1 =  0.508245, approx slack: 6088297
+rounded before pow |X_k-Y|_0 = 8865860, f1 =  0.364538
+
+Iteration 660: Loss = 4924525.500000
+|Xk-Y|_F:  4070575.750000, |X-X0|:  853949.625000
+rounded |X_k-Y|_0 = 3712490, f1 =  0.536455, approx slack: 7743782
+rounded before pow |X_k-Y|_0 = 9392387, f1 =  0.346678
+
+Iteration 680: Loss = 4139979.750000
+|Xk-Y|_F:  3286814.000000, |X-X0|:  853165.687500
+rounded |X_k-Y|_0 = 3118185, f1 =  0.561568, approx slack: 8356197
+rounded before pow |X_k-Y|_0 = 9403183, f1 =  0.346313
+
+Iteration 700: Loss = 3647154.250000
+|Xk-Y|_F:  2804857.000000, |X-X0|:  842297.312500
+rounded |X_k-Y|_0 = 2609833, f1 =  0.584789, approx slack: 8700416
+rounded before pow |X_k-Y|_0 = 9375765, f1 =  0.347260
+
+Iteration 720: Loss = 3350795.000000
+|Xk-Y|_F:  2522716.000000, |X-X0|:  828078.875000
+rounded |X_k-Y|_0 = 2316409, f1 =  0.599121, approx slack: 8805655
+rounded before pow |X_k-Y|_0 = 9380126, f1 =  0.347076
+
+Iteration 740: Loss = 3175166.000000
+|Xk-Y|_F:  2361945.250000, |X-X0|:  813220.750000
+rounded |X_k-Y|_0 = 2162541, f1 =  0.606811, approx slack: 8851048
+rounded before pow |X_k-Y|_0 = 9384394, f1 =  0.346915
+
+Iteration 760: Loss = 3057085.250000
+|Xk-Y|_F:  2256793.500000, |X-X0|:  800291.750000
+rounded |X_k-Y|_0 = 2087446, f1 =  0.610638, approx slack: 8715015
+rounded before pow |X_k-Y|_0 = 9298382, f1 =  0.349830
+
+Iteration 780: Loss = 2963044.500000
+|Xk-Y|_F:  2171765.750000, |X-X0|:  791278.750000
+rounded |X_k-Y|_0 = 2035213, f1 =  0.613335, approx slack: 8628723
+rounded before pow |X_k-Y|_0 = 9243332, f1 =  0.351687
+
+Iteration 800: Loss = 2859486.750000
+|Xk-Y|_F:  2072654.750000, |X-X0|:  786832.000000
+rounded |X_k-Y|_0 = 2004441, f1 =  0.614899, approx slack: 8683671
+rounded before pow |X_k-Y|_0 = 9277802, f1 =  0.350507
+
+Iteration 820: Loss = 2741175.250000
+|Xk-Y|_F:  1958264.375000, |X-X0|:  782910.875000
+rounded |X_k-Y|_0 = 1959729, f1 =  0.617102, approx slack: 8745346
+rounded before pow |X_k-Y|_0 = 9294806, f1 =  0.349915
+
+Iteration 840: Loss = 2647425.000000
+|Xk-Y|_F:  1871647.750000, |X-X0|:  775777.375000
+rounded |X_k-Y|_0 = 1835919, f1 =  0.623148, approx slack: 8872529
+rounded before pow |X_k-Y|_0 = 9302153, f1 =  0.349667
+
+Iteration 860: Loss = 2588962.000000
+|Xk-Y|_F:  1822124.625000, |X-X0|:  766837.437500
+rounded |X_k-Y|_0 = 1764018, f1 =  0.626708, approx slack: 8961523
+rounded before pow |X_k-Y|_0 = 9323513, f1 =  0.348933
+
+Iteration 880: Loss = 2546596.250000
+|Xk-Y|_F:  1788630.375000, |X-X0|:  757965.875000
+rounded |X_k-Y|_0 = 1719223, f1 =  0.628938, approx slack: 9135325
+rounded before pow |X_k-Y|_0 = 9408919, f1 =  0.346018
+
+Iteration 900: Loss = 2511514.250000
+|Xk-Y|_F:  1761713.125000, |X-X0|:  749801.062500
+rounded |X_k-Y|_0 = 1687768, f1 =  0.630522, approx slack: 9195250
+rounded before pow |X_k-Y|_0 = 9436897, f1 =  0.345054
+
+Iteration 920: Loss = 2481848.500000
+|Xk-Y|_F:  1739720.125000, |X-X0|:  742128.500000
+rounded |X_k-Y|_0 = 1661559, f1 =  0.631885, approx slack: 9233479
+rounded before pow |X_k-Y|_0 = 9447129, f1 =  0.344701
+
+Iteration 940: Loss = 2455915.000000
+|Xk-Y|_F:  1721091.875000, |X-X0|:  734823.000000
+rounded |X_k-Y|_0 = 1643536, f1 =  0.632825, approx slack: 9205917
+rounded before pow |X_k-Y|_0 = 9429561, f1 =  0.345291
+
+Iteration 960: Loss = 2433059.750000
+|Xk-Y|_F:  1705159.375000, |X-X0|:  727900.437500
+rounded |X_k-Y|_0 = 1629065, f1 =  0.633570, approx slack: 9247705
+rounded before pow |X_k-Y|_0 = 9460856, f1 =  0.344205
+
+Iteration 980: Loss = 2413056.000000
+|Xk-Y|_F:  1691847.000000, |X-X0|:  721208.875000
+rounded |X_k-Y|_0 = 1617170, f1 =  0.634179, approx slack: 9208890
+rounded before pow |X_k-Y|_0 = 9427108, f1 =  0.345372
+
+Iteration 1000: Loss = 2394898.500000
+|Xk-Y|_F:  1680170.375000, |X-X0|:  714728.187500
+rounded |X_k-Y|_0 = 1606430, f1 =  0.634727, approx slack: 9098855
+rounded before pow |X_k-Y|_0 = 9307941, f1 =  0.349490
+
+Iteration 1020: Loss = 2378705.500000
+|Xk-Y|_F:  1670063.750000, |X-X0|:  708641.687500
+rounded |X_k-Y|_0 = 1597796, f1 =  0.635180, approx slack: 8980748
+rounded before pow |X_k-Y|_0 = 9185372, f1 =  0.353703
+
+Iteration 1040: Loss = 2363903.500000
+|Xk-Y|_F:  1660935.750000, |X-X0|:  702967.875000
+rounded |X_k-Y|_0 = 1590079, f1 =  0.635577, approx slack: 8987280
+rounded before pow |X_k-Y|_0 = 9181329, f1 =  0.353845
+
+Iteration 1060: Loss = 2350492.000000
+|Xk-Y|_F:  1652862.375000, |X-X0|:  697629.687500
+rounded |X_k-Y|_0 = 1583388, f1 =  0.635920, approx slack: 9005677
+rounded before pow |X_k-Y|_0 = 9192992, f1 =  0.353447
+
+Iteration 1080: Loss = 2338061.750000
+|Xk-Y|_F:  1645469.125000, |X-X0|:  692592.562500
+rounded |X_k-Y|_0 = 1577962, f1 =  0.636202, approx slack: 9021238
+rounded before pow |X_k-Y|_0 = 9198690, f1 =  0.353255
+
+Iteration 1100: Loss = 2326487.000000
+|Xk-Y|_F:  1638658.125000, |X-X0|:  687828.750000
+rounded |X_k-Y|_0 = 1573483, f1 =  0.636437, approx slack: 9007023
+rounded before pow |X_k-Y|_0 = 9181823, f1 =  0.353832
+
+Iteration 1120: Loss = 2315517.000000
+|Xk-Y|_F:  1632272.625000, |X-X0|:  683244.250000
+rounded |X_k-Y|_0 = 1568725, f1 =  0.636686, approx slack: 9024581
+rounded before pow |X_k-Y|_0 = 9194009, f1 =  0.353414
+
+Iteration 1140: Loss = 2305164.000000
+|Xk-Y|_F:  1626350.375000, |X-X0|:  678813.750000
+rounded |X_k-Y|_0 = 1564162, f1 =  0.636924, approx slack: 9047193
+rounded before pow |X_k-Y|_0 = 9205243, f1 =  0.353031
+
+Iteration 1160: Loss = 2295184.750000
+|Xk-Y|_F:  1620686.875000, |X-X0|:  674497.937500
+rounded |X_k-Y|_0 = 1560315, f1 =  0.637124, approx slack: 9042361
+rounded before pow |X_k-Y|_0 = 9188808, f1 =  0.353594
+
+Iteration 1180: Loss = 2285530.000000
+|Xk-Y|_F:  1615246.500000, |X-X0|:  670283.625000
+rounded |X_k-Y|_0 = 1556064, f1 =  0.637346, approx slack: 9069813
+rounded before pow |X_k-Y|_0 = 9208288, f1 =  0.352928
+
+Iteration 1200: Loss = 2276191.000000
+|Xk-Y|_F:  1610028.000000, |X-X0|:  666163.125000
+rounded |X_k-Y|_0 = 1552863, f1 =  0.637514, approx slack: 9151079
+rounded before pow |X_k-Y|_0 = 9272788, f1 =  0.350724
+
+Iteration 1220: Loss = 2267381.250000
+|Xk-Y|_F:  1605229.250000, |X-X0|:  662152.000000
+rounded |X_k-Y|_0 = 1549790, f1 =  0.637675, approx slack: 9154614
+rounded before pow |X_k-Y|_0 = 9273895, f1 =  0.350686
+
+Iteration 1240: Loss = 2259051.000000
+|Xk-Y|_F:  1600851.375000, |X-X0|:  658199.562500
+rounded |X_k-Y|_0 = 1546667, f1 =  0.637838, approx slack: 9163720
+rounded before pow |X_k-Y|_0 = 9280600, f1 =  0.350455
+
+Iteration 1260: Loss = 2251144.000000
+|Xk-Y|_F:  1596824.000000, |X-X0|:  654320.062500
+rounded |X_k-Y|_0 = 1544159, f1 =  0.637969, approx slack: 9171486
+rounded before pow |X_k-Y|_0 = 9287244, f1 =  0.350225
+
+Iteration 1280: Loss = 2243652.500000
+|Xk-Y|_F:  1593160.125000, |X-X0|:  650492.500000
+rounded |X_k-Y|_0 = 1541895, f1 =  0.638088, approx slack: 9173473
+rounded before pow |X_k-Y|_0 = 9288909, f1 =  0.350167
+
+Iteration 1300: Loss = 2236421.500000
+|Xk-Y|_F:  1589676.750000, |X-X0|:  646744.875000
+rounded |X_k-Y|_0 = 1540326, f1 =  0.638171, approx slack: 9176434
+rounded before pow |X_k-Y|_0 = 9292512, f1 =  0.350041
+
+Iteration 1320: Loss = 2229353.500000
+|Xk-Y|_F:  1586290.125000, |X-X0|:  643063.500000
+rounded |X_k-Y|_0 = 1537944, f1 =  0.638297, approx slack: 9182231
+rounded before pow |X_k-Y|_0 = 9293656, f1 =  0.350002
+
+Iteration 1340: Loss = 2222524.500000
+|Xk-Y|_F:  1583073.875000, |X-X0|:  639450.500000
+rounded |X_k-Y|_0 = 1535667, f1 =  0.638418, approx slack: 9193461
+rounded before pow |X_k-Y|_0 = 9302395, f1 =  0.349702
+
+Iteration 1360: Loss = 2216127.750000
+|Xk-Y|_F:  1580192.625000, |X-X0|:  635935.125000
+rounded |X_k-Y|_0 = 1533559, f1 =  0.638529, approx slack: 9210872
+rounded before pow |X_k-Y|_0 = 9312537, f1 =  0.349357
+
+Iteration 1380: Loss = 2210023.000000
+|Xk-Y|_F:  1577516.375000, |X-X0|:  632506.562500
+rounded |X_k-Y|_0 = 1531312, f1 =  0.638648, approx slack: 9155661
+rounded before pow |X_k-Y|_0 = 9262167, f1 =  0.351085
+
+Iteration 1400: Loss = 2204067.250000
+|Xk-Y|_F:  1574944.750000, |X-X0|:  629122.500000
+rounded |X_k-Y|_0 = 1529220, f1 =  0.638759, approx slack: 9155419
+rounded before pow |X_k-Y|_0 = 9261534, f1 =  0.351107
+
+Iteration 1420: Loss = 2198271.750000
+|Xk-Y|_F:  1572481.125000, |X-X0|:  625790.687500
+rounded |X_k-Y|_0 = 1527922, f1 =  0.638830, approx slack: 9156437
+rounded before pow |X_k-Y|_0 = 9261119, f1 =  0.351121
+
+Iteration 1440: Loss = 2192178.500000
+|Xk-Y|_F:  1569603.125000, |X-X0|:  622575.375000
+rounded |X_k-Y|_0 = 1525444, f1 =  0.638960, approx slack: 9162992
+rounded before pow |X_k-Y|_0 = 9266893, f1 =  0.350922
+
+Iteration 1460: Loss = 2186635.500000
+|Xk-Y|_F:  1567243.250000, |X-X0|:  619392.250000
+rounded |X_k-Y|_0 = 1523304, f1 =  0.639073, approx slack: 9176176
+rounded before pow |X_k-Y|_0 = 9275261, f1 =  0.350638
+
+Iteration 1480: Loss = 2181194.500000
+|Xk-Y|_F:  1564978.750000, |X-X0|:  616215.750000
+rounded |X_k-Y|_0 = 1521140, f1 =  0.639185, approx slack: 9183336
+rounded before pow |X_k-Y|_0 = 9278821, f1 =  0.350515
+
+Iteration 1500: Loss = 2175777.500000
+|Xk-Y|_F:  1562748.125000, |X-X0|:  613029.312500
+rounded |X_k-Y|_0 = 1518682, f1 =  0.639314, approx slack: 9168154
+rounded before pow |X_k-Y|_0 = 9278801, f1 =  0.350515
+
+Iteration 1520: Loss = 2170425.500000
+|Xk-Y|_F:  1560569.750000, |X-X0|:  609855.875000
+rounded |X_k-Y|_0 = 1516640, f1 =  0.639419, approx slack: 9174477
+rounded before pow |X_k-Y|_0 = 9279171, f1 =  0.350505
+
+Iteration 1540: Loss = 2165279.500000
+|Xk-Y|_F:  1558485.000000, |X-X0|:  606794.375000
+rounded |X_k-Y|_0 = 1514320, f1 =  0.639538, approx slack: 9180867
+rounded before pow |X_k-Y|_0 = 9285340, f1 =  0.350292
+
+Iteration 1560: Loss = 2160269.250000
+|Xk-Y|_F:  1556417.125000, |X-X0|:  603852.125000
+rounded |X_k-Y|_0 = 1512242, f1 =  0.639645, approx slack: 9167434
+rounded before pow |X_k-Y|_0 = 9272930, f1 =  0.350720
+
+Iteration 1580: Loss = 2155404.500000
+|Xk-Y|_F:  1554403.250000, |X-X0|:  601001.125000
+rounded |X_k-Y|_0 = 1510318, f1 =  0.639746, approx slack: 9165162
+rounded before pow |X_k-Y|_0 = 9269958, f1 =  0.350821
+
+Iteration 1600: Loss = 2150648.000000
+|Xk-Y|_F:  1552427.750000, |X-X0|:  598220.375000
+rounded |X_k-Y|_0 = 1508497, f1 =  0.639840, approx slack: 9187530
+rounded before pow |X_k-Y|_0 = 9289586, f1 =  0.350147
+
+Iteration 1620: Loss = 2146190.500000
+|Xk-Y|_F:  1550685.875000, |X-X0|:  595504.625000
+rounded |X_k-Y|_0 = 1507267, f1 =  0.639904, approx slack: 9187555
+rounded before pow |X_k-Y|_0 = 9289938, f1 =  0.350134
+
+Iteration 1640: Loss = 2141453.750000
+|Xk-Y|_F:  1548633.250000, |X-X0|:  592820.500000
+rounded |X_k-Y|_0 = 1504780, f1 =  0.640032, approx slack: 9191955
+rounded before pow |X_k-Y|_0 = 9293082, f1 =  0.350025
+
+Iteration 1660: Loss = 2137008.000000
+|Xk-Y|_F:  1546825.750000, |X-X0|:  590182.125000
+rounded |X_k-Y|_0 = 1502657, f1 =  0.640143, approx slack: 9193710
+rounded before pow |X_k-Y|_0 = 9290304, f1 =  0.350120
+
+Iteration 1680: Loss = 2132718.000000
+|Xk-Y|_F:  1545145.500000, |X-X0|:  587572.625000
+rounded |X_k-Y|_0 = 1500522, f1 =  0.640253, approx slack: 9203265
+rounded before pow |X_k-Y|_0 = 9291748, f1 =  0.350071
+
+Iteration 1700: Loss = 2128533.500000
+|Xk-Y|_F:  1543542.625000, |X-X0|:  584991.000000
+rounded |X_k-Y|_0 = 1498819, f1 =  0.640342, approx slack: 9146826
+rounded before pow |X_k-Y|_0 = 9298401, f1 =  0.349841
+
+Iteration 1720: Loss = 2124499.500000
+|Xk-Y|_F:  1542053.125000, |X-X0|:  582446.250000
+rounded |X_k-Y|_0 = 1497579, f1 =  0.640407, approx slack: 9136283
+rounded before pow |X_k-Y|_0 = 9293626, f1 =  0.350004
+
+Iteration 1740: Loss = 2120565.250000
+|Xk-Y|_F:  1540611.000000, |X-X0|:  579954.250000
+rounded |X_k-Y|_0 = 1496509, f1 =  0.640462, approx slack: 9138657
+rounded before pow |X_k-Y|_0 = 9295540, f1 =  0.349943
+
+Iteration 1760: Loss = 2116568.000000
+|Xk-Y|_F:  1539083.125000, |X-X0|:  577484.750000
+rounded |X_k-Y|_0 = 1494663, f1 =  0.640557, approx slack: 9143534
+rounded before pow |X_k-Y|_0 = 9298905, f1 =  0.349827
+
+Iteration 1780: Loss = 2112753.000000
+|Xk-Y|_F:  1537712.625000, |X-X0|:  575040.312500
+rounded |X_k-Y|_0 = 1493607, f1 =  0.640612, approx slack: 9143754
+rounded before pow |X_k-Y|_0 = 9302001, f1 =  0.349720
+
+Iteration 1800: Loss = 2108926.250000
+|Xk-Y|_F:  1536321.875000, |X-X0|:  572604.375000
+rounded |X_k-Y|_0 = 1491832, f1 =  0.640703, approx slack: 9138113
+rounded before pow |X_k-Y|_0 = 9299216, f1 =  0.349813
+
+Iteration 1820: Loss = 2105463.000000
+|Xk-Y|_F:  1535258.625000, |X-X0|:  570204.312500
+rounded |X_k-Y|_0 = 1490977, f1 =  0.640749, approx slack: 9135419
+rounded before pow |X_k-Y|_0 = 9298503, f1 =  0.349836
+
+Iteration 1840: Loss = 2101666.500000
+|Xk-Y|_F:  1533832.000000, |X-X0|:  567834.375000
+rounded |X_k-Y|_0 = 1489118, f1 =  0.640844, approx slack: 9132055
+rounded before pow |X_k-Y|_0 = 9295532, f1 =  0.349938
+
+Iteration 1860: Loss = 2098043.500000
+|Xk-Y|_F:  1532555.500000, |X-X0|:  565487.937500
+rounded |X_k-Y|_0 = 1488014, f1 =  0.640901, approx slack: 9134295
+rounded before pow |X_k-Y|_0 = 9298161, f1 =  0.349847
+
+Iteration 1880: Loss = 2094636.500000
+|Xk-Y|_F:  1531466.125000, |X-X0|:  563170.375000
+rounded |X_k-Y|_0 = 1487569, f1 =  0.640926, approx slack: 9137235
+rounded before pow |X_k-Y|_0 = 9303209, f1 =  0.349672
+
+Iteration 1900: Loss = 2091294.000000
+|Xk-Y|_F:  1530439.625000, |X-X0|:  560854.375000
+rounded |X_k-Y|_0 = 1486015, f1 =  0.641005, approx slack: 9130489
+rounded before pow |X_k-Y|_0 = 9295712, f1 =  0.349930
+
+Iteration 1920: Loss = 2088032.250000
+|Xk-Y|_F:  1529476.250000, |X-X0|:  558556.000000
+rounded |X_k-Y|_0 = 1485847, f1 =  0.641017, approx slack: 9111185
+rounded before pow |X_k-Y|_0 = 9276951, f1 =  0.350575
+
+Iteration 1940: Loss = 2084467.500000
+|Xk-Y|_F:  1528191.500000, |X-X0|:  556275.937500
+rounded |X_k-Y|_0 = 1484446, f1 =  0.641090, approx slack: 9096970
+rounded before pow |X_k-Y|_0 = 9262921, f1 =  0.351057
+
+Iteration 1960: Loss = 2081114.500000
+|Xk-Y|_F:  1527100.750000, |X-X0|:  554013.687500
+rounded |X_k-Y|_0 = 1483779, f1 =  0.641125, approx slack: 9095163
+rounded before pow |X_k-Y|_0 = 9260934, f1 =  0.351125
+
+Iteration 1980: Loss = 2077827.250000
+|Xk-Y|_F:  1526065.750000, |X-X0|:  551761.500000
+rounded |X_k-Y|_0 = 1483207, f1 =  0.641156, approx slack: 9096112
+rounded before pow |X_k-Y|_0 = 9262712, f1 =  0.351063
+
+Iteration 2000: Loss = 2075093.250000
+|Xk-Y|_F:  1525555.500000, |X-X0|:  549537.812500
+rounded |X_k-Y|_0 = 1483446, f1 =  0.641145, approx slack: 9098896
+rounded before pow |X_k-Y|_0 = 9263118, f1 =  0.351051
+
+Iteration 2020: Loss = 2072267.375000
+|Xk-Y|_F:  1524943.750000, |X-X0|:  547323.625000
+rounded |X_k-Y|_0 = 1483102, f1 =  0.641163, approx slack: 9091050
+rounded before pow |X_k-Y|_0 = 9257640, f1 =  0.351239
+
+Iteration 2040: Loss = 2068202.500000
+|Xk-Y|_F:  1523091.625000, |X-X0|:  545110.937500
+rounded |X_k-Y|_0 = 1480544, f1 =  0.641294, approx slack: 9091885
+rounded before pow |X_k-Y|_0 = 9257011, f1 =  0.351260
+
+Iteration 2060: Loss = 2065041.000000
+|Xk-Y|_F:  1522113.750000, |X-X0|:  542927.250000
+rounded |X_k-Y|_0 = 1480173, f1 =  0.641313, approx slack: 9091200
+rounded before pow |X_k-Y|_0 = 9257088, f1 =  0.351256
+
+Iteration 2080: Loss = 2062025.375000
+|Xk-Y|_F:  1521265.125000, |X-X0|:  540760.250000
+rounded |X_k-Y|_0 = 1480021, f1 =  0.641320, approx slack: 9086405
+rounded before pow |X_k-Y|_0 = 9257054, f1 =  0.351258
+
+Iteration 2100: Loss = 2058947.125000
+|Xk-Y|_F:  1520336.500000, |X-X0|:  538610.625000
+rounded |X_k-Y|_0 = 1478630, f1 =  0.641392, approx slack: 9081814
+rounded before pow |X_k-Y|_0 = 9256721, f1 =  0.351268
+
+Iteration 2120: Loss = 2055820.500000
+|Xk-Y|_F:  1519344.500000, |X-X0|:  536476.062500
+rounded |X_k-Y|_0 = 1477986, f1 =  0.641426, approx slack: 9083523
+rounded before pow |X_k-Y|_0 = 9260935, f1 =  0.351123
+
+Iteration 2140: Loss = 2053132.375000
+|Xk-Y|_F:  1518760.500000, |X-X0|:  534371.875000
+rounded |X_k-Y|_0 = 1476920, f1 =  0.641481, approx slack: 9081449
+rounded before pow |X_k-Y|_0 = 9260334, f1 =  0.351143
+
+Iteration 2160: Loss = 2050357.125000
+|Xk-Y|_F:  1518092.625000, |X-X0|:  532264.500000
+rounded |X_k-Y|_0 = 1476434, f1 =  0.641507, approx slack: 9070944
+rounded before pow |X_k-Y|_0 = 9257431, f1 =  0.351240
+
+Iteration 2180: Loss = 2047095.500000
+|Xk-Y|_F:  1516914.875000, |X-X0|:  530180.625000
+rounded |X_k-Y|_0 = 1475784, f1 =  0.641540, approx slack: 9067401
+rounded before pow |X_k-Y|_0 = 9257240, f1 =  0.351247
+
+Iteration 2200: Loss = 2043860.000000
+|Xk-Y|_F:  1515752.625000, |X-X0|:  528107.437500
+rounded |X_k-Y|_0 = 1474719, f1 =  0.641595, approx slack: 9074505
+rounded before pow |X_k-Y|_0 = 9261605, f1 =  0.351100
+
+Iteration 2220: Loss = 2040885.250000
+|Xk-Y|_F:  1514831.500000, |X-X0|:  526053.750000
+rounded |X_k-Y|_0 = 1473631, f1 =  0.641651, approx slack: 9071178
+rounded before pow |X_k-Y|_0 = 9260491, f1 =  0.351133
+
+Iteration 2240: Loss = 2038742.500000
+|Xk-Y|_F:  1514698.750000, |X-X0|:  524043.718750
+rounded |X_k-Y|_0 = 1474454, f1 =  0.641611, approx slack: 9068634
+rounded before pow |X_k-Y|_0 = 9258962, f1 =  0.351185
+
+Iteration 2260: Loss = 2035101.375000
+|Xk-Y|_F:  1513067.625000, |X-X0|:  522033.781250
+rounded |X_k-Y|_0 = 1472681, f1 =  0.641700, approx slack: 8889017
+rounded before pow |X_k-Y|_0 = 9099551, f1 =  0.356629
+
+Iteration 2280: Loss = 2032306.875000
+|Xk-Y|_F:  1512263.125000, |X-X0|:  520043.750000
+rounded |X_k-Y|_0 = 1472404, f1 =  0.641715, approx slack: 8885688
+rounded before pow |X_k-Y|_0 = 9097118, f1 =  0.356711
+
+Iteration 2300: Loss = 2029194.250000
+|Xk-Y|_F:  1511150.125000, |X-X0|:  518044.156250
+rounded |X_k-Y|_0 = 1470796, f1 =  0.641798, approx slack: 8882932
+rounded before pow |X_k-Y|_0 = 9093075, f1 =  0.356851
+
+Iteration 2320: Loss = 2026302.500000
+|Xk-Y|_F:  1510248.625000, |X-X0|:  516053.906250
+rounded |X_k-Y|_0 = 1469493, f1 =  0.641865, approx slack: 8887183
+rounded before pow |X_k-Y|_0 = 9096799, f1 =  0.356723
+
+Iteration 2340: Loss = 2023486.000000
+|Xk-Y|_F:  1509390.375000, |X-X0|:  514095.687500
+rounded |X_k-Y|_0 = 1469087, f1 =  0.641887, approx slack: 8881739
+rounded before pow |X_k-Y|_0 = 9094782, f1 =  0.356793
+
+Iteration 2360: Loss = 2021468.125000
+|Xk-Y|_F:  1509330.125000, |X-X0|:  512137.968750
+rounded |X_k-Y|_0 = 1469588, f1 =  0.641862, approx slack: 8881313
+rounded before pow |X_k-Y|_0 = 9093743, f1 =  0.356828
+
+Iteration 2380: Loss = 2018566.250000
+|Xk-Y|_F:  1508368.625000, |X-X0|:  510197.656250
+rounded |X_k-Y|_0 = 1468419, f1 =  0.641922, approx slack: 8877602
+rounded before pow |X_k-Y|_0 = 9091693, f1 =  0.356898
+
+Iteration 2400: Loss = 2015251.250000
+|Xk-Y|_F:  1506995.750000, |X-X0|:  508255.531250
+rounded |X_k-Y|_0 = 1466381, f1 =  0.642027, approx slack: 8866683
+rounded before pow |X_k-Y|_0 = 9082105, f1 =  0.357223
+
+Iteration 2420: Loss = 2012538.250000
+|Xk-Y|_F:  1506186.000000, |X-X0|:  506352.187500
+rounded |X_k-Y|_0 = 1466358, f1 =  0.642028, approx slack: 8866648
+rounded before pow |X_k-Y|_0 = 9082816, f1 =  0.357198
+
+Iteration 2440: Loss = 2011707.500000
+|Xk-Y|_F:  1507221.375000, |X-X0|:  504486.125000
+rounded |X_k-Y|_0 = 1468242, f1 =  0.641934, approx slack: 8866508
+rounded before pow |X_k-Y|_0 = 9084025, f1 =  0.357157
+
+Iteration 2460: Loss = 2007228.750000
+|Xk-Y|_F:  1504622.375000, |X-X0|:  502606.312500
+rounded |X_k-Y|_0 = 1464493, f1 =  0.642125, approx slack: 8863888
+rounded before pow |X_k-Y|_0 = 9083379, f1 =  0.357178
+
+Iteration 2480: Loss = 2005113.000000
+|Xk-Y|_F:  1504361.000000, |X-X0|:  500752.000000
+rounded |X_k-Y|_0 = 1464895, f1 =  0.642106, approx slack: 8857803
+rounded before pow |X_k-Y|_0 = 9081781, f1 =  0.357230
+
+Converged at iteration 2481
+
+KB after refine:
+num_nodes: 5060.0000
+num_edges: 1378.0000
+density: 0.0001
+avg_degree: 0.2723
+avg_clustering: 0.0090
+degree_assortativity: -0.2522
+modularity: 0.7481
+avg_betweenness: 0.0000
+avg_closeness: 0.0004
+------ ABL 0 after refine ------
+--- eval ---
+prediction result:
+f1 on test:    0.5466
+f1 on test:    0.7397 (micro)
+f1 on KB:      0.6211
+integrated f1: 0.5972, w_data: 0.2809, w_klg: 0.7191
+
+integrated result:
+f1 on test:    0.5182
+f1 on test:    0.7363 (micro)
+f1 on KB:      0.6337
+integrated f1: 0.6013, w_data: 0.2809, w_klg: 0.7191
+------------
+integrated f1 0.5972
+Epoch 100, Total loss: -67636998144.0000, CE loss: 33.8143, RL loss: -676369984.0000, Reward: -3465217.5566
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 20091, weighted: 50440.640625, len: 48427.0, nonzero: 0.4495398998260498
+Epoch 200, Total loss: -30023090176.0000, CE loss: 33.7840, RL loss: -300230912.0000, Reward: -3469693.3789
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19662, weighted: 65649.96875, len: 78871.0, nonzero: 0.5435492992401123
+Epoch 300, Total loss: 25161254912.0000, CE loss: 33.8546, RL loss: 251612544.0000, Reward: -3474006.5508
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 17550, weighted: 62157.015625, len: 71890.0, nonzero: 0.5219923257827759
+Epoch 400, Total loss: -108203933696.0000, CE loss: 33.7531, RL loss: -1082039296.0000, Reward: -3471452.8105
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 18325, weighted: 49698.6015625, len: 46947.0, nonzero: 0.4449697434902191
+Epoch 500, Total loss: 79677399040.0000, CE loss: 33.7465, RL loss: 796773952.0000, Reward: -3475910.8535
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 17706, weighted: 51550.0546875, len: 50660.0, nonzero: 0.45643526315689087
+Epoch 600, Total loss: -91573600256.0000, CE loss: 33.8022, RL loss: -915736000.0000, Reward: -3477439.8242
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19480, weighted: 48126.9765625, len: 43812.0, nonzero: 0.43528902530670166
+Epoch 700, Total loss: 52423892992.0000, CE loss: 33.7416, RL loss: 524238912.0000, Reward: -3475933.6367
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 18045, weighted: 46707.26953125, len: 40961.0, nonzero: 0.4264853000640869
+Epoch 800, Total loss: -59889754112.0000, CE loss: 33.7380, RL loss: -598897536.0000, Reward: -3474422.9004
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 16903, weighted: 63941.40625, len: 75460.0, nonzero: 0.5330163240432739
+Epoch 900, Total loss: 113065828352.0000, CE loss: 33.7427, RL loss: 1130658304.0000, Reward: -3476586.1191
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 17405, weighted: 65723.984375, len: 79031.0, nonzero: 0.5440433621406555
+Epoch 1000, Total loss: 109668040704.0000, CE loss: 33.7419, RL loss: 1096680448.0000, Reward: -3465705.1133
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 17394, weighted: 55024.30859375, len: 57613.0, nonzero: 0.4779057502746582
+Epoch 1100, Total loss: -300588960.0000, CE loss: 33.8042, RL loss: -3005889.5000, Reward: -3474936.0566
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 16539, weighted: 78164.84375, len: 103942.0, nonzero: 0.6209671497344971
+Epoch 1200, Total loss: 53657436160.0000, CE loss: 33.8399, RL loss: 536574368.0000, Reward: -3474743.3066
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 21760, weighted: 55039.83984375, len: 57640.0, nonzero: 0.4779891073703766
+Epoch 1300, Total loss: 102727352320.0000, CE loss: 33.7986, RL loss: 1027273536.0000, Reward: -3476404.4512
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19460, weighted: 56820.15625, len: 61204.0, nonzero: 0.4889945685863495
+Epoch 1400, Total loss: 155667660800.0000, CE loss: 33.8658, RL loss: 1556676608.0000, Reward: -3473740.0391
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 18730, weighted: 48028.28125, len: 43615.0, nonzero: 0.434680700302124
+Epoch 1500, Total loss: -72363917312.0000, CE loss: 33.7652, RL loss: -723639168.0000, Reward: -3481702.5801
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 18613, weighted: 53259.46484375, len: 54077.0, nonzero: 0.4669867753982544
+Epoch 1600, Total loss: -30533955584.0000, CE loss: 33.7470, RL loss: -305339552.0000, Reward: -3478766.6367
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19265, weighted: 71023.0078125, len: 89638.0, nonzero: 0.5767971873283386
+Epoch 1700, Total loss: 89621954560.0000, CE loss: 33.7676, RL loss: 896219520.0000, Reward: -3419177.4785
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 20049, weighted: 49699.96875, len: 46955.0, nonzero: 0.44499441981315613
+Epoch 1800, Total loss: 54758875136.0000, CE loss: 33.7475, RL loss: 547588736.0000, Reward: -3430499.7656
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19024, weighted: 60380.77734375, len: 68332.0, nonzero: 0.5110054016113281
+Epoch 1900, Total loss: 155325431808.0000, CE loss: 33.7459, RL loss: 1553254400.0000, Reward: -3405404.4824
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 18677, weighted: 60380.78125, len: 68332.0, nonzero: 0.5110054016113281
+--- eval ---
+prediction result:
+f1 on test:    0.5467
+f1 on test:    0.7399 (micro)
+f1 on KB:      0.6211
+integrated f1: 0.5956, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.4956
+f1 on test:    0.7347 (micro)
+f1 on KB:      0.6410
+integrated f1: 0.5974, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 2000, Total loss: 74413907968.0000, CE loss: 33.7449, RL loss: 744139072.0000, Reward: -3406985.8828
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 21046, weighted: 44330.86328125, len: 36200.0, nonzero: 0.4117835760116577
+Epoch 2100, Total loss: -41924296704.0000, CE loss: 33.7278, RL loss: -419242976.0000, Reward: -3415158.7715
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 21593, weighted: 53259.2265625, len: 54075.0, nonzero: 0.46698060631752014
+Epoch 2200, Total loss: -35795079168.0000, CE loss: 33.7634, RL loss: -357950784.0000, Reward: -3399655.6367
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 17789, weighted: 58600.46875, len: 64768.0, nonzero: 0.5
+Epoch 2300, Total loss: -170249945088.0000, CE loss: 33.7313, RL loss: -1702499456.0000, Reward: -3396992.7949
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 24798, weighted: 39776.3984375, len: 27098.0, nonzero: 0.3836771249771118
+Epoch 2400, Total loss: -56214740992.0000, CE loss: 33.7323, RL loss: -562147392.0000, Reward: -3410791.9336
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19297, weighted: 49033.10546875, len: 45611.0, nonzero: 0.44084423780441284
+Epoch 2500, Total loss: 53483835392.0000, CE loss: 33.7340, RL loss: 534838368.0000, Reward: -3401039.6836
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19792, weighted: 53298.5859375, len: 54163.0, nonzero: 0.46725234389305115
+Epoch 2600, Total loss: 95210741760.0000, CE loss: 33.7331, RL loss: 952107392.0000, Reward: -3396937.6250
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19410, weighted: 54343.59375, len: 56239.0, nonzero: 0.4736629128456116
+Epoch 2700, Total loss: -39511842816.0000, CE loss: 33.7354, RL loss: -395118432.0000, Reward: -3400893.2305
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 17322, weighted: 53234.578125, len: 54022.0, nonzero: 0.4668169319629669
+Epoch 2800, Total loss: -186103595008.0000, CE loss: 33.7312, RL loss: -1861036032.0000, Reward: -3400641.1777
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 18390, weighted: 66294.359375, len: 80177.0, nonzero: 0.5475821495056152
+Epoch 2900, Total loss: -46694932480.0000, CE loss: 33.7282, RL loss: -466949344.0000, Reward: -3415425.1230
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 21060, weighted: 46138.2734375, len: 39820.0, nonzero: 0.422961950302124
+Epoch 3000, Total loss: 165608259584.0000, CE loss: 33.7310, RL loss: 1656082560.0000, Reward: -3407659.2676
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 17931, weighted: 62160.734375, len: 71896.0, nonzero: 0.522010862827301
+Epoch 3100, Total loss: -163614474240.0000, CE loss: 33.8040, RL loss: -1636144768.0000, Reward: -3398860.8809
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19429, weighted: 71068.015625, len: 89730.0, nonzero: 0.5770812630653381
+Epoch 3200, Total loss: 72010964992.0000, CE loss: 33.7287, RL loss: 720109632.0000, Reward: -3388984.3574
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 18995, weighted: 44357.9609375, len: 36256.0, nonzero: 0.4119565188884735
+Epoch 3300, Total loss: 47753494528.0000, CE loss: 33.7345, RL loss: 477534944.0000, Reward: -3397463.6953
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 17524, weighted: 69282.9921875, len: 86156.0, nonzero: 0.5660449266433716
+Epoch 3400, Total loss: -211423985664.0000, CE loss: 33.7329, RL loss: -2114239872.0000, Reward: -3385024.8828
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 20253, weighted: 56820.1484375, len: 61204.0, nonzero: 0.4889945685863495
+Epoch 3500, Total loss: -258272018432.0000, CE loss: 33.7294, RL loss: -2582720256.0000, Reward: -3326108.7227
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 21721, weighted: 55041.5, len: 57648.0, nonzero: 0.478013813495636
+Epoch 3600, Total loss: 122168410112.0000, CE loss: 33.7299, RL loss: 1221684096.0000, Reward: -3325140.4922
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 18118, weighted: 53224.15234375, len: 53998.0, nonzero: 0.4667428135871887
+Epoch 3700, Total loss: 66389958656.0000, CE loss: 33.7330, RL loss: 663899584.0000, Reward: -3322630.6836
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19354, weighted: 55191.91015625, len: 57936.0, nonzero: 0.4789031445980072
+Epoch 3800, Total loss: -199362691072.0000, CE loss: 33.7364, RL loss: -1993626880.0000, Reward: -3356740.9258
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 17914, weighted: 49698.8984375, len: 46948.0, nonzero: 0.44497281312942505
+Epoch 3900, Total loss: -34414284800.0000, CE loss: 33.7326, RL loss: -344142848.0000, Reward: -3349609.9570
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19817, weighted: 53259.75, len: 54078.0, nonzero: 0.4669898748397827
+--- eval ---
+prediction result:
+f1 on test:    0.5466
+f1 on test:    0.7399 (micro)
+f1 on KB:      0.6212
+integrated f1: 0.5957, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5099
+f1 on test:    0.7355 (micro)
+f1 on KB:      0.6357
+integrated f1: 0.5979, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 4000, Total loss: 70250283008.0000, CE loss: 33.7323, RL loss: 702502848.0000, Reward: -3328087.9570
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19865, weighted: 47881.5234375, len: 43310.0, nonzero: 0.4337388873100281
+Epoch 4100, Total loss: 7580333056.0000, CE loss: 33.7371, RL loss: 75803328.0000, Reward: -3330675.1562
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 18690, weighted: 42058.140625, len: 31626.0, nonzero: 0.3976593315601349
+Epoch 4200, Total loss: -133515689984.0000, CE loss: 33.7356, RL loss: -1335156864.0000, Reward: -3341444.1445
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19013, weighted: 53259.52734375, len: 54076.0, nonzero: 0.4669836759567261
+Epoch 4300, Total loss: 116013536.0000, CE loss: 33.7318, RL loss: 1160135.3750, Reward: -3346915.0410
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 21633, weighted: 47918.5859375, len: 43384.0, nonzero: 0.43396738171577454
+Epoch 4400, Total loss: -122444120064.0000, CE loss: 33.7307, RL loss: -1224441216.0000, Reward: -3356792.9414
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 20905, weighted: 55096.18359375, len: 57747.0, nonzero: 0.47831952571868896
+Epoch 4500, Total loss: 78310490112.0000, CE loss: 33.7327, RL loss: 783104896.0000, Reward: -3333122.1133
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19369, weighted: 56820.1484375, len: 61204.0, nonzero: 0.4889945685863495
+Epoch 4600, Total loss: 72369864704.0000, CE loss: 33.7330, RL loss: 723698688.0000, Reward: -3243292.8535
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 20474, weighted: 47912.3671875, len: 43377.0, nonzero: 0.43394577503204346
+Epoch 4700, Total loss: -190763745280.0000, CE loss: 33.7375, RL loss: -1907637376.0000, Reward: -3239395.8555
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 19689, weighted: 54593.3984375, len: 56718.0, nonzero: 0.4751420319080353
+Epoch 4800, Total loss: -173552123904.0000, CE loss: 33.7308, RL loss: -1735521280.0000, Reward: -3230626.7148
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 20671, weighted: 53256.9296875, len: 54073.0, nonzero: 0.4669744372367859
+Epoch 4900, Total loss: -299310546944.0000, CE loss: 33.7366, RL loss: -2993105408.0000, Reward: -3271129.9277
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 21693, weighted: 42577.6484375, len: 32692.0, nonzero: 0.400951087474823
+Epoch 5000, Total loss: -50969161728.0000, CE loss: 33.7366, RL loss: -509691616.0000, Reward: -3277481.2031
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 20083, weighted: 49698.8984375, len: 46948.0, nonzero: 0.44497281312942505
+Epoch 5100, Total loss: 103595212800.0000, CE loss: 33.7346, RL loss: 1035952128.0000, Reward: -3275186.1465
+    full cols: 0, non-full cols: 5060
+   r - labels: 4395, labels - r: 0
+    violated: 21240, weighted: 51479.65234375, len: 50514.0, nonzero: 0.4559844136238098
+Epoch 5200, Total loss: -16028743680.0000, CE loss: 34.0238, RL loss: -160287440.0000, Reward: -1556721.8525
+    full cols: 748, non-full cols: 0
+   r - labels: 122, labels - r: 39
+    violated: 25769, weighted: 1630.4427490234375, len: 0.0, nonzero: 0.14782609045505524
+Epoch 5300, Total loss: -13769411584.0000, CE loss: 34.0192, RL loss: -137694112.0000, Reward: -1555983.0488
+    full cols: 745, non-full cols: 1
+   r - labels: 121, labels - r: 40
+    violated: 25836, weighted: 1598.934814453125, len: 0.0, nonzero: 0.1472671627998352
+Epoch 5400, Total loss: 6604733952.0000, CE loss: 34.0188, RL loss: 66047340.0000, Reward: -1555409.7373
+    full cols: 746, non-full cols: 1
+   r - labels: 120, labels - r: 38
+    violated: 25800, weighted: 1591.8511962890625, len: 0.0, nonzero: 0.14743392169475555
+Epoch 5500, Total loss: -79168584.0000, CE loss: 34.0183, RL loss: -791685.8125, Reward: -1555616.6934
+    full cols: 746, non-full cols: 3
+   r - labels: 122, labels - r: 38
+    violated: 25842, weighted: 1613.2926025390625, len: 0.0, nonzero: 0.14782609045505524
+Epoch 5600, Total loss: -13627622400.0000, CE loss: 34.0161, RL loss: -136276224.0000, Reward: -1554928.5273
+    full cols: 746, non-full cols: 1
+   r - labels: 121, labels - r: 39
+    violated: 27264, weighted: 1598.5751953125, len: 0.0, nonzero: 0.14744625985622406
+Epoch 5700, Total loss: 5725555712.0000, CE loss: 34.0170, RL loss: 57255556.0000, Reward: -1556210.8379
+    full cols: 748, non-full cols: 0
+   r - labels: 122, labels - r: 39
+    violated: 25612, weighted: 1617.70068359375, len: 0.0, nonzero: 0.14782609045505524
+Epoch 5800, Total loss: -28262424576.0000, CE loss: 34.0133, RL loss: -282624256.0000, Reward: -1556233.1055
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25927, weighted: 1614.55517578125, len: 0.0, nonzero: 0.14762845635414124
+Epoch 5900, Total loss: -3365514496.0000, CE loss: 34.0217, RL loss: -33655144.0000, Reward: -1554952.6670
+    full cols: 748, non-full cols: 0
+   r - labels: 121, labels - r: 38
+    violated: 25959, weighted: 1611.018310546875, len: 0.0, nonzero: 0.14782609045505524
+--- eval ---
+prediction result:
+f1 on test:    0.5465
+f1 on test:    0.7403 (micro)
+f1 on KB:      0.6212
+integrated f1: 0.5956, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5359
+f1 on test:    0.7376 (micro)
+f1 on KB:      0.6369
+integrated f1: 0.6066, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 6000, Total loss: 10174923776.0000, CE loss: 34.0144, RL loss: 101749240.0000, Reward: -1555814.0518
+    full cols: 747, non-full cols: 0
+   r - labels: 120, labels - r: 38
+    violated: 25906, weighted: 1592.9658203125, len: 0.0, nonzero: 0.14762845635414124
+Epoch 6100, Total loss: -20835698688.0000, CE loss: 34.0206, RL loss: -208356992.0000, Reward: -1556072.7227
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25786, weighted: 1614.55517578125, len: 0.0, nonzero: 0.14762845635414124
+Epoch 6200, Total loss: -32856832000.0000, CE loss: 34.0191, RL loss: -328568320.0000, Reward: -1556252.7090
+    full cols: 748, non-full cols: 1
+   r - labels: 122, labels - r: 38
+    violated: 25517, weighted: 1611.313232421875, len: 0.0, nonzero: 0.1478446125984192
+Epoch 6300, Total loss: 6409221632.0000, CE loss: 34.0130, RL loss: 64092216.0000, Reward: -1555296.4600
+    full cols: 746, non-full cols: 1
+   r - labels: 121, labels - r: 39
+    violated: 25964, weighted: 1597.1416015625, len: 0.0, nonzero: 0.14747096598148346
+Epoch 6400, Total loss: -59095384064.0000, CE loss: 34.0221, RL loss: -590953856.0000, Reward: -1556175.8809
+    full cols: 748, non-full cols: 1
+   r - labels: 122, labels - r: 38
+    violated: 26130, weighted: 1613.8818359375, len: 0.0, nonzero: 0.14802062511444092
+Epoch 6500, Total loss: -20896374784.0000, CE loss: 34.0246, RL loss: -208963744.0000, Reward: -1555886.6260
+    full cols: 749, non-full cols: 0
+   r - labels: 122, labels - r: 38
+    violated: 25836, weighted: 1614.1640625, len: 0.0, nonzero: 0.14802370965480804
+Epoch 6600, Total loss: 45955166208.0000, CE loss: 34.0176, RL loss: 459551680.0000, Reward: -1554793.0938
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25756, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 6700, Total loss: 5469131776.0000, CE loss: 34.0194, RL loss: 54691316.0000, Reward: -1555121.8408
+    full cols: 748, non-full cols: 0
+   r - labels: 121, labels - r: 38
+    violated: 26017, weighted: 1596.111572265625, len: 0.0, nonzero: 0.14782609045505524
+Epoch 6800, Total loss: -49175793664.0000, CE loss: 34.0240, RL loss: -491757920.0000, Reward: -1555685.6504
+    full cols: 748, non-full cols: 0
+   r - labels: 121, labels - r: 38
+    violated: 27094, weighted: 1596.111572265625, len: 0.0, nonzero: 0.14782609045505524
+Epoch 6900, Total loss: 10167941120.0000, CE loss: 34.0127, RL loss: 101679416.0000, Reward: -1554726.7314
+    full cols: 748, non-full cols: 0
+   r - labels: 122, labels - r: 39
+    violated: 25558, weighted: 1617.70068359375, len: 0.0, nonzero: 0.14782609045505524
+Epoch 7000, Total loss: -16814257152.0000, CE loss: 34.0191, RL loss: -168142576.0000, Reward: -1555769.5547
+    full cols: 749, non-full cols: 0
+   r - labels: 122, labels - r: 38
+    violated: 25408, weighted: 1614.1640625, len: 0.0, nonzero: 0.14802370965480804
+Epoch 7100, Total loss: -45527236608.0000, CE loss: 34.0180, RL loss: -455272384.0000, Reward: -1557220.2246
+    full cols: 748, non-full cols: 0
+   r - labels: 122, labels - r: 39
+    violated: 26303, weighted: 1617.70068359375, len: 0.0, nonzero: 0.14782609045505524
+Epoch 7200, Total loss: -39997435904.0000, CE loss: 34.0168, RL loss: -399974368.0000, Reward: -1556586.3457
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25627, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 7300, Total loss: -42440359936.0000, CE loss: 34.0173, RL loss: -424403584.0000, Reward: -1556597.9160
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26670, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 7400, Total loss: -2346476288.0000, CE loss: 34.0228, RL loss: -23464762.0000, Reward: -1556034.2227
+    full cols: 748, non-full cols: 0
+   r - labels: 122, labels - r: 39
+    violated: 25938, weighted: 1617.70068359375, len: 0.0, nonzero: 0.14782609045505524
+Epoch 7500, Total loss: -39338729472.0000, CE loss: 34.0131, RL loss: -393387296.0000, Reward: -1556158.8828
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25390, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 7600, Total loss: 36116946944.0000, CE loss: 34.0197, RL loss: 361169472.0000, Reward: -1556321.0312
+    full cols: 748, non-full cols: 0
+   r - labels: 122, labels - r: 39
+    violated: 26330, weighted: 1617.70068359375, len: 0.0, nonzero: 0.14782609045505524
+Epoch 7700, Total loss: 12185064448.0000, CE loss: 34.0169, RL loss: 121850640.0000, Reward: -1555360.9150
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25464, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 7800, Total loss: -6055827968.0000, CE loss: 34.0148, RL loss: -60558280.0000, Reward: -1555763.3359
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25892, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 7900, Total loss: 74317103104.0000, CE loss: 34.0103, RL loss: 743171072.0000, Reward: -1554695.2129
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25499, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+--- eval ---
+prediction result:
+f1 on test:    0.5465
+f1 on test:    0.7403 (micro)
+f1 on KB:      0.6212
+integrated f1: 0.5956, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5359
+f1 on test:    0.7375 (micro)
+f1 on KB:      0.6369
+integrated f1: 0.6066, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 8000, Total loss: -3308731392.0000, CE loss: 34.0200, RL loss: -33087314.0000, Reward: -1555703.7617
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25649, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 8100, Total loss: -15679357952.0000, CE loss: 34.0221, RL loss: -156793584.0000, Reward: -1556003.3008
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25336, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 8200, Total loss: 837229120.0000, CE loss: 34.0197, RL loss: 8372291.0000, Reward: -1555741.2793
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25446, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 8300, Total loss: -26232625152.0000, CE loss: 34.0182, RL loss: -262326256.0000, Reward: -1555354.0645
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25904, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 8400, Total loss: -29800851456.0000, CE loss: 34.0181, RL loss: -298008512.0000, Reward: -1556097.8242
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26178, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 8500, Total loss: -69280186368.0000, CE loss: 34.0287, RL loss: -692801856.0000, Reward: -1556721.2461
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25884, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 8600, Total loss: 2735070720.0000, CE loss: 34.0201, RL loss: 27350706.0000, Reward: -1555151.4082
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25429, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 8700, Total loss: -2076210944.0000, CE loss: 34.0159, RL loss: -20762110.0000, Reward: -1554891.5156
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26241, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 8800, Total loss: -32723449856.0000, CE loss: 34.0117, RL loss: -327234496.0000, Reward: -1556326.1250
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26197, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 8900, Total loss: -31188176896.0000, CE loss: 34.0209, RL loss: -311881760.0000, Reward: -1555856.0947
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26236, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 9000, Total loss: 3504713984.0000, CE loss: 34.0137, RL loss: 35047140.0000, Reward: -1555864.7803
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25260, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 9100, Total loss: 215304544.0000, CE loss: 34.0217, RL loss: 2153045.5000, Reward: -1555213.5195
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26107, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 9200, Total loss: -24477720576.0000, CE loss: 34.0128, RL loss: -244777200.0000, Reward: -1555114.9922
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25623, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 9300, Total loss: -7282215424.0000, CE loss: 34.0144, RL loss: -72822152.0000, Reward: -1555735.9336
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26973, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 9400, Total loss: -17730177024.0000, CE loss: 34.0154, RL loss: -177301776.0000, Reward: -1555136.7871
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25692, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 9500, Total loss: -253860848.0000, CE loss: 34.0155, RL loss: -2538608.5000, Reward: -1555678.3926
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25774, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 9600, Total loss: 35674996736.0000, CE loss: 34.0161, RL loss: 356749952.0000, Reward: -1554753.6270
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25860, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 9700, Total loss: 6719797760.0000, CE loss: 34.0210, RL loss: 67197976.0000, Reward: -1554809.3857
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25666, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 9800, Total loss: -37850681344.0000, CE loss: 34.0163, RL loss: -378506816.0000, Reward: -1556383.2676
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26354, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 9900, Total loss: -32794748928.0000, CE loss: 34.0146, RL loss: -327947488.0000, Reward: -1556154.0908
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26638, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+--- eval ---
+prediction result:
+f1 on test:    0.5465
+f1 on test:    0.7403 (micro)
+f1 on KB:      0.6212
+integrated f1: 0.5956, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5359
+f1 on test:    0.7375 (micro)
+f1 on KB:      0.6369
+integrated f1: 0.6066, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 10000, Total loss: -24451569664.0000, CE loss: 34.0170, RL loss: -244515696.0000, Reward: -1556551.5127
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26013, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 10100, Total loss: 20208109568.0000, CE loss: 34.0194, RL loss: 202081088.0000, Reward: -1555126.4219
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26058, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 10200, Total loss: -81192607744.0000, CE loss: 34.0239, RL loss: -811926080.0000, Reward: -1557301.2627
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25740, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 10300, Total loss: -2401254144.0000, CE loss: 34.0187, RL loss: -24012542.0000, Reward: -1554812.2607
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25848, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 10400, Total loss: -15315982336.0000, CE loss: 34.0167, RL loss: -153159824.0000, Reward: -1555011.3496
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25949, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 10500, Total loss: 12957033472.0000, CE loss: 34.0172, RL loss: 129570336.0000, Reward: -1554663.0273
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25443, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 10600, Total loss: -45200756736.0000, CE loss: 34.0155, RL loss: -452007584.0000, Reward: -1556377.8037
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25438, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 10700, Total loss: 33631737856.0000, CE loss: 34.0168, RL loss: 336317376.0000, Reward: -1555091.9033
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25953, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 10800, Total loss: 19234631680.0000, CE loss: 34.0226, RL loss: 192346320.0000, Reward: -1555483.0176
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25991, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 10900, Total loss: -29312272384.0000, CE loss: 34.0231, RL loss: -293122720.0000, Reward: -1555731.3096
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26143, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 11000, Total loss: 19758792704.0000, CE loss: 34.0151, RL loss: 197587920.0000, Reward: -1554909.1885
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26511, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 11100, Total loss: -77771407360.0000, CE loss: 34.0158, RL loss: -777714048.0000, Reward: -1556366.6543
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26347, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 11200, Total loss: -10219345920.0000, CE loss: 34.0183, RL loss: -102193464.0000, Reward: -1555514.5225
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25709, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 11300, Total loss: 5173390848.0000, CE loss: 34.0154, RL loss: 51733908.0000, Reward: -1555108.2451
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25861, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 11400, Total loss: 2405325824.0000, CE loss: 34.0203, RL loss: 24053258.0000, Reward: -1554951.1846
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26991, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 11500, Total loss: -812200960.0000, CE loss: 34.0182, RL loss: -8122009.5000, Reward: -1555022.8027
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26354, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 11600, Total loss: 74543620096.0000, CE loss: 34.0110, RL loss: 745436224.0000, Reward: -1553597.1533
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25151, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 11700, Total loss: 50329812992.0000, CE loss: 34.0182, RL loss: 503298112.0000, Reward: -1554844.8652
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26789, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 11800, Total loss: 1400828672.0000, CE loss: 34.0189, RL loss: 14008287.0000, Reward: -1555001.1982
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26198, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 11900, Total loss: 38837612544.0000, CE loss: 34.0159, RL loss: 388376128.0000, Reward: -1553020.9980
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26073, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+--- eval ---
+prediction result:
+f1 on test:    0.5465
+f1 on test:    0.7403 (micro)
+f1 on KB:      0.6212
+integrated f1: 0.5956, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5359
+f1 on test:    0.7375 (micro)
+f1 on KB:      0.6369
+integrated f1: 0.6066, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 12000, Total loss: 24628439040.0000, CE loss: 34.0213, RL loss: 246284400.0000, Reward: -1554718.1699
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25661, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 12100, Total loss: 19232735232.0000, CE loss: 34.0140, RL loss: 192327344.0000, Reward: -1555335.8574
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26559, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 12200, Total loss: 21368946688.0000, CE loss: 34.0157, RL loss: 213689472.0000, Reward: -1555523.6426
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 27031, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 12300, Total loss: 3811838720.0000, CE loss: 34.0129, RL loss: 38118388.0000, Reward: -1555024.9521
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25461, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 12400, Total loss: 33529456640.0000, CE loss: 34.0157, RL loss: 335294560.0000, Reward: -1554721.8223
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25949, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 12500, Total loss: -1062969024.0000, CE loss: 34.0261, RL loss: -10629690.0000, Reward: -1554696.5693
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26090, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 12600, Total loss: -27596886016.0000, CE loss: 34.0107, RL loss: -275968864.0000, Reward: -1556474.6455
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25895, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 12700, Total loss: -7696823808.0000, CE loss: 34.0164, RL loss: -76968240.0000, Reward: -1556045.2363
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25757, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 12800, Total loss: -5556928000.0000, CE loss: 34.0223, RL loss: -55569280.0000, Reward: -1555678.2031
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25900, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 12900, Total loss: -27577202688.0000, CE loss: 34.0184, RL loss: -275772032.0000, Reward: -1556376.7441
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25697, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 13000, Total loss: 54334148608.0000, CE loss: 34.0153, RL loss: 543341504.0000, Reward: -1554444.6143
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25671, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 13100, Total loss: 32287875072.0000, CE loss: 34.0165, RL loss: 322878752.0000, Reward: -1554661.9004
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25571, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 13200, Total loss: -23028637696.0000, CE loss: 34.0271, RL loss: -230286384.0000, Reward: -1555763.1934
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25624, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 13300, Total loss: 45004812288.0000, CE loss: 34.0186, RL loss: 450048128.0000, Reward: -1553826.8389
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 24721, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 13400, Total loss: 31974330368.0000, CE loss: 34.0204, RL loss: 319743296.0000, Reward: -1555657.6572
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26018, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 13500, Total loss: -3745289728.0000, CE loss: 34.0240, RL loss: -37452896.0000, Reward: -1555038.8184
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25832, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 13600, Total loss: 21252171776.0000, CE loss: 34.0161, RL loss: 212521712.0000, Reward: -1554685.8428
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25933, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 13700, Total loss: -35389865984.0000, CE loss: 34.0168, RL loss: -353898656.0000, Reward: -1555917.5537
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25317, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 13800, Total loss: -16821370880.0000, CE loss: 34.0157, RL loss: -168213712.0000, Reward: -1555257.6133
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25521, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 13900, Total loss: -6352360960.0000, CE loss: 34.0169, RL loss: -63523612.0000, Reward: -1555214.7500
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26063, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+--- eval ---
+prediction result:
+f1 on test:    0.5465
+f1 on test:    0.7403 (micro)
+f1 on KB:      0.6212
+integrated f1: 0.5956, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5359
+f1 on test:    0.7375 (micro)
+f1 on KB:      0.6369
+integrated f1: 0.6066, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 14000, Total loss: 15627302912.0000, CE loss: 34.0209, RL loss: 156273024.0000, Reward: -1555107.3467
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25599, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 14100, Total loss: 17357299712.0000, CE loss: 34.0121, RL loss: 173572992.0000, Reward: -1555710.9922
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25787, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 14200, Total loss: -24618797056.0000, CE loss: 34.0178, RL loss: -246187968.0000, Reward: -1556131.9951
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 27044, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 14300, Total loss: -31582947328.0000, CE loss: 34.0239, RL loss: -315829472.0000, Reward: -1555736.6670
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25916, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 14400, Total loss: 18041931776.0000, CE loss: 34.0216, RL loss: 180419312.0000, Reward: -1555127.0801
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26509, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 14500, Total loss: -1310272128.0000, CE loss: 34.0213, RL loss: -13102721.0000, Reward: -1555402.9189
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25532, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 14600, Total loss: 2261612544.0000, CE loss: 34.0148, RL loss: 22616126.0000, Reward: -1555308.9707
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25367, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 14700, Total loss: 69108670464.0000, CE loss: 34.0142, RL loss: 691086720.0000, Reward: -1554038.4180
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26011, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 14800, Total loss: 21962074112.0000, CE loss: 34.0127, RL loss: 219620736.0000, Reward: -1554688.8262
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25385, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 14900, Total loss: 13204066304.0000, CE loss: 34.0158, RL loss: 132040664.0000, Reward: -1554739.9043
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 26492, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+Epoch 15000, Total loss: -20409163776.0000, CE loss: 34.0206, RL loss: -204091632.0000, Reward: -1555891.6143
+    full cols: 747, non-full cols: 0
+   r - labels: 121, labels - r: 39
+    violated: 25579, weighted: 1599.648193359375, len: 0.0, nonzero: 0.14762845635414124
+------ ABL Loop 1 ------
+--- eval ---
+prediction result:
+f1 on test:    0.5465
+f1 on test:    0.7403 (micro)
+f1 on KB:      0.6212
+integrated f1: 0.5972, w_data: 0.2809, w_klg: 0.7191
+
+integrated result:
+f1 on test:    0.5359
+f1 on test:    0.7375 (micro)
+f1 on KB:      0.6369
+integrated f1: 0.6085, w_data: 0.2809, w_klg: 0.7191
+------------
+integrated f1 0.5972
+
+KB before refine:
+num_nodes: 5060.0000
+num_edges: 1378.0000
+density: 0.0001
+avg_degree: 0.2723
+avg_clustering: 0.0090
+degree_assortativity: -0.2522
+modularity: 0.7481
+avg_betweenness: 0.0000
+avg_closeness: 0.0004
+Iteration 0: Loss = 5439193.000000
+|Xk-Y|_F:  5439193.000000, |X-X0|:  0.000000
+rounded |X_k-Y|_0 = 5437417, f1 =  0.281492, approx slack: 1173595
+rounded before pow |X_k-Y|_0 = 5437417, f1 =  0.281492
+
+Iteration 20: Loss = 1539448.750000
+|Xk-Y|_F:  1044647.187500, |X-X0|:  494801.500000
+rounded |X_k-Y|_0 = 1091366, f1 =  0.644491, approx slack: 1998706
+rounded before pow |X_k-Y|_0 = 2850200, f1 =  0.568599
+
+Iteration 40: Loss = 1302990.625000
+|Xk-Y|_F:  1074685.750000, |X-X0|:  228304.843750
+rounded |X_k-Y|_0 = 1024797, f1 =  0.647631, approx slack: 2407067
+rounded before pow |X_k-Y|_0 = 3371877, f1 =  0.548951
+
+Iteration 60: Loss = 1149784.500000
+|Xk-Y|_F:  1038899.687500, |X-X0|:  110884.781250
+rounded |X_k-Y|_0 = 1068832, f1 =  0.645550, approx slack: 209663
+rounded before pow |X_k-Y|_0 = 1184172, f1 =  0.639842
+
+Iteration 80: Loss = 1104156.625000
+|Xk-Y|_F:  1021046.750000, |X-X0|:  83109.921875
+rounded |X_k-Y|_0 = 1014759, f1 =  0.648104, approx slack: 280764
+rounded before pow |X_k-Y|_0 = 1200935, f1 =  0.638857
+
+Iteration 100: Loss = 1088950.750000
+|Xk-Y|_F:  1012758.562500, |X-X0|:  76192.250000
+rounded |X_k-Y|_0 = 1007409, f1 =  0.648453, approx slack: 305102
+rounded before pow |X_k-Y|_0 = 1226066, f1 =  0.637663
+
+Iteration 120: Loss = 1074509.500000
+|Xk-Y|_F:  1007282.250000, |X-X0|:  67227.218750
+rounded |X_k-Y|_0 = 1007080, f1 =  0.648473, approx slack: 269855
+rounded before pow |X_k-Y|_0 = 1157099, f1 =  0.641101
+
+Iteration 140: Loss = 1059690.750000
+|Xk-Y|_F:  1001217.437500, |X-X0|:  58473.320312
+rounded |X_k-Y|_0 = 1002628, f1 =  0.648686, approx slack: 262561
+rounded before pow |X_k-Y|_0 = 1148179, f1 =  0.641525
+
+Iteration 160: Loss = 1053558.250000
+|Xk-Y|_F:  996613.562500, |X-X0|:  56944.703125
+rounded |X_k-Y|_0 = 998528, f1 =  0.648883, approx slack: 280897
+rounded before pow |X_k-Y|_0 = 1158872, f1 =  0.640975
+
+Iteration 180: Loss = 1048154.562500
+|Xk-Y|_F:  992619.375000, |X-X0|:  55535.164062
+rounded |X_k-Y|_0 = 995429, f1 =  0.649032, approx slack: 324013
+rounded before pow |X_k-Y|_0 = 1193564, f1 =  0.639306
+
+Iteration 200: Loss = 1043062.875000
+|Xk-Y|_F:  989027.437500, |X-X0|:  54035.460938
+rounded |X_k-Y|_0 = 991087, f1 =  0.649241, approx slack: 335379
+rounded before pow |X_k-Y|_0 = 1204730, f1 =  0.638742
+
+Iteration 220: Loss = 1038543.375000
+|Xk-Y|_F:  986105.250000, |X-X0|:  52438.093750
+rounded |X_k-Y|_0 = 988672, f1 =  0.649359, approx slack: 322677
+rounded before pow |X_k-Y|_0 = 1195936, f1 =  0.639194
+
+Iteration 240: Loss = 1035166.875000
+|Xk-Y|_F:  984209.812500, |X-X0|:  50957.046875
+rounded |X_k-Y|_0 = 988910, f1 =  0.649348, approx slack: 333685
+rounded before pow |X_k-Y|_0 = 1206093, f1 =  0.638703
+
+Iteration 260: Loss = 1031267.000000
+|Xk-Y|_F:  981763.375000, |X-X0|:  49503.625000
+rounded |X_k-Y|_0 = 984787, f1 =  0.649546, approx slack: 319607
+rounded before pow |X_k-Y|_0 = 1197707, f1 =  0.639146
+
+Iteration 280: Loss = 1117643.125000
+|Xk-Y|_F:  1065926.125000, |X-X0|:  51716.953125
+rounded |X_k-Y|_0 = 1042412, f1 =  0.646803, approx slack: 322886
+rounded before pow |X_k-Y|_0 = 1190168, f1 =  0.639499
+
+Iteration 300: Loss = 1035630.250000
+|Xk-Y|_F:  987736.062500, |X-X0|:  47894.207031
+rounded |X_k-Y|_0 = 991449, f1 =  0.649229, approx slack: 300451
+rounded before pow |X_k-Y|_0 = 1181733, f1 =  0.639898
+
+Iteration 320: Loss = 1024717.875000
+|Xk-Y|_F:  978079.250000, |X-X0|:  46638.605469
+rounded |X_k-Y|_0 = 978623, f1 =  0.649843, approx slack: 298928
+rounded before pow |X_k-Y|_0 = 1176672, f1 =  0.640143
+
+Iteration 340: Loss = 1026614.875000
+|Xk-Y|_F:  980699.875000, |X-X0|:  45915.000000
+rounded |X_k-Y|_0 = 981119, f1 =  0.649723, approx slack: 293241
+rounded before pow |X_k-Y|_0 = 1170063, f1 =  0.640480
+
+Iteration 360: Loss = 1023418.187500
+|Xk-Y|_F:  978280.625000, |X-X0|:  45137.562500
+rounded |X_k-Y|_0 = 977454, f1 =  0.649898, approx slack: 273337
+rounded before pow |X_k-Y|_0 = 1152374, f1 =  0.641349
+
+Iteration 380: Loss = 1021129.875000
+|Xk-Y|_F:  976697.562500, |X-X0|:  44432.335938
+rounded |X_k-Y|_0 = 975769, f1 =  0.649979, approx slack: 261824
+rounded before pow |X_k-Y|_0 = 1137411, f1 =  0.642038
+
+Iteration 400: Loss = 1021614.187500
+|Xk-Y|_F:  977878.687500, |X-X0|:  43735.496094
+rounded |X_k-Y|_0 = 976382, f1 =  0.649949, approx slack: 249394
+rounded before pow |X_k-Y|_0 = 1124607, f1 =  0.642645
+
+Iteration 420: Loss = 1017816.687500
+|Xk-Y|_F:  974836.125000, |X-X0|:  42980.535156
+rounded |X_k-Y|_0 = 972866, f1 =  0.650117, approx slack: 254029
+rounded before pow |X_k-Y|_0 = 1124615, f1 =  0.642644
+
+Iteration 440: Loss = 1015170.062500
+|Xk-Y|_F:  972842.937500, |X-X0|:  42327.101562
+rounded |X_k-Y|_0 = 971209, f1 =  0.650197, approx slack: 239931
+rounded before pow |X_k-Y|_0 = 1112064, f1 =  0.643247
+
+Iteration 460: Loss = 1020195.250000
+|Xk-Y|_F:  978195.250000, |X-X0|:  41999.968750
+rounded |X_k-Y|_0 = 977800, f1 =  0.649881, approx slack: 228945
+rounded before pow |X_k-Y|_0 = 1099279, f1 =  0.643859
+
+Iteration 480: Loss = 1016928.000000
+|Xk-Y|_F:  975299.812500, |X-X0|:  41628.179688
+rounded |X_k-Y|_0 = 974783, f1 =  0.650025, approx slack: 250388
+rounded before pow |X_k-Y|_0 = 1121363, f1 =  0.642828
+
+Iteration 500: Loss = 1011600.750000
+|Xk-Y|_F:  970288.937500, |X-X0|:  41311.824219
+rounded |X_k-Y|_0 = 971196, f1 =  0.650197, approx slack: 265569
+rounded before pow |X_k-Y|_0 = 1134946, f1 =  0.642195
+
+Iteration 520: Loss = 1006426.562500
+|Xk-Y|_F:  965352.187500, |X-X0|:  41074.367188
+rounded |X_k-Y|_0 = 970193, f1 =  0.650245, approx slack: 289244
+rounded before pow |X_k-Y|_0 = 1155095, f1 =  0.641260
+
+Iteration 540: Loss = 997506.750000
+|Xk-Y|_F:  957066.062500, |X-X0|:  40440.703125
+rounded |X_k-Y|_0 = 967452, f1 =  0.650376, approx slack: 329521
+rounded before pow |X_k-Y|_0 = 1188734, f1 =  0.639706
+
+Iteration 560: Loss = 993851.812500
+|Xk-Y|_F:  953632.125000, |X-X0|:  40219.703125
+rounded |X_k-Y|_0 = 963509, f1 =  0.650566, approx slack: 709899
+rounded before pow |X_k-Y|_0 = 1573146, f1 =  0.622391
+
+Iteration 580: Loss = 987562.187500
+|Xk-Y|_F:  947746.312500, |X-X0|:  39815.875000
+rounded |X_k-Y|_0 = 955569, f1 =  0.650948, approx slack: 725141
+rounded before pow |X_k-Y|_0 = 1594650, f1 =  0.621448
+
+Iteration 600: Loss = 983160.062500
+|Xk-Y|_F:  943456.062500, |X-X0|:  39704.007812
+rounded |X_k-Y|_0 = 947159, f1 =  0.651351, approx slack: 736293
+rounded before pow |X_k-Y|_0 = 1611127, f1 =  0.620728
+
+Iteration 620: Loss = 979533.437500
+|Xk-Y|_F:  940007.562500, |X-X0|:  39525.851562
+rounded |X_k-Y|_0 = 943193, f1 =  0.651542, approx slack: 742085
+rounded before pow |X_k-Y|_0 = 1614267, f1 =  0.620593
+
+Iteration 640: Loss = 975976.750000
+|Xk-Y|_F:  936907.875000, |X-X0|:  39068.890625
+rounded |X_k-Y|_0 = 939497, f1 =  0.651719, approx slack: 756627
+rounded before pow |X_k-Y|_0 = 1627876, f1 =  0.619998
+
+Iteration 660: Loss = 972712.750000
+|Xk-Y|_F:  934139.562500, |X-X0|:  38573.187500
+rounded |X_k-Y|_0 = 937130, f1 =  0.651833, approx slack: 767761
+rounded before pow |X_k-Y|_0 = 1637469, f1 =  0.619583
+
+Iteration 680: Loss = 970372.250000
+|Xk-Y|_F:  932152.562500, |X-X0|:  38219.671875
+rounded |X_k-Y|_0 = 933861, f1 =  0.651989, approx slack: 778431
+rounded before pow |X_k-Y|_0 = 1647947, f1 =  0.619128
+
+Iteration 700: Loss = 967741.500000
+|Xk-Y|_F:  930012.562500, |X-X0|:  37728.921875
+rounded |X_k-Y|_0 = 931047, f1 =  0.652124, approx slack: 777560
+rounded before pow |X_k-Y|_0 = 1647626, f1 =  0.619142
+
+Iteration 720: Loss = 965516.875000
+|Xk-Y|_F:  928205.375000, |X-X0|:  37311.507812
+rounded |X_k-Y|_0 = 929171, f1 =  0.652214, approx slack: 780255
+rounded before pow |X_k-Y|_0 = 1650788, f1 =  0.619004
+
+Iteration 740: Loss = 963609.125000
+|Xk-Y|_F:  926795.562500, |X-X0|:  36813.578125
+rounded |X_k-Y|_0 = 927194, f1 =  0.652309, approx slack: 787078
+rounded before pow |X_k-Y|_0 = 1657579, f1 =  0.618709
+
+Iteration 760: Loss = 961757.625000
+|Xk-Y|_F:  925475.125000, |X-X0|:  36282.492188
+rounded |X_k-Y|_0 = 925443, f1 =  0.652393, approx slack: 795246
+rounded before pow |X_k-Y|_0 = 1661532, f1 =  0.618497
+
+Iteration 780: Loss = 959998.187500
+|Xk-Y|_F:  924268.312500, |X-X0|:  35729.898438
+rounded |X_k-Y|_0 = 923943, f1 =  0.652465, approx slack: 790376
+rounded before pow |X_k-Y|_0 = 1656251, f1 =  0.618728
+
+Iteration 800: Loss = 958457.937500
+|Xk-Y|_F:  923132.375000, |X-X0|:  35325.574219
+rounded |X_k-Y|_0 = 922813, f1 =  0.652520, approx slack: 790649
+rounded before pow |X_k-Y|_0 = 1652324, f1 =  0.618858
+
+Iteration 820: Loss = 957114.750000
+|Xk-Y|_F:  922175.000000, |X-X0|:  34939.757812
+rounded |X_k-Y|_0 = 921817, f1 =  0.652567, approx slack: 791285
+rounded before pow |X_k-Y|_0 = 1648764, f1 =  0.618972
+
+Iteration 840: Loss = 955827.437500
+|Xk-Y|_F:  921237.125000, |X-X0|:  34590.335938
+rounded |X_k-Y|_0 = 920351, f1 =  0.652638, approx slack: 786954
+rounded before pow |X_k-Y|_0 = 1645009, f1 =  0.619139
+
+Iteration 860: Loss = 954658.250000
+|Xk-Y|_F:  920387.750000, |X-X0|:  34270.500000
+rounded |X_k-Y|_0 = 919197, f1 =  0.652693, approx slack: 793694
+rounded before pow |X_k-Y|_0 = 1643427, f1 =  0.619124
+
+Iteration 880: Loss = 953396.250000
+|Xk-Y|_F:  919536.687500, |X-X0|:  33859.558594
+rounded |X_k-Y|_0 = 918182, f1 =  0.652741, approx slack: 797527
+rounded before pow |X_k-Y|_0 = 1647034, f1 =  0.618967
+
+Iteration 900: Loss = 952249.875000
+|Xk-Y|_F:  918794.187500, |X-X0|:  33455.656250
+rounded |X_k-Y|_0 = 917289, f1 =  0.652784, approx slack: 815971
+rounded before pow |X_k-Y|_0 = 1664921, f1 =  0.618191
+
+Iteration 920: Loss = 950973.750000
+|Xk-Y|_F:  917966.187500, |X-X0|:  33007.535156
+rounded |X_k-Y|_0 = 916265, f1 =  0.652833, approx slack: 812731
+rounded before pow |X_k-Y|_0 = 1661375, f1 =  0.618345
+
+Iteration 940: Loss = 949724.625000
+|Xk-Y|_F:  917123.937500, |X-X0|:  32600.695312
+rounded |X_k-Y|_0 = 915038, f1 =  0.652892, approx slack: 820319
+rounded before pow |X_k-Y|_0 = 1668303, f1 =  0.618045
+
+Iteration 960: Loss = 948503.500000
+|Xk-Y|_F:  916366.000000, |X-X0|:  32137.488281
+rounded |X_k-Y|_0 = 914442, f1 =  0.652920, approx slack: 830492
+rounded before pow |X_k-Y|_0 = 1678446, f1 =  0.617606
+
+Iteration 980: Loss = 947082.187500
+|Xk-Y|_F:  915510.625000, |X-X0|:  31571.587891
+rounded |X_k-Y|_0 = 914189, f1 =  0.652933, approx slack: 894272
+rounded before pow |X_k-Y|_0 = 1741360, f1 =  0.614891
+
+Iteration 1000: Loss = 945740.250000
+|Xk-Y|_F:  914729.375000, |X-X0|:  31010.873047
+rounded |X_k-Y|_0 = 913811, f1 =  0.652951, approx slack: 916512
+rounded before pow |X_k-Y|_0 = 1763247, f1 =  0.613951
+
+Iteration 1020: Loss = 944269.250000
+|Xk-Y|_F:  913909.625000, |X-X0|:  30359.601562
+rounded |X_k-Y|_0 = 913106, f1 =  0.652984, approx slack: 913066
+rounded before pow |X_k-Y|_0 = 1759227, f1 =  0.614124
+
+Iteration 1040: Loss = 942678.562500
+|Xk-Y|_F:  913103.875000, |X-X0|:  29574.712891
+rounded |X_k-Y|_0 = 912413, f1 =  0.653017, approx slack: 919859
+rounded before pow |X_k-Y|_0 = 1765787, f1 =  0.613842
+
+Iteration 1060: Loss = 940972.875000
+|Xk-Y|_F:  912325.812500, |X-X0|:  28647.039062
+rounded |X_k-Y|_0 = 911773, f1 =  0.653048, approx slack: 926186
+rounded before pow |X_k-Y|_0 = 1768316, f1 =  0.613693
+
+Iteration 1080: Loss = 939366.250000
+|Xk-Y|_F:  911612.125000, |X-X0|:  27754.144531
+rounded |X_k-Y|_0 = 911377, f1 =  0.653067, approx slack: 923000
+rounded before pow |X_k-Y|_0 = 1765183, f1 =  0.613826
+
+Iteration 1100: Loss = 938072.625000
+|Xk-Y|_F:  910947.812500, |X-X0|:  27124.820312
+rounded |X_k-Y|_0 = 911205, f1 =  0.653076, approx slack: 926877
+rounded before pow |X_k-Y|_0 = 1768678, f1 =  0.613676
+
+Iteration 1120: Loss = 937019.562500
+|Xk-Y|_F:  910391.000000, |X-X0|:  26628.589844
+rounded |X_k-Y|_0 = 910594, f1 =  0.653105, approx slack: 927531
+rounded before pow |X_k-Y|_0 = 1769158, f1 =  0.613655
+
+Iteration 1140: Loss = 935927.625000
+|Xk-Y|_F:  909783.312500, |X-X0|:  26144.335938
+rounded |X_k-Y|_0 = 909933, f1 =  0.653136, approx slack: 938926
+rounded before pow |X_k-Y|_0 = 1779778, f1 =  0.613201
+
+Iteration 1160: Loss = 935144.750000
+|Xk-Y|_F:  909398.750000, |X-X0|:  25745.988281
+rounded |X_k-Y|_0 = 909560, f1 =  0.653154, approx slack: 939055
+rounded before pow |X_k-Y|_0 = 1779773, f1 =  0.613201
+
+Iteration 1180: Loss = 934341.250000
+|Xk-Y|_F:  908972.875000, |X-X0|:  25368.400391
+rounded |X_k-Y|_0 = 908884, f1 =  0.653186, approx slack: 940179
+rounded before pow |X_k-Y|_0 = 1780841, f1 =  0.613153
+
+Iteration 1200: Loss = 933337.687500
+|Xk-Y|_F:  908384.187500, |X-X0|:  24953.503906
+rounded |X_k-Y|_0 = 908132, f1 =  0.653222, approx slack: 942571
+rounded before pow |X_k-Y|_0 = 1782647, f1 =  0.613076
+
+Iteration 1220: Loss = 934174.312500
+|Xk-Y|_F:  909370.937500, |X-X0|:  24803.388672
+rounded |X_k-Y|_0 = 907835, f1 =  0.653237, approx slack: 943530
+rounded before pow |X_k-Y|_0 = 1783188, f1 =  0.613051
+
+Iteration 1240: Loss = 931730.312500
+|Xk-Y|_F:  907590.937500, |X-X0|:  24139.375000
+rounded |X_k-Y|_0 = 906611, f1 =  0.653296, approx slack: 943718
+rounded before pow |X_k-Y|_0 = 1783163, f1 =  0.613053
+
+Iteration 1260: Loss = 931138.312500
+|Xk-Y|_F:  907471.125000, |X-X0|:  23667.171875
+rounded |X_k-Y|_0 = 906448, f1 =  0.653303, approx slack: 944349
+rounded before pow |X_k-Y|_0 = 1783140, f1 =  0.613054
+
+Iteration 1280: Loss = 931023.125000
+|Xk-Y|_F:  907789.000000, |X-X0|:  23234.134766
+rounded |X_k-Y|_0 = 905948, f1 =  0.653327, approx slack: 935014
+rounded before pow |X_k-Y|_0 = 1773828, f1 =  0.613448
+
+Iteration 1300: Loss = 929318.687500
+|Xk-Y|_F:  906765.750000, |X-X0|:  22552.943359
+rounded |X_k-Y|_0 = 905059, f1 =  0.653370, approx slack: 942369
+rounded before pow |X_k-Y|_0 = 1781650, f1 =  0.613112
+
+Iteration 1320: Loss = 930275.187500
+|Xk-Y|_F:  907845.375000, |X-X0|:  22429.785156
+rounded |X_k-Y|_0 = 904467, f1 =  0.653398, approx slack: 997319
+rounded before pow |X_k-Y|_0 = 1834735, f1 =  0.610842
+
+Iteration 1340: Loss = 927432.187500
+|Xk-Y|_F:  905536.250000, |X-X0|:  21895.949219
+rounded |X_k-Y|_0 = 903010, f1 =  0.653468, approx slack: 1003761
+rounded before pow |X_k-Y|_0 = 1841055, f1 =  0.610573
+
+Iteration 1360: Loss = 927049.125000
+|Xk-Y|_F:  905337.750000, |X-X0|:  21711.359375
+rounded |X_k-Y|_0 = 901830, f1 =  0.653525, approx slack: 1004155
+rounded before pow |X_k-Y|_0 = 1841623, f1 =  0.610547
+
+Iteration 1380: Loss = 925588.937500
+|Xk-Y|_F:  904332.375000, |X-X0|:  21256.574219
+rounded |X_k-Y|_0 = 900858, f1 =  0.653572, approx slack: 1013518
+rounded before pow |X_k-Y|_0 = 1849709, f1 =  0.610202
+
+Iteration 1400: Loss = 924594.125000
+|Xk-Y|_F:  903667.937500, |X-X0|:  20926.216797
+rounded |X_k-Y|_0 = 899276, f1 =  0.653648, approx slack: 1046674
+rounded before pow |X_k-Y|_0 = 1881446, f1 =  0.608860
+
+Iteration 1420: Loss = 924147.312500
+|Xk-Y|_F:  903433.187500, |X-X0|:  20714.134766
+rounded |X_k-Y|_0 = 898237, f1 =  0.653698, approx slack: 1071927
+rounded before pow |X_k-Y|_0 = 1902800, f1 =  0.607964
+
+Iteration 1440: Loss = 923532.562500
+|Xk-Y|_F:  903052.875000, |X-X0|:  20479.666016
+rounded |X_k-Y|_0 = 896624, f1 =  0.653775, approx slack: 1102767
+rounded before pow |X_k-Y|_0 = 1930520, f1 =  0.606801
+
+Iteration 1460: Loss = 922816.625000
+|Xk-Y|_F:  902543.750000, |X-X0|:  20272.900391
+rounded |X_k-Y|_0 = 895718, f1 =  0.653819, approx slack: 1138140
+rounded before pow |X_k-Y|_0 = 1963446, f1 =  0.605418
+
+Iteration 1480: Loss = 924833.062500
+|Xk-Y|_F:  904469.000000, |X-X0|:  20364.070312
+rounded |X_k-Y|_0 = 894587, f1 =  0.653873, approx slack: 1129119
+rounded before pow |X_k-Y|_0 = 1953810, f1 =  0.605824
+
+Iteration 1500: Loss = 921886.125000
+|Xk-Y|_F:  901958.750000, |X-X0|:  19927.373047
+rounded |X_k-Y|_0 = 892336, f1 =  0.653981, approx slack: 1135947
+rounded before pow |X_k-Y|_0 = 1959616, f1 =  0.605581
+
+Iteration 1520: Loss = 921741.812500
+|Xk-Y|_F:  901855.312500, |X-X0|:  19886.476562
+rounded |X_k-Y|_0 = 891268, f1 =  0.654032, approx slack: 1143347
+rounded before pow |X_k-Y|_0 = 1966076, f1 =  0.605310
+
+Iteration 1540: Loss = 921538.000000
+|Xk-Y|_F:  901672.625000, |X-X0|:  19865.359375
+rounded |X_k-Y|_0 = 890378, f1 =  0.654075, approx slack: 1151541
+rounded before pow |X_k-Y|_0 = 1973511, f1 =  0.604999
+
+Iteration 1560: Loss = 921507.625000
+|Xk-Y|_F:  901717.187500, |X-X0|:  19790.433594
+rounded |X_k-Y|_0 = 889245, f1 =  0.654130, approx slack: 1186896
+rounded before pow |X_k-Y|_0 = 2007478, f1 =  0.603578
+
+Iteration 1580: Loss = 920092.062500
+|Xk-Y|_F:  900575.312500, |X-X0|:  19516.779297
+rounded |X_k-Y|_0 = 887748, f1 =  0.654202, approx slack: 1183057
+rounded before pow |X_k-Y|_0 = 2003422, f1 =  0.603748
+
+Iteration 1600: Loss = 920009.562500
+|Xk-Y|_F:  900558.937500, |X-X0|:  19450.642578
+rounded |X_k-Y|_0 = 887658, f1 =  0.654206, approx slack: 1103155
+rounded before pow |X_k-Y|_0 = 1922243, f1 =  0.607155
+
+Iteration 1620: Loss = 919182.562500
+|Xk-Y|_F:  899783.687500, |X-X0|:  19398.851562
+rounded |X_k-Y|_0 = 885763, f1 =  0.654297, approx slack: 1115923
+rounded before pow |X_k-Y|_0 = 1932690, f1 =  0.606675
+
+Iteration 1640: Loss = 918734.125000
+|Xk-Y|_F:  899513.875000, |X-X0|:  19220.240234
+rounded |X_k-Y|_0 = 885665, f1 =  0.654302, approx slack: 1116678
+rounded before pow |X_k-Y|_0 = 1931885, f1 =  0.606709
+
+Iteration 1660: Loss = 918068.875000
+|Xk-Y|_F:  898969.937500, |X-X0|:  19098.921875
+rounded |X_k-Y|_0 = 884624, f1 =  0.654352, approx slack: 1124500
+rounded before pow |X_k-Y|_0 = 1940378, f1 =  0.606352
+
+Iteration 1680: Loss = 917575.000000
+|Xk-Y|_F:  898624.375000, |X-X0|:  18950.632812
+rounded |X_k-Y|_0 = 883818, f1 =  0.654391, approx slack: 1150255
+rounded before pow |X_k-Y|_0 = 1965771, f1 =  0.605286
+
+Iteration 1700: Loss = 917643.750000
+|Xk-Y|_F:  898707.375000, |X-X0|:  18936.343750
+rounded |X_k-Y|_0 = 883675, f1 =  0.654398, approx slack: 1146440
+rounded before pow |X_k-Y|_0 = 1962105, f1 =  0.605440
+
+Iteration 1720: Loss = 916930.125000
+|Xk-Y|_F:  898204.812500, |X-X0|:  18725.343750
+rounded |X_k-Y|_0 = 883159, f1 =  0.654423, approx slack: 1160135
+rounded before pow |X_k-Y|_0 = 1974972, f1 =  0.604901
+
+Iteration 1740: Loss = 916554.437500
+|Xk-Y|_F:  897993.812500, |X-X0|:  18560.648438
+rounded |X_k-Y|_0 = 882910, f1 =  0.654435, approx slack: 1154358
+rounded before pow |X_k-Y|_0 = 1969473, f1 =  0.605132
+
+Iteration 1760: Loss = 916969.937500
+|Xk-Y|_F:  898318.125000, |X-X0|:  18651.839844
+rounded |X_k-Y|_0 = 882993, f1 =  0.654431, approx slack: 1115912
+rounded before pow |X_k-Y|_0 = 1931058, f1 =  0.606745
+
+Iteration 1780: Loss = 915398.812500
+|Xk-Y|_F:  897073.500000, |X-X0|:  18325.312500
+rounded |X_k-Y|_0 = 882161, f1 =  0.654471, approx slack: 1107508
+rounded before pow |X_k-Y|_0 = 1922778, f1 =  0.607094
+
+Iteration 1800: Loss = 915500.437500
+|Xk-Y|_F:  897131.875000, |X-X0|:  18368.580078
+rounded |X_k-Y|_0 = 881806, f1 =  0.654488, approx slack: 1105939
+rounded before pow |X_k-Y|_0 = 1921706, f1 =  0.607139
+
+Iteration 1820: Loss = 915352.250000
+|Xk-Y|_F:  897061.812500, |X-X0|:  18290.451172
+rounded |X_k-Y|_0 = 882102, f1 =  0.654474, approx slack: 1106391
+rounded before pow |X_k-Y|_0 = 1921643, f1 =  0.607141
+
+Iteration 1840: Loss = 914718.437500
+|Xk-Y|_F:  896575.250000, |X-X0|:  18143.181641
+rounded |X_k-Y|_0 = 881475, f1 =  0.654504, approx slack: 1107657
+rounded before pow |X_k-Y|_0 = 1923025, f1 =  0.607083
+
+Iteration 1860: Loss = 914375.062500
+|Xk-Y|_F:  896310.625000, |X-X0|:  18064.466797
+rounded |X_k-Y|_0 = 881257, f1 =  0.654514, approx slack: 1109161
+rounded before pow |X_k-Y|_0 = 1924389, f1 =  0.607026
+
+Iteration 1880: Loss = 916117.625000
+|Xk-Y|_F:  897788.375000, |X-X0|:  18329.246094
+rounded |X_k-Y|_0 = 881926, f1 =  0.654482, approx slack: 1110765
+rounded before pow |X_k-Y|_0 = 1924357, f1 =  0.607027
+
+Iteration 1900: Loss = 914103.750000
+|Xk-Y|_F:  896095.875000, |X-X0|:  18007.843750
+rounded |X_k-Y|_0 = 881131, f1 =  0.654520, approx slack: 1089777
+rounded before pow |X_k-Y|_0 = 1903394, f1 =  0.607911
+
+Iteration 1920: Loss = 913770.000000
+|Xk-Y|_F:  895761.375000, |X-X0|:  18008.619141
+rounded |X_k-Y|_0 = 880800, f1 =  0.654536, approx slack: 1087430
+rounded before pow |X_k-Y|_0 = 1902270, f1 =  0.607958
+
+Iteration 1940: Loss = 913591.375000
+|Xk-Y|_F:  895620.687500, |X-X0|:  17970.667969
+rounded |X_k-Y|_0 = 880354, f1 =  0.654557, approx slack: 1091217
+rounded before pow |X_k-Y|_0 = 1906015, f1 =  0.607800
+
+Iteration 1960: Loss = 913086.437500
+|Xk-Y|_F:  895267.812500, |X-X0|:  17818.619141
+rounded |X_k-Y|_0 = 880486, f1 =  0.654551, approx slack: 1088137
+rounded before pow |X_k-Y|_0 = 1903569, f1 =  0.607903
+
+Iteration 1980: Loss = 913312.625000
+|Xk-Y|_F:  895467.750000, |X-X0|:  17844.849609
+rounded |X_k-Y|_0 = 880528, f1 =  0.654549, approx slack: 1093180
+rounded before pow |X_k-Y|_0 = 1906862, f1 =  0.607764
+
+Iteration 2000: Loss = 912284.312500
+|Xk-Y|_F:  894804.812500, |X-X0|:  17479.484375
+rounded |X_k-Y|_0 = 879802, f1 =  0.654584, approx slack: 1092138
+rounded before pow |X_k-Y|_0 = 1906524, f1 =  0.607779
+
+Iteration 2020: Loss = 912236.937500
+|Xk-Y|_F:  894654.375000, |X-X0|:  17582.539062
+rounded |X_k-Y|_0 = 879377, f1 =  0.654605, approx slack: 1094256
+rounded before pow |X_k-Y|_0 = 1908675, f1 =  0.607688
+
+Iteration 2040: Loss = 911782.750000
+|Xk-Y|_F:  894323.687500, |X-X0|:  17459.046875
+rounded |X_k-Y|_0 = 879460, f1 =  0.654600, approx slack: 1097966
+rounded before pow |X_k-Y|_0 = 1911457, f1 =  0.607570
+
+Iteration 2060: Loss = 911292.125000
+|Xk-Y|_F:  894005.937500, |X-X0|:  17286.189453
+rounded |X_k-Y|_0 = 879319, f1 =  0.654607, approx slack: 1098634
+rounded before pow |X_k-Y|_0 = 1911818, f1 =  0.607555
+
+Iteration 2080: Loss = 911313.375000
+|Xk-Y|_F:  893995.312500, |X-X0|:  17318.042969
+rounded |X_k-Y|_0 = 879358, f1 =  0.654605, approx slack: 1045875
+rounded before pow |X_k-Y|_0 = 1861920, f1 =  0.609715
+
+Iteration 2100: Loss = 911000.562500
+|Xk-Y|_F:  893747.500000, |X-X0|:  17253.054688
+rounded |X_k-Y|_0 = 879001, f1 =  0.654622, approx slack: 1037372
+rounded before pow |X_k-Y|_0 = 1854092, f1 =  0.610047
+
+Iteration 2120: Loss = 914259.437500
+|Xk-Y|_F:  896256.625000, |X-X0|:  18002.835938
+rounded |X_k-Y|_0 = 879719, f1 =  0.654588, approx slack: 1074600
+rounded before pow |X_k-Y|_0 = 1891661, f1 =  0.608457
+
+Iteration 2140: Loss = 911102.375000
+|Xk-Y|_F:  893843.437500, |X-X0|:  17258.957031
+rounded |X_k-Y|_0 = 879029, f1 =  0.654621, approx slack: 1068510
+rounded before pow |X_k-Y|_0 = 1885084, f1 =  0.608735
+
+Iteration 2160: Loss = 910527.250000
+|Xk-Y|_F:  893324.750000, |X-X0|:  17202.480469
+rounded |X_k-Y|_0 = 878788, f1 =  0.654633, approx slack: 1061162
+rounded before pow |X_k-Y|_0 = 1878021, f1 =  0.609033
+
+Iteration 2180: Loss = 910532.312500
+|Xk-Y|_F:  893315.000000, |X-X0|:  17217.308594
+rounded |X_k-Y|_0 = 878797, f1 =  0.654632, approx slack: 1061745
+rounded before pow |X_k-Y|_0 = 1878119, f1 =  0.609028
+
+Iteration 2200: Loss = 909221.562500
+|Xk-Y|_F:  892350.062500, |X-X0|:  16871.523438
+rounded |X_k-Y|_0 = 878263, f1 =  0.654658, approx slack: 1064553
+rounded before pow |X_k-Y|_0 = 1880798, f1 =  0.608914
+
+Iteration 2220: Loss = 909966.312500
+|Xk-Y|_F:  892933.750000, |X-X0|:  17032.542969
+rounded |X_k-Y|_0 = 878822, f1 =  0.654631, approx slack: 1062003
+rounded before pow |X_k-Y|_0 = 1878051, f1 =  0.609031
+
+Iteration 2240: Loss = 909387.625000
+|Xk-Y|_F:  892309.125000, |X-X0|:  17078.472656
+rounded |X_k-Y|_0 = 878195, f1 =  0.654661, approx slack: 1061182
+rounded before pow |X_k-Y|_0 = 1877998, f1 =  0.609032
+
+Iteration 2260: Loss = 909295.125000
+|Xk-Y|_F:  892204.187500, |X-X0|:  17090.939453
+rounded |X_k-Y|_0 = 877812, f1 =  0.654680, approx slack: 1060363
+rounded before pow |X_k-Y|_0 = 1876422, f1 =  0.609100
+
+Iteration 2280: Loss = 908892.437500
+|Xk-Y|_F:  891919.750000, |X-X0|:  16972.675781
+rounded |X_k-Y|_0 = 877337, f1 =  0.654703, approx slack: 1060006
+rounded before pow |X_k-Y|_0 = 1876479, f1 =  0.609097
+
+Iteration 2300: Loss = 908658.000000
+|Xk-Y|_F:  891653.250000, |X-X0|:  17004.781250
+rounded |X_k-Y|_0 = 877638, f1 =  0.654688, approx slack: 1060434
+rounded before pow |X_k-Y|_0 = 1876442, f1 =  0.609098
+
+Iteration 2320: Loss = 908000.625000
+|Xk-Y|_F:  891183.562500, |X-X0|:  16817.085938
+rounded |X_k-Y|_0 = 877522, f1 =  0.654694, approx slack: 1059986
+rounded before pow |X_k-Y|_0 = 1878027, f1 =  0.609072
+
+Iteration 2340: Loss = 908639.937500
+|Xk-Y|_F:  891584.187500, |X-X0|:  17055.779297
+rounded |X_k-Y|_0 = 877804, f1 =  0.654681, approx slack: 1084548
+rounded before pow |X_k-Y|_0 = 1902979, f1 =  0.608017
+
+Iteration 2360: Loss = 907721.937500
+|Xk-Y|_F:  890823.062500, |X-X0|:  16898.894531
+rounded |X_k-Y|_0 = 877328, f1 =  0.654704, approx slack: 1106320
+rounded before pow |X_k-Y|_0 = 1924323, f1 =  0.607116
+
+Iteration 2380: Loss = 907218.187500
+|Xk-Y|_F:  890387.500000, |X-X0|:  16830.687500
+rounded |X_k-Y|_0 = 877328, f1 =  0.654704, approx slack: 1116545
+rounded before pow |X_k-Y|_0 = 1935598, f1 =  0.606657
+
+Iteration 2400: Loss = 908194.562500
+|Xk-Y|_F:  891023.625000, |X-X0|:  17170.966797
+rounded |X_k-Y|_0 = 877810, f1 =  0.654681, approx slack: 1132279
+rounded before pow |X_k-Y|_0 = 1950347, f1 =  0.606037
+
+Iteration 2420: Loss = 907556.437500
+|Xk-Y|_F:  890456.562500, |X-X0|:  17099.886719
+rounded |X_k-Y|_0 = 877683, f1 =  0.654687, approx slack: 1207766
+rounded before pow |X_k-Y|_0 = 2025973, f1 =  0.602865
+
+Iteration 2440: Loss = 907095.250000
+|Xk-Y|_F:  890146.437500, |X-X0|:  16948.816406
+rounded |X_k-Y|_0 = 877111, f1 =  0.654715, approx slack: 1207917
+rounded before pow |X_k-Y|_0 = 2025946, f1 =  0.602866
+
+Iteration 2460: Loss = 907852.187500
+|Xk-Y|_F:  890476.062500, |X-X0|:  17376.152344
+rounded |X_k-Y|_0 = 877056, f1 =  0.654717, approx slack: 1210767
+rounded before pow |X_k-Y|_0 = 2028147, f1 =  0.602774
+
+Iteration 2480: Loss = 906509.562500
+|Xk-Y|_F:  889673.375000, |X-X0|:  16836.183594
+rounded |X_k-Y|_0 = 876700, f1 =  0.654734, approx slack: 1212905
+rounded before pow |X_k-Y|_0 = 2030550, f1 =  0.602674
+
+Iteration 2500: Loss = 906694.625000
+|Xk-Y|_F:  889750.500000, |X-X0|:  16944.148438
+rounded |X_k-Y|_0 = 876501, f1 =  0.654744, approx slack: 1074833
+rounded before pow |X_k-Y|_0 = 1892133, f1 =  0.608485
+
+Iteration 2520: Loss = 906885.187500
+|Xk-Y|_F:  889787.000000, |X-X0|:  17098.214844
+rounded |X_k-Y|_0 = 877017, f1 =  0.654719, approx slack: 1211475
+rounded before pow |X_k-Y|_0 = 2029403, f1 =  0.602729
+
+Iteration 2540: Loss = 906361.625000
+|Xk-Y|_F:  889393.500000, |X-X0|:  16968.117188
+rounded |X_k-Y|_0 = 876403, f1 =  0.654749, approx slack: 1211876
+rounded before pow |X_k-Y|_0 = 2029556, f1 =  0.602722
+
+Iteration 2560: Loss = 905982.187500
+|Xk-Y|_F:  889060.937500, |X-X0|:  16921.253906
+rounded |X_k-Y|_0 = 876273, f1 =  0.654755, approx slack: 1205735
+rounded before pow |X_k-Y|_0 = 2024462, f1 =  0.602926
+
+Iteration 2580: Loss = 905380.437500
+|Xk-Y|_F:  888676.625000, |X-X0|:  16703.796875
+rounded |X_k-Y|_0 = 875789, f1 =  0.654778, approx slack: 1207037
+rounded before pow |X_k-Y|_0 = 2025165, f1 =  0.602898
+
+Iteration 2600: Loss = 906078.187500
+|Xk-Y|_F:  889038.937500, |X-X0|:  17039.242188
+rounded |X_k-Y|_0 = 875812, f1 =  0.654777, approx slack: 1206013
+rounded before pow |X_k-Y|_0 = 2024137, f1 =  0.602951
+
+Iteration 2620: Loss = 905195.937500
+|Xk-Y|_F:  888406.125000, |X-X0|:  16789.837891
+rounded |X_k-Y|_0 = 875879, f1 =  0.654774, approx slack: 1209580
+rounded before pow |X_k-Y|_0 = 2027500, f1 =  0.602813
+
+Iteration 2640: Loss = 904760.375000
+|Xk-Y|_F:  888079.625000, |X-X0|:  16680.775391
+rounded |X_k-Y|_0 = 875581, f1 =  0.654788, approx slack: 1208147
+rounded before pow |X_k-Y|_0 = 2025796, f1 =  0.602885
+
+Iteration 2660: Loss = 904659.250000
+|Xk-Y|_F:  887887.500000, |X-X0|:  16771.773438
+rounded |X_k-Y|_0 = 875485, f1 =  0.654794, approx slack: 1205054
+rounded before pow |X_k-Y|_0 = 2022883, f1 =  0.603007
+
+Iteration 2680: Loss = 905413.312500
+|Xk-Y|_F:  888242.312500, |X-X0|:  17171.011719
+rounded |X_k-Y|_0 = 875625, f1 =  0.654787, approx slack: 1197265
+rounded before pow |X_k-Y|_0 = 2021498, f1 =  0.603153
+
+Iteration 2700: Loss = 904594.312500
+|Xk-Y|_F:  887789.750000, |X-X0|:  16804.542969
+rounded |X_k-Y|_0 = 875118, f1 =  0.654811, approx slack: 1201811
+rounded before pow |X_k-Y|_0 = 2025874, f1 =  0.602972
+
+Iteration 2720: Loss = 904801.562500
+|Xk-Y|_F:  887794.812500, |X-X0|:  17006.742188
+rounded |X_k-Y|_0 = 875003, f1 =  0.654817, approx slack: 1200310
+rounded before pow |X_k-Y|_0 = 2024774, f1 =  0.603019
+
+Iteration 2740: Loss = 905314.437500
+|Xk-Y|_F:  888171.437500, |X-X0|:  17143.013672
+rounded |X_k-Y|_0 = 874936, f1 =  0.654820, approx slack: 1200359
+rounded before pow |X_k-Y|_0 = 2024761, f1 =  0.603020
+
+Iteration 2760: Loss = 904329.375000
+|Xk-Y|_F:  887570.625000, |X-X0|:  16758.718750
+rounded |X_k-Y|_0 = 874779, f1 =  0.654828, approx slack: 1199729
+rounded before pow |X_k-Y|_0 = 2023477, f1 =  0.603074
+
+Iteration 2780: Loss = 905752.312500
+|Xk-Y|_F:  888765.812500, |X-X0|:  16986.494141
+rounded |X_k-Y|_0 = 875451, f1 =  0.654795, approx slack: 1200675
+rounded before pow |X_k-Y|_0 = 2024458, f1 =  0.603035
+
+Iteration 2800: Loss = 903951.750000
+|Xk-Y|_F:  887161.500000, |X-X0|:  16790.230469
+rounded |X_k-Y|_0 = 875019, f1 =  0.654816, approx slack: 1201662
+rounded before pow |X_k-Y|_0 = 2024698, f1 =  0.603008
+
+Iteration 2820: Loss = 904377.312500
+|Xk-Y|_F:  887350.875000, |X-X0|:  17026.460938
+rounded |X_k-Y|_0 = 874926, f1 =  0.654821, approx slack: 1199743
+rounded before pow |X_k-Y|_0 = 2022758, f1 =  0.603092
+
+Iteration 2840: Loss = 904202.562500
+|Xk-Y|_F:  887368.000000, |X-X0|:  16834.554688
+rounded |X_k-Y|_0 = 874605, f1 =  0.654836, approx slack: 1201303
+rounded before pow |X_k-Y|_0 = 2024961, f1 =  0.603000
+
+Iteration 2860: Loss = 904209.375000
+|Xk-Y|_F:  887440.812500, |X-X0|:  16768.578125
+rounded |X_k-Y|_0 = 875151, f1 =  0.654810, approx slack: 1197736
+rounded before pow |X_k-Y|_0 = 2020175, f1 =  0.603201
+
+Iteration 2880: Loss = 907292.750000
+|Xk-Y|_F:  889938.187500, |X-X0|:  17354.566406
+rounded |X_k-Y|_0 = 874779, f1 =  0.654828, approx slack: 1196648
+rounded before pow |X_k-Y|_0 = 2020236, f1 =  0.603199
+
+Iteration 2900: Loss = 904007.437500
+|Xk-Y|_F:  887261.562500, |X-X0|:  16745.873047
+rounded |X_k-Y|_0 = 874303, f1 =  0.654851, approx slack: 1190542
+rounded before pow |X_k-Y|_0 = 2014320, f1 =  0.603426
+
+Iteration 2920: Loss = 903134.750000
+|Xk-Y|_F:  886694.062500, |X-X0|:  16440.710938
+rounded |X_k-Y|_0 = 874826, f1 =  0.654825, approx slack: 1190833
+rounded before pow |X_k-Y|_0 = 2014679, f1 =  0.603412
+
+Iteration 2940: Loss = 903419.312500
+|Xk-Y|_F:  886765.250000, |X-X0|:  16654.058594
+rounded |X_k-Y|_0 = 874465, f1 =  0.654843, approx slack: 1190582
+rounded before pow |X_k-Y|_0 = 2014768, f1 =  0.603409
+
+Iteration 2960: Loss = 903589.375000
+|Xk-Y|_F:  886827.750000, |X-X0|:  16761.644531
+rounded |X_k-Y|_0 = 874293, f1 =  0.654851, approx slack: 1177924
+rounded before pow |X_k-Y|_0 = 2001773, f1 =  0.603951
+
+Iteration 2980: Loss = 903227.250000
+|Xk-Y|_F:  886489.937500, |X-X0|:  16737.316406
+rounded |X_k-Y|_0 = 874315, f1 =  0.654850, approx slack: 1187353
+rounded before pow |X_k-Y|_0 = 2011075, f1 =  0.603561
+
+Iteration 3000: Loss = 903017.250000
+|Xk-Y|_F:  886272.875000, |X-X0|:  16744.375000
+rounded |X_k-Y|_0 = 874123, f1 =  0.654860, approx slack: 1218921
+rounded before pow |X_k-Y|_0 = 2041526, f1 =  0.602314
+
+Iteration 3020: Loss = 904046.875000
+|Xk-Y|_F:  886911.562500, |X-X0|:  17135.292969
+rounded |X_k-Y|_0 = 874174, f1 =  0.654857, approx slack: 1218514
+rounded before pow |X_k-Y|_0 = 2041730, f1 =  0.602304
+
+Iteration 3040: Loss = 903487.687500
+|Xk-Y|_F:  886771.812500, |X-X0|:  16715.859375
+rounded |X_k-Y|_0 = 874389, f1 =  0.654847, approx slack: 1218955
+rounded before pow |X_k-Y|_0 = 2041581, f1 =  0.602309
+
+Iteration 3060: Loss = 902973.875000
+|Xk-Y|_F:  886326.750000, |X-X0|:  16647.117188
+rounded |X_k-Y|_0 = 873895, f1 =  0.654871, approx slack: 1219002
+rounded before pow |X_k-Y|_0 = 2041776, f1 =  0.602300
+
+Iteration 3080: Loss = 902576.062500
+|Xk-Y|_F:  886134.000000, |X-X0|:  16442.070312
+rounded |X_k-Y|_0 = 873921, f1 =  0.654870, approx slack: 1222424
+rounded before pow |X_k-Y|_0 = 2044973, f1 =  0.602168
+
+Iteration 3100: Loss = 902822.937500
+|Xk-Y|_F:  886093.000000, |X-X0|:  16729.914062
+rounded |X_k-Y|_0 = 873703, f1 =  0.654880, approx slack: 1219356
+rounded before pow |X_k-Y|_0 = 2041185, f1 =  0.602320
+
+Iteration 3120: Loss = 902711.187500
+|Xk-Y|_F:  886100.125000, |X-X0|:  16611.080078
+rounded |X_k-Y|_0 = 873542, f1 =  0.654888, approx slack: 1219474
+rounded before pow |X_k-Y|_0 = 2041311, f1 =  0.602315
+
+Iteration 3140: Loss = 902419.375000
+|Xk-Y|_F:  885979.125000, |X-X0|:  16440.238281
+rounded |X_k-Y|_0 = 873617, f1 =  0.654884, approx slack: 1222546
+rounded before pow |X_k-Y|_0 = 2044824, f1 =  0.602169
+
+Iteration 3160: Loss = 902038.250000
+|Xk-Y|_F:  885564.750000, |X-X0|:  16473.492188
+rounded |X_k-Y|_0 = 873602, f1 =  0.654885, approx slack: 1222503
+rounded before pow |X_k-Y|_0 = 2044809, f1 =  0.602169
+
+Iteration 3180: Loss = 902866.750000
+|Xk-Y|_F:  886090.687500, |X-X0|:  16776.056641
+rounded |X_k-Y|_0 = 873893, f1 =  0.654871, approx slack: 1219720
+rounded before pow |X_k-Y|_0 = 2041428, f1 =  0.602308
+
+Iteration 3200: Loss = 902340.187500
+|Xk-Y|_F:  885819.875000, |X-X0|:  16520.324219
+rounded |X_k-Y|_0 = 873632, f1 =  0.654884, approx slack: 1218853
+rounded before pow |X_k-Y|_0 = 2041338, f1 =  0.602311
+
+Iteration 3220: Loss = 903606.562500
+|Xk-Y|_F:  886957.875000, |X-X0|:  16648.714844
+rounded |X_k-Y|_0 = 874037, f1 =  0.654864, approx slack: 1218667
+rounded before pow |X_k-Y|_0 = 2041461, f1 =  0.602306
+
+Iteration 3240: Loss = 902348.500000
+|Xk-Y|_F:  886039.000000, |X-X0|:  16309.517578
+rounded |X_k-Y|_0 = 873310, f1 =  0.654899, approx slack: 1219324
+rounded before pow |X_k-Y|_0 = 2041346, f1 =  0.602311
+
+Iteration 3260: Loss = 902686.625000
+|Xk-Y|_F:  886238.812500, |X-X0|:  16447.835938
+rounded |X_k-Y|_0 = 873434, f1 =  0.654893, approx slack: 1218920
+rounded before pow |X_k-Y|_0 = 2041095, f1 =  0.602322
+
+Iteration 3280: Loss = 901343.375000
+|Xk-Y|_F:  885400.250000, |X-X0|:  15943.115234
+rounded |X_k-Y|_0 = 873566, f1 =  0.654887, approx slack: 1204276
+rounded before pow |X_k-Y|_0 = 2026943, f1 =  0.602889
+
+Iteration 3300: Loss = 901347.375000
+|Xk-Y|_F:  885271.375000, |X-X0|:  16075.968750
+rounded |X_k-Y|_0 = 873149, f1 =  0.654907, approx slack: 1200764
+rounded before pow |X_k-Y|_0 = 2023263, f1 =  0.603041
+
+Iteration 3320: Loss = 901424.625000
+|Xk-Y|_F:  885258.625000, |X-X0|:  16166.001953
+rounded |X_k-Y|_0 = 873170, f1 =  0.654906, approx slack: 1204707
+rounded before pow |X_k-Y|_0 = 2027386, f1 =  0.602870
+
+Iteration 3340: Loss = 901207.875000
+|Xk-Y|_F:  885196.625000, |X-X0|:  16011.267578
+rounded |X_k-Y|_0 = 873430, f1 =  0.654894, approx slack: 1200615
+rounded before pow |X_k-Y|_0 = 2023470, f1 =  0.603031
+
+Iteration 3360: Loss = 902601.687500
+|Xk-Y|_F:  885932.125000, |X-X0|:  16669.535156
+rounded |X_k-Y|_0 = 873388, f1 =  0.654895, approx slack: 1201625
+rounded before pow |X_k-Y|_0 = 2023834, f1 =  0.603016
+
+Iteration 3380: Loss = 902045.250000
+|Xk-Y|_F:  885855.375000, |X-X0|:  16189.869141
+rounded |X_k-Y|_0 = 873053, f1 =  0.654911, approx slack: 1201188
+rounded before pow |X_k-Y|_0 = 2023686, f1 =  0.603022
+
+Iteration 3400: Loss = 901044.500000
+|Xk-Y|_F:  885149.437500, |X-X0|:  15895.068359
+rounded |X_k-Y|_0 = 873083, f1 =  0.654910, approx slack: 1201175
+rounded before pow |X_k-Y|_0 = 2023693, f1 =  0.603022
+
+Iteration 3420: Loss = 901433.500000
+|Xk-Y|_F:  885253.250000, |X-X0|:  16180.220703
+rounded |X_k-Y|_0 = 872998, f1 =  0.654914, approx slack: 1200914
+rounded before pow |X_k-Y|_0 = 2023835, f1 =  0.603015
+
+Iteration 3440: Loss = 900880.125000
+|Xk-Y|_F:  885063.875000, |X-X0|:  15816.272461
+rounded |X_k-Y|_0 = 873175, f1 =  0.654906, approx slack: 1202139
+rounded before pow |X_k-Y|_0 = 2023948, f1 =  0.603010
+
+Iteration 3460: Loss = 901918.062500
+|Xk-Y|_F:  885406.250000, |X-X0|:  16511.804688
+rounded |X_k-Y|_0 = 873541, f1 =  0.654888, approx slack: 1207251
+rounded before pow |X_k-Y|_0 = 2029079, f1 =  0.602796
+
+Iteration 3480: Loss = 903226.687500
+|Xk-Y|_F:  886526.750000, |X-X0|:  16699.910156
+rounded |X_k-Y|_0 = 873583, f1 =  0.654886, approx slack: 1202208
+rounded before pow |X_k-Y|_0 = 2024981, f1 =  0.602965
+
+Iteration 3500: Loss = 901368.812500
+|Xk-Y|_F:  885165.625000, |X-X0|:  16203.207031
+rounded |X_k-Y|_0 = 873540, f1 =  0.654888, approx slack: 1202754
+rounded before pow |X_k-Y|_0 = 2024905, f1 =  0.602952
+
+Iteration 3520: Loss = 902144.625000
+|Xk-Y|_F:  885417.937500, |X-X0|:  16726.681641
+rounded |X_k-Y|_0 = 873587, f1 =  0.654885, approx slack: 1203585
+rounded before pow |X_k-Y|_0 = 2024971, f1 =  0.602949
+
+Iteration 3540: Loss = 902156.500000
+|Xk-Y|_F:  885349.500000, |X-X0|:  16806.990234
+rounded |X_k-Y|_0 = 873300, f1 =  0.654899, approx slack: 1203161
+rounded before pow |X_k-Y|_0 = 2025446, f1 =  0.602931
+
+Iteration 3560: Loss = 901085.875000
+|Xk-Y|_F:  884881.375000, |X-X0|:  16204.531250
+rounded |X_k-Y|_0 = 873147, f1 =  0.654906, approx slack: 1201769
+rounded before pow |X_k-Y|_0 = 2023395, f1 =  0.603015
+
+Iteration 3580: Loss = 902031.937500
+|Xk-Y|_F:  885487.562500, |X-X0|:  16544.373047
+rounded |X_k-Y|_0 = 873535, f1 =  0.654887, approx slack: 1202661
+rounded before pow |X_k-Y|_0 = 2023973, f1 =  0.602990
+
+Iteration 3600: Loss = 901833.937500
+|Xk-Y|_F:  885316.500000, |X-X0|:  16517.427734
+rounded |X_k-Y|_0 = 873016, f1 =  0.654913, approx slack: 1197726
+rounded before pow |X_k-Y|_0 = 2019990, f1 =  0.603155
+
+Iteration 3620: Loss = 901366.125000
+|Xk-Y|_F:  884808.937500, |X-X0|:  16557.187500
+rounded |X_k-Y|_0 = 873062, f1 =  0.654911, approx slack: 1198345
+rounded before pow |X_k-Y|_0 = 2020287, f1 =  0.603141
+
+Iteration 3640: Loss = 900755.000000
+|Xk-Y|_F:  884549.562500, |X-X0|:  16205.460938
+rounded |X_k-Y|_0 = 872830, f1 =  0.654922, approx slack: 1202965
+rounded before pow |X_k-Y|_0 = 2024134, f1 =  0.602979
+
+Iteration 3660: Loss = 900904.875000
+|Xk-Y|_F:  884580.187500, |X-X0|:  16324.718750
+rounded |X_k-Y|_0 = 872631, f1 =  0.654931, approx slack: 1204863
+rounded before pow |X_k-Y|_0 = 2026357, f1 =  0.602884
+
+Iteration 3680: Loss = 900583.562500
+|Xk-Y|_F:  884452.875000, |X-X0|:  16130.707031
+rounded |X_k-Y|_0 = 872470, f1 =  0.654939, approx slack: 1204227
+rounded before pow |X_k-Y|_0 = 2025701, f1 =  0.602910
+
+Iteration 3700: Loss = 901451.437500
+|Xk-Y|_F:  885116.000000, |X-X0|:  16335.423828
+rounded |X_k-Y|_0 = 872439, f1 =  0.654940, approx slack: 1203089
+rounded before pow |X_k-Y|_0 = 2024194, f1 =  0.602975
+
+Iteration 3720: Loss = 900581.312500
+|Xk-Y|_F:  884690.062500, |X-X0|:  15891.251953
+rounded |X_k-Y|_0 = 872128, f1 =  0.654955, approx slack: 1203124
+rounded before pow |X_k-Y|_0 = 2024600, f1 =  0.602957
+
+Iteration 3740: Loss = 901579.500000
+|Xk-Y|_F:  885096.437500, |X-X0|:  16483.058594
+rounded |X_k-Y|_0 = 872010, f1 =  0.654960, approx slack: 1211683
+rounded before pow |X_k-Y|_0 = 2033942, f1 =  0.602567
+
+Iteration 3760: Loss = 900205.937500
+|Xk-Y|_F:  884128.125000, |X-X0|:  16077.799805
+rounded |X_k-Y|_0 = 872063, f1 =  0.654958, approx slack: 1213415
+rounded before pow |X_k-Y|_0 = 2036157, f1 =  0.602476
+
+Iteration 3780: Loss = 900125.937500
+|Xk-Y|_F:  884053.625000, |X-X0|:  16072.291016
+rounded |X_k-Y|_0 = 871598, f1 =  0.654980, approx slack: 1218850
+rounded before pow |X_k-Y|_0 = 2041319, f1 =  0.602262
+
+Iteration 3800: Loss = 899912.062500
+|Xk-Y|_F:  883852.937500, |X-X0|:  16059.123047
+rounded |X_k-Y|_0 = 871696, f1 =  0.654976, approx slack: 1215561
+rounded before pow |X_k-Y|_0 = 2037845, f1 =  0.602407
+
+Iteration 3820: Loss = 900331.625000
+|Xk-Y|_F:  884051.250000, |X-X0|:  16280.365234
+rounded |X_k-Y|_0 = 871999, f1 =  0.654961, approx slack: 1216110
+rounded before pow |X_k-Y|_0 = 2037630, f1 =  0.602415
+
+Iteration 3840: Loss = 900825.125000
+|Xk-Y|_F:  884193.437500, |X-X0|:  16631.656250
+rounded |X_k-Y|_0 = 871549, f1 =  0.654983, approx slack: 1177809
+rounded before pow |X_k-Y|_0 = 2000660, f1 =  0.603955
+
+Iteration 3860: Loss = 901110.687500
+|Xk-Y|_F:  884215.625000, |X-X0|:  16895.082031
+rounded |X_k-Y|_0 = 872020, f1 =  0.654961, approx slack: 1174582
+rounded before pow |X_k-Y|_0 = 1996722, f1 =  0.604121
+
+Iteration 3880: Loss = 900853.375000
+|Xk-Y|_F:  884294.000000, |X-X0|:  16559.343750
+rounded |X_k-Y|_0 = 871741, f1 =  0.654974, approx slack: 1180433
+rounded before pow |X_k-Y|_0 = 2003546, f1 =  0.603835
+
+Iteration 3900: Loss = 900562.500000
+|Xk-Y|_F:  883980.750000, |X-X0|:  16581.771484
+rounded |X_k-Y|_0 = 871775, f1 =  0.654972, approx slack: 1201656
+rounded before pow |X_k-Y|_0 = 2024270, f1 =  0.602970
+
+Iteration 3920: Loss = 901761.875000
+|Xk-Y|_F:  884681.687500, |X-X0|:  17080.207031
+rounded |X_k-Y|_0 = 872001, f1 =  0.654961, approx slack: 1183080
+rounded before pow |X_k-Y|_0 = 2005839, f1 =  0.603742
+
+Iteration 3940: Loss = 901057.000000
+|Xk-Y|_F:  884095.687500, |X-X0|:  16961.287109
+rounded |X_k-Y|_0 = 871890, f1 =  0.654967, approx slack: 1189343
+rounded before pow |X_k-Y|_0 = 2012560, f1 =  0.603465
+
+Iteration 3960: Loss = 900918.000000
+|Xk-Y|_F:  884370.125000, |X-X0|:  16547.843750
+rounded |X_k-Y|_0 = 871812, f1 =  0.654970, approx slack: 1201793
+rounded before pow |X_k-Y|_0 = 2019420, f1 =  0.603132
+
+Iteration 3980: Loss = 901910.312500
+|Xk-Y|_F:  884679.062500, |X-X0|:  17231.222656
+rounded |X_k-Y|_0 = 872254, f1 =  0.654949, approx slack: 1129631
+rounded before pow |X_k-Y|_0 = 1947447, f1 =  0.606147
+
+Iteration 4000: Loss = 903679.812500
+|Xk-Y|_F:  885289.062500, |X-X0|:  18390.746094
+rounded |X_k-Y|_0 = 872750, f1 =  0.654925, approx slack: 1100202
+rounded before pow |X_k-Y|_0 = 1918505, f1 =  0.607365
+
+Iteration 4020: Loss = 902386.875000
+|Xk-Y|_F:  884606.812500, |X-X0|:  17780.074219
+rounded |X_k-Y|_0 = 872990, f1 =  0.654914, approx slack: 1104068
+rounded before pow |X_k-Y|_0 = 1922955, f1 =  0.607180
+
+Iteration 4040: Loss = 902024.437500
+|Xk-Y|_F:  885056.375000, |X-X0|:  16968.091797
+rounded |X_k-Y|_0 = 872056, f1 =  0.654959, approx slack: 1111186
+rounded before pow |X_k-Y|_0 = 1930778, f1 =  0.606863
+
+Iteration 4060: Loss = 901023.875000
+|Xk-Y|_F:  883968.812500, |X-X0|:  17055.046875
+rounded |X_k-Y|_0 = 872475, f1 =  0.654939, approx slack: 1141988
+rounded before pow |X_k-Y|_0 = 1961855, f1 =  0.605556
+
+Iteration 4080: Loss = 904991.500000
+|Xk-Y|_F:  887423.000000, |X-X0|:  17568.472656
+rounded |X_k-Y|_0 = 873201, f1 =  0.654904, approx slack: 1199046
+rounded before pow |X_k-Y|_0 = 2017327, f1 =  0.603232
+
+Iteration 4100: Loss = 900580.812500
+|Xk-Y|_F:  883891.250000, |X-X0|:  16689.546875
+rounded |X_k-Y|_0 = 871835, f1 =  0.654970, approx slack: 1306807
+rounded before pow |X_k-Y|_0 = 2125172, f1 =  0.598756
+
+Iteration 4120: Loss = 901118.875000
+|Xk-Y|_F:  884110.687500, |X-X0|:  17008.207031
+rounded |X_k-Y|_0 = 871703, f1 =  0.654976, approx slack: 1200047
+rounded before pow |X_k-Y|_0 = 2019093, f1 =  0.603158
+
+Iteration 4140: Loss = 900255.500000
+|Xk-Y|_F:  883692.937500, |X-X0|:  16562.535156
+rounded |X_k-Y|_0 = 871481, f1 =  0.654987, approx slack: 1199225
+rounded before pow |X_k-Y|_0 = 2017947, f1 =  0.603206
+
+Iteration 4160: Loss = 902074.000000
+|Xk-Y|_F:  884116.187500, |X-X0|:  17957.816406
+rounded |X_k-Y|_0 = 872132, f1 =  0.654955, approx slack: 1206320
+rounded before pow |X_k-Y|_0 = 2024904, f1 =  0.602915
+
+Iteration 4180: Loss = 901149.000000
+|Xk-Y|_F:  883767.187500, |X-X0|:  17381.808594
+rounded |X_k-Y|_0 = 871563, f1 =  0.654983, approx slack: 1239247
+rounded before pow |X_k-Y|_0 = 2057701, f1 =  0.601550
+
+Iteration 4200: Loss = 901246.250000
+|Xk-Y|_F:  884007.500000, |X-X0|:  17238.740234
+rounded |X_k-Y|_0 = 871261, f1 =  0.654997, approx slack: 1359919
+rounded before pow |X_k-Y|_0 = 2178034, f1 =  0.596578
+
+Iteration 4220: Loss = 902592.562500
+|Xk-Y|_F:  884087.875000, |X-X0|:  18504.691406
+rounded |X_k-Y|_0 = 871828, f1 =  0.654970, approx slack: 1428897
+rounded before pow |X_k-Y|_0 = 2247020, f1 =  0.593755
+
+Iteration 4240: Loss = 900608.250000
+|Xk-Y|_F:  883306.750000, |X-X0|:  17301.484375
+rounded |X_k-Y|_0 = 871047, f1 =  0.655007, approx slack: 1084931
+rounded before pow |X_k-Y|_0 = 1903396, f1 =  0.608011
+
+Iteration 4260: Loss = 900510.875000
+|Xk-Y|_F:  883643.375000, |X-X0|:  16867.488281
+rounded |X_k-Y|_0 = 871016, f1 =  0.655008, approx slack: 1039013
+rounded before pow |X_k-Y|_0 = 1856523, f1 =  0.609997
+
+Iteration 4280: Loss = 901873.687500
+|Xk-Y|_F:  883618.250000, |X-X0|:  18255.431641
+rounded |X_k-Y|_0 = 871286, f1 =  0.654996, approx slack: 1211350
+rounded before pow |X_k-Y|_0 = 2029053, f1 =  0.602739
+
+Iteration 4300: Loss = 900945.875000
+|Xk-Y|_F:  883210.812500, |X-X0|:  17735.056641
+rounded |X_k-Y|_0 = 870931, f1 =  0.655013, approx slack: 1211165
+rounded before pow |X_k-Y|_0 = 2028205, f1 =  0.602775
+
+Iteration 4320: Loss = 900610.937500
+|Xk-Y|_F:  883285.062500, |X-X0|:  17325.880859
+rounded |X_k-Y|_0 = 870254, f1 =  0.655045, approx slack: 1130113
+rounded before pow |X_k-Y|_0 = 1947474, f1 =  0.606156
+
+Iteration 4340: Loss = 902723.937500
+|Xk-Y|_F:  884526.500000, |X-X0|:  18197.410156
+rounded |X_k-Y|_0 = 871048, f1 =  0.655007, approx slack: 1124398
+rounded before pow |X_k-Y|_0 = 1942083, f1 =  0.606381
+
+Iteration 4360: Loss = 901166.062500
+|Xk-Y|_F:  883453.812500, |X-X0|:  17712.267578
+rounded |X_k-Y|_0 = 870343, f1 =  0.655041, approx slack: 1098723
+rounded before pow |X_k-Y|_0 = 1915683, f1 =  0.607493
+
+Iteration 4380: Loss = 900993.687500
+|Xk-Y|_F:  883552.750000, |X-X0|:  17440.921875
+rounded |X_k-Y|_0 = 869938, f1 =  0.655061, approx slack: 1147243
+rounded before pow |X_k-Y|_0 = 1964428, f1 =  0.605441
+
+Iteration 4400: Loss = 901549.062500
+|Xk-Y|_F:  883161.500000, |X-X0|:  18387.585938
+rounded |X_k-Y|_0 = 870175, f1 =  0.655049, approx slack: 1122422
+rounded before pow |X_k-Y|_0 = 1939651, f1 =  0.606481
+
+Iteration 4420: Loss = 900757.312500
+|Xk-Y|_F:  882917.500000, |X-X0|:  17839.785156
+rounded |X_k-Y|_0 = 870052, f1 =  0.655055, approx slack: 1072939
+rounded before pow |X_k-Y|_0 = 1890536, f1 =  0.608555
+
+Iteration 4440: Loss = 901407.750000
+|Xk-Y|_F:  883258.000000, |X-X0|:  18149.720703
+rounded |X_k-Y|_0 = 869999, f1 =  0.655058, approx slack: 1059698
+rounded before pow |X_k-Y|_0 = 1876408, f1 =  0.609154
+
+Iteration 4460: Loss = 902805.312500
+|Xk-Y|_F:  883523.812500, |X-X0|:  19281.519531
+rounded |X_k-Y|_0 = 870064, f1 =  0.655054, approx slack: 1197766
+rounded before pow |X_k-Y|_0 = 2013389, f1 =  0.603390
+
+Iteration 4480: Loss = 900712.625000
+|Xk-Y|_F:  882689.500000, |X-X0|:  18023.093750
+rounded |X_k-Y|_0 = 869797, f1 =  0.655068, approx slack: 1270962
+rounded before pow |X_k-Y|_0 = 2087528, f1 =  0.600307
+
+Iteration 4500: Loss = 900360.000000
+|Xk-Y|_F:  882334.937500, |X-X0|:  18025.085938
+rounded |X_k-Y|_0 = 869616, f1 =  0.655076, approx slack: 1016319
+rounded before pow |X_k-Y|_0 = 1833246, f1 =  0.610985
+
+Iteration 4520: Loss = 899624.250000
+|Xk-Y|_F:  882916.000000, |X-X0|:  16708.232422
+rounded |X_k-Y|_0 = 869401, f1 =  0.655086, approx slack: 998584
+rounded before pow |X_k-Y|_0 = 1816622, f1 =  0.611693
+
+Iteration 4540: Loss = 903560.312500
+|Xk-Y|_F:  883204.750000, |X-X0|:  20355.558594
+rounded |X_k-Y|_0 = 870058, f1 =  0.655055, approx slack: 1242011
+rounded before pow |X_k-Y|_0 = 2058342, f1 =  0.601520
+
+Iteration 4560: Loss = 903217.875000
+|Xk-Y|_F:  883641.562500, |X-X0|:  19576.343750
+rounded |X_k-Y|_0 = 869881, f1 =  0.655063, approx slack: 1117474
+rounded before pow |X_k-Y|_0 = 1933563, f1 =  0.606740
+
+Iteration 4580: Loss = 902557.187500
+|Xk-Y|_F:  883400.437500, |X-X0|:  19156.773438
+rounded |X_k-Y|_0 = 870012, f1 =  0.655057, approx slack: 1221641
+rounded before pow |X_k-Y|_0 = 2036585, f1 =  0.602425
+
+Iteration 4600: Loss = 900796.375000
+|Xk-Y|_F:  882389.625000, |X-X0|:  18406.761719
+rounded |X_k-Y|_0 = 869182, f1 =  0.655097, approx slack: 1127770
+rounded before pow |X_k-Y|_0 = 1944026, f1 =  0.606298
+
+Iteration 4620: Loss = 900365.000000
+|Xk-Y|_F:  882317.125000, |X-X0|:  18047.851562
+rounded |X_k-Y|_0 = 869364, f1 =  0.655088, approx slack: 973795
+rounded before pow |X_k-Y|_0 = 1790339, f1 =  0.612809
+
+Iteration 4640: Loss = 899754.500000
+|Xk-Y|_F:  882344.687500, |X-X0|:  17409.832031
+rounded |X_k-Y|_0 = 869080, f1 =  0.655102, approx slack: 981587
+rounded before pow |X_k-Y|_0 = 1798128, f1 =  0.612476
+
+Iteration 4660: Loss = 904611.937500
+|Xk-Y|_F:  883502.125000, |X-X0|:  21109.796875
+rounded |X_k-Y|_0 = 870507, f1 =  0.655033, approx slack: 1249405
+rounded before pow |X_k-Y|_0 = 2064641, f1 =  0.601257
+
+Iteration 4680: Loss = 902892.437500
+|Xk-Y|_F:  883276.000000, |X-X0|:  19616.425781
+rounded |X_k-Y|_0 = 869369, f1 =  0.655088, approx slack: 1138192
+rounded before pow |X_k-Y|_0 = 1952873, f1 =  0.605926
+
+Iteration 4700: Loss = 901431.750000
+|Xk-Y|_F:  882735.000000, |X-X0|:  18696.761719
+rounded |X_k-Y|_0 = 869309, f1 =  0.655091, approx slack: 933666
+rounded before pow |X_k-Y|_0 = 1749296, f1 =  0.614562
+
+Iteration 4720: Loss = 901321.500000
+|Xk-Y|_F:  882395.812500, |X-X0|:  18925.695312
+rounded |X_k-Y|_0 = 869144, f1 =  0.655099, approx slack: 911912
+rounded before pow |X_k-Y|_0 = 1727697, f1 =  0.615491
+
+Iteration 4740: Loss = 901366.625000
+|Xk-Y|_F:  882574.000000, |X-X0|:  18792.626953
+rounded |X_k-Y|_0 = 868865, f1 =  0.655112, approx slack: 866228
+rounded before pow |X_k-Y|_0 = 1682264, f1 =  0.617445
+
+Iteration 4760: Loss = 901454.250000
+|Xk-Y|_F:  882783.062500, |X-X0|:  18671.173828
+rounded |X_k-Y|_0 = 868859, f1 =  0.655112, approx slack: 795377
+rounded before pow |X_k-Y|_0 = 1611650, f1 =  0.620521
+
+Iteration 4780: Loss = 902468.000000
+|Xk-Y|_F:  882742.375000, |X-X0|:  19725.648438
+rounded |X_k-Y|_0 = 868735, f1 =  0.655119, approx slack: 834694
+rounded before pow |X_k-Y|_0 = 1650514, f1 =  0.618824
+
+Iteration 4800: Loss = 901134.500000
+|Xk-Y|_F:  882651.437500, |X-X0|:  18483.031250
+rounded |X_k-Y|_0 = 868837, f1 =  0.655114, approx slack: 682265
+rounded before pow |X_k-Y|_0 = 1496166, f1 =  0.625552
+
+Iteration 4820: Loss = 903265.562500
+|Xk-Y|_F:  883436.500000, |X-X0|:  19829.050781
+rounded |X_k-Y|_0 = 868981, f1 =  0.655106, approx slack: 747240
+rounded before pow |X_k-Y|_0 = 1562521, f1 =  0.622670
+
+Iteration 4840: Loss = 906281.937500
+|Xk-Y|_F:  883811.000000, |X-X0|:  22470.949219
+rounded |X_k-Y|_0 = 869703, f1 =  0.655072, approx slack: 861532
+rounded before pow |X_k-Y|_0 = 1676501, f1 =  0.617695
+
+Iteration 4860: Loss = 902479.937500
+|Xk-Y|_F:  882257.437500, |X-X0|:  20222.527344
+rounded |X_k-Y|_0 = 868757, f1 =  0.655118, approx slack: 924958
+rounded before pow |X_k-Y|_0 = 1740718, f1 =  0.614922
+
+Iteration 4880: Loss = 902602.187500
+|Xk-Y|_F:  882839.875000, |X-X0|:  19762.306641
+rounded |X_k-Y|_0 = 868648, f1 =  0.655123, approx slack: 707724
+rounded before pow |X_k-Y|_0 = 1524115, f1 =  0.624362
+
+Iteration 4900: Loss = 904836.125000
+|Xk-Y|_F:  883589.125000, |X-X0|:  21246.984375
+rounded |X_k-Y|_0 = 869326, f1 =  0.655090, approx slack: 749934
+rounded before pow |X_k-Y|_0 = 1565678, f1 =  0.622529
+
+Iteration 4920: Loss = 903078.687500
+|Xk-Y|_F:  882567.562500, |X-X0|:  20511.148438
+rounded |X_k-Y|_0 = 868440, f1 =  0.655133, approx slack: 760439
+rounded before pow |X_k-Y|_0 = 1575997, f1 =  0.622077
+
+Iteration 4940: Loss = 902273.250000
+|Xk-Y|_F:  882338.250000, |X-X0|:  19934.980469
+rounded |X_k-Y|_0 = 868641, f1 =  0.655123, approx slack: 727462
+rounded before pow |X_k-Y|_0 = 1543017, f1 =  0.623523
+
+Iteration 4960: Loss = 900794.625000
+|Xk-Y|_F:  882660.125000, |X-X0|:  18134.476562
+rounded |X_k-Y|_0 = 868343, f1 =  0.655137, approx slack: 768752
+rounded before pow |X_k-Y|_0 = 1584362, f1 =  0.621706
+
+Iteration 4980: Loss = 907159.375000
+|Xk-Y|_F:  884402.375000, |X-X0|:  22756.978516
+rounded |X_k-Y|_0 = 869638, f1 =  0.655075, approx slack: 901586
+rounded before pow |X_k-Y|_0 = 1718924, f1 =  0.615865
+
+Iteration 4999: Loss = 904737.937500
+|Xk-Y|_F:  883078.562500, |X-X0|:  21659.363281
+rounded |X_k-Y|_0 = 871602, f1 =  0.654982, approx slack: 1166774
+rounded before pow |X_k-Y|_0 = 1985646, f1 =  0.604512
+
+
+KB after refine:
+num_nodes: 5060.0000
+num_edges: 1595.0000
+density: 0.0001
+avg_degree: 0.3152
+avg_clustering: 0.0068
+degree_assortativity: -0.3222
+modularity: 0.6868
+avg_betweenness: 0.0000
+avg_closeness: 0.0013
+------ ABL 1 after refine ------
+--- eval ---
+prediction result:
+f1 on test:    0.5465
+f1 on test:    0.7403 (micro)
+f1 on KB:      0.6454
+integrated f1: 0.6124, w_data: 0.2809, w_klg: 0.7191
+
+integrated result:
+f1 on test:    0.5414
+f1 on test:    0.7395 (micro)
+f1 on KB:      0.6478
+integrated f1: 0.6179, w_data: 0.2809, w_klg: 0.7191
+------------
+integrated f1 0.6124
