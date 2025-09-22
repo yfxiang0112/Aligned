@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from egoal.reasoner import RegulatoryKB
 
-def network_diffusion_scores(G, seed_genes, alpha=0.85, tol=1e-7, max_iter=1000):
+def network_diffusion_scores(G, seed_genes, alpha=0.85, tol=1e-6, max_iter=1000):
     """
     Do a simple random‐walk with restart / diffusion from seed_genes.
     Returns a dictionary: gene -> diffusion score.

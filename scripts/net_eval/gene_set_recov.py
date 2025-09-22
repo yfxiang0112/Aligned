@@ -10,6 +10,7 @@ import json
 import pandas as pd
 import gseapy
 from tqdm import tqdm
+import os
 
 from egoal.reasoner import RegulatoryKB
 
@@ -167,7 +168,7 @@ def get_gene_sets(gene_list,
     for _, row in enr.results.iterrows():
         pathway = row['Term']
         # Overlap column looks like "3/56" → number of genes found
-        overlapping_genes = set(row['Genes'].split(";"))
+        overlapping_genes = row['Genes'].split(";")
         gene_sets[pathway] = overlapping_genes
 
     return gene_sets
@@ -177,10 +178,11 @@ def get_gene_sets(gene_list,
 if __name__ == "__main__":
     # Load or build your network G
     data_name = 'norman'
-    model_name = 'GNN_norman_Sep18_3_ABL_0'
-    #model_name = 'orig_'+data_name
-    load_model_pth = f'scripts/net_eval/models/{model_name}.npz'\
-            if 'orig' not in model_name else None
+    #repl_num = 5
+    #save_name = f'abl0_{repl_num}'
+    save_name = 'orig'
+    load_model_pth = f'data_anal/experiment_results/{data_name}/models/GNN_abl0_{repl_num}.npz'\
+            if 'orig' not in save_name else None
     database = 'kegg'
     #database = 'reactome'
 
@@ -198,11 +200,18 @@ if __name__ == "__main__":
     G = nx.from_numpy_array(adj, create_using=nx.DiGraph)
     G = nx.relabel_nodes(G, dict(enumerate(genes)))
 
-    gene_sets = get_gene_sets(genes,
-                              database_lst = database_lst)
-    #gene_sets = json.load(open('signor_pathways.json'))
-    #for k,v in gene_sets.items():
-    #    gene_sets[k] = [x for x in v if x in genes]
+    # collect gene set
+    if os.path.exists(f'scripts/net_eval/{database}_{data_name}_genesets.json'):
+        gene_sets = json.load(open(f'scripts/net_eval/{database}_{data_name}_genesets.json','r'))
+    elif database == 'signor':
+        gene_sets = json.load(open('scripts/net_eval/signor_genesets.json','r'))
+        for k,v in gene_sets.items():
+            gene_sets[k] = [x for x in v if x in genes]
+    else:
+        gene_sets = get_gene_sets(genes,
+                                  database_lst = database_lst)
+        json.dump(gene_sets, open(f'scripts/net_eval/{database}_{data_name}_genesets.json','w'), indent=4)
+
     print('--- collected gene sets ---')
 
 
@@ -220,5 +229,5 @@ if __name__ == "__main__":
         #print("  p-value (AUROC):", p_auroc)
         print()
 
-    json.dump(res, open(f'scripts/net_eval/results/{database}_{model_name}.json', 'w'), indent=4)
+    json.dump(res, open(f'scripts/net_eval/results/{database}_{data_name}_{save_name}.json', 'w'), indent=4)
 

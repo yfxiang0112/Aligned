@@ -6,7 +6,7 @@ df_orig = pd.Series({k:v['AUPRC_pos'] for k,v in orig.items()})
 
 test = {}
 for i in range(3):
-    d = json.load(open(f'scripts/net_eval/results/kegg_GNN_norman_Sep18_{i+1}_ABL_0.json', 'r'))
+    d = json.load(open(f'scripts/net_eval/results/kegg_norman_abl0_{i+1}.json', 'r'))
     test[str(i)] = {k:v['AUPRC_pos'] for k,v in d.items()}
 df_test = pd.DataFrame(test)
 
