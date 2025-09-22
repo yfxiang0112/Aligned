@@ -64,11 +64,11 @@ for i, dataset in enumerate(datasets):
     ax.plot(x_pos, data_GNN['kb_f1_mean'], '-', color=colors[1], linewidth=1.5, alpha=0.8, zorder=3)
     
     # Customize axes
-    ax.set_xlabel('ABL Stage', fontsize=11, labelpad=5)
-    ax.set_ylabel('$F_1$ score', fontsize=11, labelpad=5)
+    #ax.set_xlabel('ABL Stage', fontsize=18, labelpad=5)
+    ax.set_ylabel('$F_1$ score', fontsize=14, labelpad=5)
     ax.set_xticks(x_pos)
-    ax.set_xticklabels(x_labels, rotation=45, ha='right')
-    ax.set_title(f'{dataset.capitalize()} et al. Dataset', fontsize=12, pad=10)
+    ax.set_xticklabels(x_labels, rotation=30, ha='right', fontsize=12, fontweight='bold')
+    ax.set_title(f'{dataset.capitalize()} et al. Dataset', fontsize=18, fontweight='bold', pad=10)
     
     # Add grid and clean spines
     ax.grid(True, alpha=0.2, linestyle='-', linewidth=0.5)
@@ -76,7 +76,13 @@ for i, dataset in enumerate(datasets):
     ax.spines['right'].set_visible(False)
     
 # Add legend
-fig.legend(frameon=True, framealpha=1.0, edgecolor='black')
+plt.subplots_adjust(top=0.85, bottom=0.15, left=0.15, right=0.85, wspace=0.4)
+#fig.legend(frameon=True, framealpha=1.0, fontsize=18, edgecolor='black')
+#handles, labels = ax.get_legend_handles_labels()
+fig.legend(loc='upper center', bbox_to_anchor=(0.5, 0.03), 
+           ncol=2, fontsize=22, frameon=True, fancybox=True, shadow=True,
+           facecolor='white', edgecolor='gray')
+
 
 # Adjust layout and save
 plt.tight_layout()
@@ -84,3 +90,4 @@ plt.savefig('data_anal/experiment_results/line_plots.png', bbox_inches='tight', 
 plt.savefig('data_anal/experiment_results/line_plots.pdf', format='pdf', bbox_inches='tight', pad_inches=0.05)
 plt.savefig('data_anal/experiment_results/line_plots.pgf', format='pgf', dpi=600, bbox_inches='tight', pad_inches=0.05)
 
+plt.show()
