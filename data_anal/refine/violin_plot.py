@@ -5,7 +5,7 @@ import seaborn as sns
 import pandas as pd
 
 # --- 1. Generate Sample Data ---
-gsr_result = pd.read_csv('data_anal/refine/gsr_mix.csv', index_col=['p_incomp', 'score_type'])
+gsr_result = pd.read_csv('data_anal/refine/gsr_mix_baseline.csv', index_col=['p_incomp', 'score_type'])
 reference_vector = np.array(gsr_result.loc[('orig','mean_auprc_w')])
 
 # Create a set of 10 vectors 'V' that vary from 'R' in different ways
