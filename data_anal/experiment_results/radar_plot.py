@@ -42,7 +42,7 @@ plt.rcParams.update({
 #    'grid.alpha': 0.3,
 #})
 
-def create_radar_plot(ax, dataset_name, algorithm_values, algorithm_names, category_labels = ['Balanced Cons.', 'Data Cons.', 'Knowledge Cons.']):
+def create_radar_plot(ax, dataset_name, algorithm_values, algorithm_names, ax_num, category_labels = ['Balanced Cons.', 'Data Cons.', 'Knowledge Cons.']):
     """Create a publication-quality radar plot for one dataset comparing all algorithms"""
     # Define colors for each algorithm
     colors = {
@@ -71,9 +71,15 @@ def create_radar_plot(ax, dataset_name, algorithm_values, algorithm_names, categ
     # Order: Integrated F1 (top), F1 Test (left), F1 KB (right)
     angles = [np.pi/2, 7*np.pi/6, 11*np.pi/6]  # 90°, 210°, 330° in radians
     angles += angles[:1]  # Complete the circle
+
+    max_value = max([max(x) for x in algorithm_values])
+    min_value = min([min(x) for x in algorithm_values])
+    max_value = round(max_value*20 + .5)/20
+    min_value = round(min_value*20 - .5)/20
+    print(max_value, min_value)
     
     # Plot each algorithm
-    for i, (alg_name, values) in enumerate(zip(algorithm_names, algorithm_values)):
+    for i, (alg_name, values) in enumerate(zip(algorithm_names[::-1], algorithm_values[::-1])):
         if len(values) == 3 and all(pd.notna(values)):  # Only plot if we have all 3 values
             # Reorder values to match new angle positions: [Integrated F1, F1 Test, F1 KB]
             plot_values = [values[2], values[0], values[1]]  # integrated_f1, f1_test, f1_kb
@@ -90,9 +96,13 @@ def create_radar_plot(ax, dataset_name, algorithm_values, algorithm_names, categ
     ax.set_xticklabels(category_labels, fontsize=18, fontweight='bold')
     
     # Set y-axis limits and labels with better formatting
-    ax.set_ylim(0.1, 0.6)
-    ax.set_yticks([0.2, 0.3, 0.4, 0.5, 0.6])
-    ax.set_yticklabels(['0.2', '0.3', '0.4', '0.5', '0.6'], 
+    ax.set_ylim(min_value, max_value)
+    ticks = np.linspace(start=min_value, stop=max_value, num=(int(max_value*20)-int(min_value*20)+1))\
+            if max_value-min_value <= .3 else\
+            np.linspace(start=round(min_value*10+.49)/10, stop=round(max_value*10-.49)/10, num=(round(max_value*10-.49)-round(min_value*10+.49)+1))
+    print(ticks)
+    ax.set_yticks(ticks)
+    ax.set_yticklabels([str(round(x*20)/20) for x in ticks], 
                        fontsize=15, color='gray')
     
     # Enhanced grid
@@ -100,7 +110,7 @@ def create_radar_plot(ax, dataset_name, algorithm_values, algorithm_names, categ
     ax.set_facecolor('#FAFAFA')  # Light background
     
     # Professional title
-    ax.set_title(f'{dataset_name.capitalize()} et al. Dataset', size=22, fontweight='bold', 
+    ax.set_title(f'({ax_num}) {dataset_name.capitalize()} et al. Dataset', size=22, fontweight='bold', 
                 pad=25, color='#2C3E50')
 
 
@@ -108,7 +118,7 @@ def create_radar_plot(ax, dataset_name, algorithm_values, algorithm_names, categ
 
 if __name__ == '__main__':
     datasets = ['norman', 'dixit', 'adamson']
-    algorithms = ['Linear', 'GEARS', 'scGPT', 'scFoundation', 'ALIGNED (MLP)', 'ALIGNED (GNN)']
+    algorithms = ['ALIGNED (GNN)', 'ALIGNED (MLP)', 'Linear', 'GEARS', 'scGPT', 'scFoundation']
 
     columns = ['data_f1_mean', 'kb_f1_mean', 'bal_f1_mean']
     df_benchmk = pd.read_csv('data_anal/pert_benchmark/benchmark_results.csv')
@@ -159,12 +169,12 @@ if __name__ == '__main__':
                 algorithm_names.append(algorithm)
         
         if algorithm_values:  # Only create plot if we have data
-            create_radar_plot(ax, dataset, algorithm_values, algorithm_names)
+            create_radar_plot(ax, dataset, algorithm_values, algorithm_names, ax_num=['a','b','c'][i])
 
     # Add a single legend for all subplots if we have any plots
     if algorithm_values:
         handles, labels = ax.get_legend_handles_labels()
-        fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.05), 
+        fig.legend(handles[::-1], labels[::-1], loc='upper center', bbox_to_anchor=(0.5, 0.05), 
                    ncol=len(algorithm_names), fontsize=18, frameon=True, fancybox=True, shadow=True,
                    facecolor='white', edgecolor='gray')
 

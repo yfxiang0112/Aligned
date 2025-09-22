@@ -164,7 +164,7 @@ if __name__ == "__main__":
             print(f'{LOG_DIRECTORY}{FILE_PATTERN}:')
 
             w_hsa = .5
-            w_eco = .4231
+            w_eco = .5
             
             # Extract F1 scores from all log files
             print("Starting F1 score extraction...")
