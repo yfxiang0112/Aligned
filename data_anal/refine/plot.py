@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.legend_handler import HandlerTuple
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -15,12 +16,12 @@ plt.style.use('default')
 plt.rcParams.update({
     'font.family': 'serif',
     'font.serif': ['Times New Roman'],#, 'DejaVu Serif'],
-    'font.size': 10,
-    'axes.labelsize': 14,
-    'axes.titlesize': 18,
-    'legend.fontsize': 12,
-    'xtick.labelsize': 9,
-    'ytick.labelsize': 9,
+    'font.size': 16,
+    'axes.labelsize': 20,
+    'axes.titlesize': 22,
+    'legend.fontsize': 16,
+    'xtick.labelsize': 16,
+    'ytick.labelsize': 16,
     'figure.dpi': 600,
     'lines.linewidth': 1.8,
     'lines.markersize': 6,
@@ -58,26 +59,27 @@ e_clo = df['f1_closure_KB_combined_tol']
 b_reg = df_baseline['f1_initial_KB_combined_mean']
 b_clo = df_baseline['f1_closure_KB_combined_mean']
 
-# Plot lines with error bars
-ax1.errorbar(x_pos, y_reg, yerr=e_reg, fmt=markers[0], color=colors[0],
-             markersize=5, capsize=2.5, capthick=1.2, elinewidth=1.2,
-             label='Reconstructed GRN', alpha=0.9, zorder=4)
-ax1.plot(x_pos, y_reg, '-', color=colors[0], linewidth=1.5, alpha=0.8, zorder=3)
-ax1.plot(x_pos, b_reg, '--', color=colors[0], linewidth=1.5, alpha=0.8, zorder=3,
-         label='Non-regularized baseline')
+lineh = ax1.axhline(y=y_reg[0], color='gray', linestyle='--', linewidth=.8, alpha=0.8)
 
-ax1.errorbar(x_pos, y_clo, yerr=e_clo, fmt=markers[1], color=colors[1],
-             markersize=5, capsize=2.5, capthick=1.2, elinewidth=1.2,
-             label=r'Reconstructed $R^{(k)}$', alpha=0.9, zorder=4)
-ax1.plot(x_pos, y_clo, '-', color=colors[1], linewidth=1.5, alpha=0.8, zorder=3)
-ax1.plot(x_pos, b_clo, '--', color=colors[1], linewidth=1.5, alpha=0.8, zorder=3)
+# Plot lines with error bars
+line1 = ax1.errorbar(x_pos, y_reg, yerr=e_reg, fmt=markers[0], color=colors[1],
+             markersize=5, capsize=2.5, capthick=.8, elinewidth=.8,
+             alpha=0.9, zorder=4)
+ax1.plot(x_pos, y_reg, '-', color=colors[1], linewidth=1.5, alpha=0.8, zorder=3)
+line3, = ax1.plot(x_pos, b_reg, '--', color=colors[1], linewidth=1.2, alpha=0.8, zorder=3)
+
+line2 = ax1.errorbar(x_pos, y_clo, yerr=e_clo, fmt=markers[1], color=colors[0],
+             markersize=5, capsize=2.5, capthick=.8, elinewidth=.8,
+             alpha=0.9, zorder=4)
+ax1.plot(x_pos, y_clo, '-', color=colors[0], linewidth=1.5, alpha=0.8, zorder=3)
+line4, = ax1.plot(x_pos, b_clo, '--', color=colors[0], linewidth=1.2, alpha=0.8, zorder=3)
 
 # Customize axes
-ax1.set_xlabel('Perturbed edges (%)',  labelpad=5)
-ax1.set_ylabel('F1 score',  labelpad=5)
+ax1.set_xlabel('Noise Interactions (%)',  labelpad=-5)
+ax1.set_ylabel('$F_1$ Score',  labelpad=5)
 ax1.set_xticks(x_pos)
 ax1.set_xticklabels(x_labels, rotation=45, ha='right')
-ax1.set_title('(a) Accuracy of GRN Reconstruction', fontweight='bold', pad=10)
+ax1.set_title('(a) Interaction Accuracy', fontweight='bold', pad=10)
 
 # Set y-axis limits for better visualization
 y_min = min(b_reg.min(), b_clo.min()) - 0.05
@@ -90,7 +92,11 @@ ax1.spines['top'].set_visible(False)
 ax1.spines['right'].set_visible(False)
 
 # Add legend
-ax1.legend(loc='lower left', frameon=True, framealpha=1.0, edgecolor='black')
+ax1.legend(handles = [line1, line2, (line3,line4), lineh],
+           labels = ['Direct Interac.', 'Indirect Interac.',
+                     'Baseline', 'Original GRN'],
+           handler_map = {tuple: HandlerTuple(ndivide=None)},
+           loc='lower left', frameon=True, framealpha=1.0, edgecolor='black')
 
 # =============================================================================
 # Figure 2: Structural Scores
@@ -105,26 +111,30 @@ e_aso = df['degree_assortativity_tol']
 b_mod = df_baseline['modularity_mean']
 b_aso = df_baseline['degree_assortativity_mean']
 
-# Plot lines with error bars
-ax2.errorbar(x_pos, y_mod, yerr=e_mod, fmt=markers[0], color=colors[2],
-             markersize=5, capsize=2.5, capthick=1.2, elinewidth=1.2,
-             label='Modularity', alpha=0.9, zorder=4)
-ax2.plot(x_pos, y_mod, '-', color=colors[2], linewidth=1.5, alpha=0.8, zorder=3)
-ax2.plot(x_pos, b_mod, '--', color=colors[2], linewidth=1.5, alpha=0.8, zorder=3,
-         label='Non-regularized baseline')
+lineh = ax2.axhline(y=y_aso[0], color='gray', linestyle='--', linewidth=.8, alpha=0.8)
+lineh = ax2.axhline(y=y_mod[0], color='gray', linestyle='--', linewidth=.8, alpha=0.8)
 
-ax2.errorbar(x_pos, y_aso, yerr=e_aso, fmt=markers[1], color=colors[3],
-             markersize=5, capsize=2.5, capthick=1.2, elinewidth=1.2,
-             label='Degree assortativity', alpha=0.9, zorder=4)
+# Plot lines with error bars
+line1 = ax2.errorbar(x_pos, y_mod, yerr=e_mod, fmt=markers[0], color=colors[2],
+             markersize=5, capsize=2.5, capthick=.8, elinewidth=.8,
+              alpha=0.9, zorder=4)
+ax2.plot(x_pos, y_mod, '-', color=colors[2], linewidth=1.5, alpha=0.8, zorder=3)
+line3, = ax2.plot(x_pos, b_mod, '--', color=colors[2], linewidth=1.2, alpha=0.8, zorder=3)
+
+line2 = ax2.errorbar(x_pos, y_aso, yerr=e_aso, fmt=markers[1], color=colors[3],
+             markersize=5, capsize=2.5, capthick=.8, elinewidth=.8,
+              alpha=0.9, zorder=4)
 ax2.plot(x_pos, y_aso, '-', color=colors[3], linewidth=1.5, alpha=0.8, zorder=3)
-ax2.plot(x_pos, b_aso, '--', color=colors[3], linewidth=1.5, alpha=0.8, zorder=3)
+line4, = ax2.plot(x_pos, b_aso, '--', color=colors[3], linewidth=1.2, alpha=0.8, zorder=3)
+
+ax2.set_ylim([-.67,.45])
 
 # Customize axes
-ax2.set_xlabel('Perturbed edges (%)', labelpad=5)
-ax2.set_ylabel('Structural score', labelpad=5)
+ax2.set_xlabel('Noise Interactions (%)', labelpad=-5)
+ax2.set_ylabel('Topological Score', labelpad=5)
 ax2.set_xticks(x_pos)
 ax2.set_xticklabels(x_labels, rotation=45, ha='right')
-ax2.set_title('(b) Structural Metrics of Reconstructed GRNs',
+ax2.set_title('(b) Network Topology',
                fontweight='bold', pad=10)
 
 # Add grid and clean spines
@@ -133,7 +143,11 @@ ax2.spines['top'].set_visible(False)
 ax2.spines['right'].set_visible(False)
 
 # Add legend
-ax2.legend(loc='lower left', frameon=True, framealpha=1.0, edgecolor='black')
+ax2.legend(handles = [line1, line2, (line3,line4), lineh],
+           labels = ['Modularity ($\\uparrow$)', 'Assortativity',
+                     'Baseline', 'Original GRN'],
+           handler_map = {tuple: HandlerTuple(ndivide=None)},
+           loc='lower left', frameon=True, framealpha=1.0, edgecolor='black')
 
 
 # =============================================================================
@@ -158,11 +172,11 @@ ax3 = fig.add_subplot(1, 3, 3)
 data_for_plot = []
 for vec_index, vec_name in enumerate(pathways_baseline.index):
     for dim_value in pathways_baseline.loc[vec_name]:
-        data_for_plot.append({'Removed Arcs': vec_name, 'Deviation': dim_value, 'Group': 'Non-regularized Baseline'})
+        data_for_plot.append({'Removed Arcs': vec_name, 'Deviation': dim_value, 'Group': 'Baseline'})
 
 for vec_index, vec_name in enumerate(pathways.index):
     for dim_value in pathways.loc[vec_name]:
-        data_for_plot.append({'Removed Arcs': vec_name, 'Deviation': dim_value, 'Group': 'ALIGNED: Knowledge Refinement'})
+        data_for_plot.append({'Removed Arcs': vec_name, 'Deviation': dim_value, 'Group': 'ALIGNED'})
 
 data_for_plot = pd.DataFrame(data_for_plot)
 print(data_for_plot)
@@ -170,20 +184,20 @@ print(data_for_plot)
 #sns.violinplot(data=data_for_plot, x='Removed Arcs', y='Deviation', ax=ax3, cut=0, inner='box') 
 sns.violinplot(data=data_for_plot, x='Removed Arcs', y='Deviation', hue='Group',
                ax=ax3, cut=0, inner='box', dodge=False,
-               palette={'Non-regularized Baseline': '#1f77b4',
-                        'ALIGNED: Knowledge Refinement': '#ff7f0e'})  # Distinct colors
+               palette={'Baseline': '#1f77b4',
+                        'ALIGNED': '#ff7f0e'})  # Distinct colors
 
 
-ax3.axhline(y=0, color='r', linestyle='--', linewidth=1, alpha=0.8, label='Original GRN (control)')
+ax3.axhline(y=0, color='r', linestyle='--', linewidth=1, alpha=0.8, label='Original GRN')
 ax3.axvline(x=3.5, color='gray', linestyle='--', linewidth=1.5, alpha=0.8)
 
 # Improve labels and title 
-ax3.set_xlabel('Perturbed edges (%)', labelpad = 20)
+ax3.set_xlabel('Noise Interactions (%)', labelpad = 25)
 ax3.set_ylabel('Deviation from Original KB')
-ax3.set_title('(c) Deviation of Pathway Enrichment Score', fontweight='bold')
+ax3.set_title('(c) Pathway Enrichment Scores', fontweight='bold', pad=10)
 
 # Improve tick labels for readability
-ax3.tick_params(axis='both', which='major', labelsize=10)
+ax3.tick_params(axis='both', which='major')
 #plt.setp(ax3.get_xticklabels(), rotation=45, ha='right') # Rotate labels if long
 ax3.set_xticklabels(x_labels*2, rotation=45, ha='right')
 ax3.grid(axis='y', linestyle=':', alpha=0.4)
@@ -194,11 +208,10 @@ ax3.spines['top'].set_visible(False)
 ax3.spines['right'].set_visible(False)
 
 group_x_positions = [1.5, 5.5]  # Middle of each group
-group_labels = ['Non-regularized Baseline', 'Knowledge Refinement']
+group_labels = ['Non-Sparse Baseline', 'Knowledge Refinement']
 for x_pos, label in zip(group_x_positions, group_labels):
-    ax3.text(x_pos, -0.08, label, ha='center', va='top', 
-            transform=ax3.get_xaxis_transform(),  # Uses x in data coords, y in axis frac
-            fontsize=11)
+    ax3.text(x_pos, -0.12, label, ha='center', va='top', 
+            transform=ax3.get_xaxis_transform())
 
 
 # Adjust layout and save

@@ -11,8 +11,8 @@ mpl.rcParams['font.family'] = 'Times New Roman'
 #mpl.rcParams['font.serif'] = ['Times New Roman']
 plt.rcParams['mathtext.fontset'] = 'custom'
 plt.rcParams['mathtext.rm'] = 'Times New Roman'
-plt.rcParams['mathtext.it'] = 'Times New Roman:italic'
-plt.rcParams['mathtext.bf'] = 'Times New Roman:bold'
+#plt.rcParams['mathtext.it'] = 'Times New Roman:italic'
+#plt.rcParams['mathtext.bf'] = 'Times New Roman:bold'
 
 #plt.rcParams.update({
 #    'pgf.texsystem': 'pdflatex',
@@ -41,7 +41,7 @@ for data_name, kb_name in selected_combinations:
 
 # Create publication-quality figure with improved layout
 n_plots = len(plot_data)
-fig = plt.figure(figsize=(15, 4))
+fig = plt.figure(figsize=(20, 5.4))
 axes = [
     fig.add_axes((.02, .15, .32, .65)),
     fig.add_axes((.34, .15, .32, .65)),
@@ -101,7 +101,7 @@ for idx, (data_name, kb_name, n_consit, n_incomp, n_incons) in enumerate(plot_da
                                      wedgeprops=dict(width=0.4, edgecolor='white', linewidth=2.5, alpha=0.9),
                                      autopct='%1.1f%%',
                                      pctdistance=1.1,  # Move percentages outside the outer ring
-                                     textprops={'fontsize': 15, 'fontweight': 'bold', 'color': 'black'})  # Black text for better contrast outside
+                                     textprops={'fontsize': 18, 'fontweight': 'bold', 'color': 'black'})  # Black text for better contrast outside
     
     # Add hatching patterns to outer ring wedges for better distinction
     # Different hatch patterns for each category
@@ -129,7 +129,7 @@ for idx, (data_name, kb_name, n_consit, n_incomp, n_incons) in enumerate(plot_da
                                                         wedgeprops=dict(width=0.3, edgecolor='white', linewidth=2, alpha=0.7),
                                                         autopct='%1.1f%%',
                                                         pctdistance=0.45,  # Closer to center for better visibility
-                                                        textprops={'fontsize': 12, 'fontweight': 'bold', 'color': 'black'})  # Black text for contrast
+                                                        textprops={'fontsize': 16, 'fontweight': 'bold', 'color': 'black'})  # Black text for contrast
     
     # Add center circle with subtle shadow effect
     centre_circle = plt.Circle((0, 0), 0.4, color='white', alpha=0.95)
@@ -139,17 +139,17 @@ for idx, (data_name, kb_name, n_consit, n_incomp, n_incons) in enumerate(plot_da
     kb_name_display = kb_display_names.get(kb_name, kb_name.capitalize())
     data_name_display = data_display_names.get(data_name, data_name.capitalize())
     ax.set_title(f'{subplot_labels[idx]} {kb_name_display} KB vs {data_name_display}', 
-                fontsize=20, fontweight='bold', pad=25, color='#2F2F2F', y=.95)
+                fontsize=22, fontweight='bold', pad=25, color='#2F2F2F', y=.95)
 
 # Add publication-quality legend
 legend = fig.legend(handles=legend_elements, 
                    loc='lower center', 
-                   bbox_to_anchor=(0.5, -.12),
+                   bbox_to_anchor=(0.5, -.08),
                    ncol=2, 
                    frameon=True,
                    fancybox=True,
                    shadow=True,
-                   fontsize=15,
+                   fontsize=18,
                    title='',
                    title_fontsize=12)
 legend.get_title().set_fontweight('bold')
@@ -159,16 +159,16 @@ fig.patch.set_facecolor('white')
 fig.patch.set_alpha(1.0)
 
 plt.tight_layout()
-plt.subplots_adjust(bottom=0.2)  # More room for enhanced legend
+plt.subplots_adjust(bottom=0.2, wspace=.2)  # More room for enhanced legend
 
 # Save in multiple formats for publication
 plt.savefig(f'data_anal/incons_plots/piechart_final.pdf', 
-           dpi=300, format='pdf', bbox_inches='tight', 
+           dpi=600, format='pdf', bbox_inches='tight', 
            facecolor='white', edgecolor='none')
 plt.savefig(f'data_anal/incons_plots/piechart_final.png', 
-           dpi=300, format='png', bbox_inches='tight',
+           dpi=600, format='png', bbox_inches='tight',
            facecolor='white', edgecolor='none')
 plt.savefig(f'data_anal/incons_plots/piechart_final.pgf', 
-           dpi=300, format='pgf', bbox_inches='tight',
+           dpi=600, format='pgf', bbox_inches='tight',
            facecolor='white', edgecolor='none')
 plt.show()
