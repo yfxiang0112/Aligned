@@ -8,25 +8,28 @@ import json
 data_name = 'norman'
 device = 'cuda'
 
-Y = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray()).to(device)
-X = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray()).to(device)
+Y = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray()).to(device).float()
+X = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray()).to(device).float()
 
-results = { 'n_consit_Y1_KB0':[],
-        'n_consit_Y0_KB1':[],
-        'n_consit_Y1_KB1':[],
-        'n_incomp_Y1_KB0':[],
-        'n_incomp_Y0_KB1':[],
-        'n_incomp_Y1_KB1':[],
-        'n_incons_Y1_KB0':[],
-        'n_incons_Y0_KB1':[],
-        'n_incons_Y1_KB1':[],
+results = { 'n_consit_y1_kb0':[],
+        'n_consit_y0_kb1':[],
+        'n_consit_y1_kb1':[],
+        'n_incomp_y1_kb0':[],
+        'n_incomp_y0_kb1':[],
+        'n_incomp_y1_kb1':[],
+        'n_incons_y1_kb0':[],
+        'n_incons_y0_kb1':[],
+        'n_incons_y1_kb1':[],
         'modularity_0':   [],
         'assortativity_0':[],
         'modularity_1':   [],
         'assortativity_1':[],
+        'modularity_2':   [],
+        'assortativity_2':[],
         'gsr_+':          [],
         'gsr_-':          [],
-        'gsr_=':          [],
+        'gsr_+_2':        [],
+        'gsr_-_2':        [],
         }
 
 reasoner = RegulatoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz',
@@ -59,6 +62,7 @@ corr_before_P = (torch.clamp(unique_X,min=0).T @ Y_means_P)\
         + (torch.clamp(-unique_X,min=0).T @ Y_means_N)
 corr_before_N = (torch.clamp(unique_X,min=0).T @ Y_means_N)\
         + (torch.clamp(-unique_X,min=0).T @ Y_means_P)
+del Y
 
 gsr_orig = json.load(open('scripts/net_eval/results/kegg_orig_norman.json', 'r'))
 
@@ -73,10 +77,10 @@ for repl in range(5):
     results['modularity_1'].append(scores_after['modularity'])
 
     
-    Y_p = learner.predict(torch.tensor(X).float().to(device))
-    R = learner.reflection(torch.tensor(X).float().to(device))
-    Y_d= reasoner.deduce(torch.tensor(X).float().to(device))
-    Y_r = torch.where(R, Y_d, Y_p)
+    Y_p = learner.predict(torch.tensor(X).float().to(device)).float()
+    R = learner.reflection(torch.tensor(X).float().to(device)) >= .5
+    Y_d= reasoner.deduce(torch.tensor(X).float().to(device)).float()
+    Y_r = torch.where(R, Y_d, Y_p).float()
     
     Yr_means_P = torch.zeros((len(unique_X), Y_r.shape[1])).to(device)
     Yr_means_N = torch.zeros((len(unique_X), Y_r.shape[1])).to(device)
@@ -122,10 +126,25 @@ for repl in range(5):
     results['n_incomp_y1_kb1'].append(n_incomp_y1_kb1)
     results['n_incons_y1_kb1'].append(n_incons_y1_kb1)
 
+    del Y_r
+    del R
+    del Y_d
+    del corr_r_P
+    del corr_r_N
+    torch.cuda.empty_cache()
+
     gsr_refine = json.load(open(f'scripts/net_eval/results/kegg_norman_abl0_{repl+1}.json', 'r'))
     results['gsr_+'].append(len([k for k in gsr_refine.keys() if gsr_refine[k]['AUPRC_pos'] > gsr_orig[k]['AUPRC_pos']]))
     results['gsr_-'].append(len([k for k in gsr_refine.keys() if gsr_refine[k]['AUPRC_pos'] < gsr_orig[k]['AUPRC_pos']]))
-    results['gsr_='].append(len([k for k in gsr_refine.keys() if gsr_refine[k]['AUPRC_pos'] == gsr_orig[k]['AUPRC_pos']]))
+
+    reasoner.load(f'data_anal/experiment_results/{data_name}/models/GNN_abl1_{repl+1}.npz')
+    scores_after = reasoner.eval()
+    results['assortativity_2'].append(scores_after['degree_assortativity'])
+    results['modularity_2'].append(scores_after['modularity'])
+
+    gsr_refine = json.load(open(f'scripts/net_eval/results/kegg_norman_abl1_{repl+1}.json', 'r'))
+    results['gsr_+_2'].append(len([k for k in gsr_refine.keys() if gsr_refine[k]['AUPRC_pos'] > gsr_orig[k]['AUPRC_pos']]))
+    results['gsr_-_2'].append(len([k for k in gsr_refine.keys() if gsr_refine[k]['AUPRC_pos'] < gsr_orig[k]['AUPRC_pos']]))
 
 results_std = {}
 for k,v in results.items():

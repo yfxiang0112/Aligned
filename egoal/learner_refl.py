@@ -760,10 +760,12 @@ class ReflectLearner():
 if __name__ == '__main__':
     # NOTE tmp test
 
-    torch.manual_seed(0)
+    seed = 999
     data_name = 'norman'
-    np.random.seed(0)
-    device = 'cuda:3'
+    model_type = 'GNN'
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    device = 'cuda:2'
     log_file = 'log/learner.txt'
 
     X_train = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray(), dtype = torch.float32)
@@ -809,7 +811,7 @@ if __name__ == '__main__':
     learner.load_data(X_train, Y_train, X_test, Y_test)
     learner.train(KB= reasoner,
                   label_weight= label_weight,
-                  epochs= 1000,
+                  epochs= 1500,
                   reinforce_epochs= 1,
                   C=1,
                   lr=1e-3,
@@ -821,7 +823,7 @@ if __name__ == '__main__':
 
     Y_test = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray(), dtype = int)[test_idx].to(device)
     learner.load_data(_, _, X_test, Y_test)
-    f1 = learner.eval(reasoner, .3, verbose=True)
+    f1 = learner.eval(reasoner, None, .5, verbose=True)
     print(f'pretrain: integrated f1 {f1:.4f}')
     
 
