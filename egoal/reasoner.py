@@ -321,6 +321,8 @@ class RegulatoryKB():
         ''' Print results '''
         for k, v in scores.items():
             print(f"{k}: {v:.4f}")
+        
+        return scores
 
 
 
