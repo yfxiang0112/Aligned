@@ -178,9 +178,9 @@ def get_gene_sets(gene_list,
 if __name__ == "__main__":
     # Load or build your network G
     data_name = 'norman'
-    #repl_num = 5
-    #save_name = f'abl0_{repl_num}'
-    save_name = 'orig'
+    repl_num = 1
+    save_name = f'abl0_{repl_num}'
+    #save_name = 'orig'
     load_model_pth = f'data_anal/experiment_results/{data_name}/models/GNN_abl0_{repl_num}.npz'\
             if 'orig' not in save_name else None
     database = 'kegg'
