@@ -91,8 +91,8 @@ fig.legend(loc='upper center', bbox_to_anchor=(0.5, 0.03),
 
 # Adjust layout and save
 #plt.tight_layout()
-plt.savefig('data_anal/experiment_results/line_plots.png', bbox_inches='tight', pad_inches=0.05)
-plt.savefig('data_anal/experiment_results/line_plots.pdf', format='pdf', bbox_inches='tight', pad_inches=0.05)
-plt.savefig('data_anal/experiment_results/line_plots.pgf', format='pgf', dpi=600, bbox_inches='tight', pad_inches=0.05)
+plt.savefig('plots/fig4_line/line_plots.png', bbox_inches='tight', pad_inches=0.05)
+plt.savefig('plots/fig4_line/line_plots.pdf', format='pdf', bbox_inches='tight', pad_inches=0.05)
+plt.savefig('plots/fig4_line/line_plots.pgf', format='pgf', dpi=600, bbox_inches='tight', pad_inches=0.05)
 
 plt.show()

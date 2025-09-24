@@ -29,16 +29,16 @@ combs = [('norman', 'omnipath'), ('norman', 'go'),
          ('precise1k', 'ecocyc'), ('ncbi-sra', 'ecocyc')]
 device = 'cuda'
 
-incons_dict_path = 'data_anal/incons_plots/incons_edges.json'
+incons_dict_path = 'plots/fig1_incons/incons_edges.json'
 if not os.path.exists(incons_dict_path):
     incons_dict= {}
     for data_name, kb_name in combs:
         print(f'processing {data_name} data + {kb_name} kb')
 
-        if os.path.exists(f'data_anal/incons_plots/data/{data_name}_Corr_P.npz')\
-            and os.path.exists(f'data_anal/incons_plots/data/{data_name}_Corr_N.npz'):
-            corr_P = torch.tensor(load_npz(f'data_anal/incons_plots/data/{data_name}_Corr_P.npz').toarray()).to(device)
-            corr_N = torch.tensor(load_npz(f'data_anal/incons_plots/data/{data_name}_Corr_N.npz').toarray()).to(device)
+        if os.path.exists(f'plots/fig1_incons/data/{data_name}_Corr_P.npz')\
+            and os.path.exists(f'plots/fig1_incons/data/{data_name}_Corr_N.npz'):
+            corr_P = torch.tensor(load_npz(f'plots/fig1_incons/data/{data_name}_Corr_P.npz').toarray()).to(device)
+            corr_N = torch.tensor(load_npz(f'plots/fig1_incons/data/{data_name}_Corr_N.npz').toarray()).to(device)
         else:
             if data_name not in ['precise1k','ncbi-sra']:
                 Y = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()
@@ -67,12 +67,12 @@ if not os.path.exists(incons_dict_path):
             corr_N = (torch.clamp(unique_X,min=0).T @ Y_means_N)\
                     + (torch.clamp(-unique_X,min=0).T @ Y_means_P)
 
-            save_npz(f'data_anal/incons_plots/data/{data_name}_Corr_P.npz', coo_matrix(corr_P.cpu().numpy()))
-            save_npz(f'data_anal/incons_plots/data/{data_name}_Corr_N.npz', coo_matrix(corr_N.cpu().numpy()))
+            save_npz(f'plots/fig1_incons/data/{data_name}_Corr_P.npz', coo_matrix(corr_P.cpu().numpy()))
+            save_npz(f'plots/fig1_incons/data/{data_name}_Corr_N.npz', coo_matrix(corr_N.cpu().numpy()))
 
         
-        KB = RegulatoryKB(pos_trn_pth=f'data_anal/incons_plots/data/{data_name}_{kb_name}_KB_P.npz',\
-                neg_trn_pth=f'data_anal/incons_plots/data/{data_name}_{kb_name}_KB_N.npz'\
+        KB = RegulatoryKB(pos_trn_pth=f'plots/fig1_incons/data/{data_name}_{kb_name}_KB_P.npz',\
+                neg_trn_pth=f'plots/fig1_incons/data/{data_name}_{kb_name}_KB_N.npz'\
                 if kb_name!='go' else None, device=device)
         KB.closure_(T=5, closure_type='weighted' if kb_name!='go' else 'naive')
         KB_true = KB.KB#.cpu().numpy()
@@ -175,6 +175,6 @@ for k, v in incons_dict.items():
     #
     #ax.axis('equal')
     plt.suptitle(f'(a) Inconsistent interactions in\n {kb_name.capitalize()} KB vs {data_name.capitalize()} dataset', fontsize=24, fontweight='bold', y=.12)
-    #plt.savefig(f'data_anal/incons_plots/piechart_{data_name}_{kb_name}.pgf', dpi=600, format='pgf')
-    #plt.savefig(f'data_anal/incons_plots/piechart_{data_name}_{kb_name}.png', dpi=600)
+    #plt.savefig(f'plots/fig1_incons/piechart_{data_name}_{kb_name}.pgf', dpi=600, format='pgf')
+    #plt.savefig(f'plots/fig1_incons/piechart_{data_name}_{kb_name}.png', dpi=600)
     plt.show()

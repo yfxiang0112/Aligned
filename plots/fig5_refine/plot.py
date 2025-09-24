@@ -216,8 +216,8 @@ for x_pos, label in zip(group_x_positions, group_labels):
 
 # Adjust layout and save
 plt.tight_layout()
-plt.savefig(f'data_anal/refine/{save_name}.png', bbox_inches='tight', pad_inches=0.05)
-plt.savefig(f'data_anal/refine/{save_name}.pdf', format='pdf', bbox_inches='tight', pad_inches=0.05)
-plt.savefig(f'data_anal/refine/{save_name}.pgf', format='pgf', dpi=600, bbox_inches='tight', pad_inches=0.05)
+plt.savefig(f'plots/fig5_refine/{save_name}.png', bbox_inches='tight', pad_inches=0.05)
+plt.savefig(f'plots/fig5_refine/{save_name}.pdf', format='pdf', bbox_inches='tight', pad_inches=0.05)
+plt.savefig(f'plots/fig5_refine/{save_name}.pgf', format='pgf', dpi=600, bbox_inches='tight', pad_inches=0.05)
 
 plt.show()

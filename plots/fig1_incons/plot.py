@@ -19,7 +19,7 @@ plt.rcParams['mathtext.rm'] = 'Times New Roman'
 #    'pgf.preamble': r'\\usepackage[utf8]{inputenc}\\usepackage[T1]{fontenc}',
 #})
 
-incons_dict_path = 'data_anal/incons_plots/incons_edges.json'
+incons_dict_path = 'plots/fig1_incons/incons_edges.json'
 incons_dict = json.load(open(incons_dict_path,'r'))
 # Select only the three specific combinations requested
 selected_combinations = [
@@ -162,13 +162,13 @@ plt.tight_layout()
 plt.subplots_adjust(bottom=0.2, wspace=.2)  # More room for enhanced legend
 
 # Save in multiple formats for publication
-plt.savefig(f'data_anal/incons_plots/piechart_final.pdf', 
+plt.savefig(f'plots/fig1_incons/piechart.pdf', 
            dpi=600, format='pdf', bbox_inches='tight', 
            facecolor='white', edgecolor='none')
-plt.savefig(f'data_anal/incons_plots/piechart_final.png', 
+plt.savefig(f'plots/fig1_incons/piechart.png', 
            dpi=600, format='png', bbox_inches='tight',
            facecolor='white', edgecolor='none')
-plt.savefig(f'data_anal/incons_plots/piechart_final.pgf', 
+plt.savefig(f'plots/fig1_incons/piechart.pgf', 
            dpi=600, format='pgf', bbox_inches='tight',
            facecolor='white', edgecolor='none')
 plt.show()

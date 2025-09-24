@@ -183,9 +183,9 @@ if __name__ == '__main__':
     plt.show()
 
     # Save high-resolution version for publication
-    fig.savefig(f'data_anal/experiment_results/radar_plots.pdf', dpi=600, bbox_inches='tight', 
+    fig.savefig(f'plots/fig3_radar/radar_plots.pdf', dpi=600, bbox_inches='tight', 
                 format='pdf', facecolor='white', edgecolor='none')
-    fig.savefig(f'data_anal/experiment_results/radar_plots.pgf', dpi=600, bbox_inches='tight', 
+    fig.savefig(f'plots/fig3_radar/radar_plots.pgf', dpi=600, bbox_inches='tight', 
                 format='pgf', facecolor='white', edgecolor='none')
-    fig.savefig(f'data_anal/experiment_results/radar_plots.png', dpi=600, bbox_inches='tight', 
+    fig.savefig(f'plots/fig3_radar/radar_plots.png', dpi=600, bbox_inches='tight', 
                 facecolor='white', edgecolor='none')
