@@ -9,7 +9,7 @@ for idx, gene in enumerate(gene_names):
     node_idx[gene] = idx
 num_nodes = len(gene_annotations)
 
-trn_df = pd.read_csv('rules/regulatory_ecocyc.csv')
+trn_df = pd.read_csv('rules/ecoli/regulatory_ecocyc.csv')
 
 empty_gene_cnt = {}
 
@@ -49,7 +49,7 @@ for idx, row in trn_df.iterrows():
 pos_regu = coo_matrix(([1.]*len(row_pos), (row_pos,col_pos)), shape)
 neg_regu = coo_matrix(([1.]*len(row_neg), (row_neg,col_neg)), shape)
 
-save_npz('rules/regu_pos.npz', pos_regu)
-save_npz('rules/regu_neg.npz', neg_regu)
+save_npz('rules/ecoli/regu_pos.npz', pos_regu)
+save_npz('rules/ecoli/regu_neg.npz', neg_regu)
 
 print(empty_gene_cnt)

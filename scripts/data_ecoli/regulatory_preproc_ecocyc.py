@@ -1,6 +1,6 @@
 import pandas as pd
 
-file_path = 'rules/regulatory.txt'
+file_path = 'rules/ecoli/regulatory.txt'
 
 # Initialize counters
 pos_count = 0
@@ -78,7 +78,7 @@ while i < len(lines):
 
 print(len(regulator), len(regulated), len(edge))
 df = pd.DataFrame({'regulator':regulator, 'edge':edge, 'regulated':regulated})
-df.to_csv('rules/regulatory_ecocyc.csv', index=False)
+df.to_csv('rules/ecoli/regulatory_ecocyc.csv', index=False)
 print(df)
 
 # Output the results

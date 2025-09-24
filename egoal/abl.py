@@ -37,7 +37,6 @@ def eval_weight(X: torch.Tensor, Y: torch.Tensor, KB: RegulatoryKB) -> float:
 
     return q_knowledge / (q_data + q_knowledge)
 
-# TODO
 def abduce(X_unlabel: torch.Tensor,
            X_test: torch.Tensor,
            Y_test: torch.Tensor,

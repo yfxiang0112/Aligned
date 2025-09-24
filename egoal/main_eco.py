@@ -58,7 +58,7 @@ if __name__ == "__main__":
     print(f'train shape: {Y_train.shape}, test shape: {Y_test.shape}')
 
     X_unlabel = torch.tensor(np.load('dataset/X_regulators.npy'), dtype = torch.float32)
-    label_weight = torch.tensor(np.load('rules/label_weight.npy'))
+    label_weight = torch.tensor(np.load('rules/ecoli/label_weight.npy'))
 
 
     X_train, Y_train = X_train.to(device), Y_train.to(device)
@@ -70,8 +70,8 @@ if __name__ == "__main__":
            X_test= X_test,
            Y_test= Y_test,
 
-           pos_trn_pth='rules/regu_pos.npz',
-           neg_trn_pth='rules/regu_neg.npz',
+           pos_trn_pth='rules/ecoli/regu_pos.npz',
+           neg_trn_pth='rules/ecoli/regu_neg.npz',
            closure = 5,
            closure_type= 'weighted',
            adj_matrix_closure= True,

@@ -9,7 +9,6 @@ a variant of EGOAL that focuses on balancing data-knowledge inconsistencies.
 ### Setup
 
 ```
-cd egoal
 conda env create -f environment.yml
 conda activate egoal
 ```

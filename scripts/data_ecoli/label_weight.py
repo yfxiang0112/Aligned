@@ -77,7 +77,7 @@ print('f1 of Y[r]:', f1_score(Y_test.flatten(), y_r.flatten(), average='macro'))
 
 ' weight with GO annotation '
 gene_idx = pd.read_csv('dataset/gene_idx.csv', index_col=0)
-go_annot = pd.read_csv('rules/GO/goa_gene2go.csv', index_col = 0)
+go_annot = pd.read_csv('rules/ecoli/goa_gene2go.csv', index_col = 0)
 #go_annot = go_annot.loc[gene_idx.loc[gene_idx['iml1515_idx']!=-1, 'locus']]
 go_annot_num = np.array([len(eval(go_annot.loc[i,'concepts'])) if i in go_annot.index else 0 for i in gene_idx.loc[gene_idx['iml1515_idx']!=-1, 'locus']], dtype=np.float32)
 go_annot_num /= np.max(go_annot_num)
