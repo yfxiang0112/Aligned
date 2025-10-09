@@ -25,7 +25,7 @@ plt.rcParams.update({
 # Load data
 
 df = pd.read_csv('data_anal/experiment_results/results.csv', index_col=0)
-x_labels = ['Baseline', 'Integration 1', 'Refinement 1', 'Integration 2', 'Refinement 2']
+x_labels = ['Baseline', 'Align 1', 'Refine 1', 'Align 2', 'Refine 2']
 x_pos = np.arange(len(x_labels))
 
 datasets = ['norman', 'dixit', 'adamson']

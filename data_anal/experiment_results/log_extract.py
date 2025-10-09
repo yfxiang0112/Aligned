@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 def weighted_mean(f1_data,f1_kb,w):
-    p_integrate = 5
+    p_integrate = 2
     return (w * (f1_data ** -p_integrate)\
             + (1.-w) * (f1_kb ** -p_integrate)) ** (-1/p_integrate)
 
