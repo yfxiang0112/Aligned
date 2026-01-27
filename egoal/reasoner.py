@@ -562,31 +562,63 @@ if __name__ == '__main__':
     # NOTE tmp test
 
     
-    regulatoryKB = RegulatoryKB(pos_trn_pth='rules/regu_pos.npz',
-                                neg_trn_pth='rules/regu_neg.npz')
+    device='cuda'
 
-    print(regulatoryKB.KB_P, regulatoryKB.KB_P.shape)
-    print('closure times:', regulatoryKB.T)
 
-    print(np.count_nonzero(np.sum(regulatoryKB.KB_P & regulatoryKB.KB_N, axis=0)))
-    print(np.count_nonzero(np.sum(regulatoryKB.KB_P | regulatoryKB.KB_N, axis=0)))
+    def weighted_mean(f1_data, f1_kb, w):
+        p_integrate = 3
+        return (w * (f1_data ** -p_integrate)
+                + (1.-w) * (f1_kb ** -p_integrate)) ** (-1/p_integrate)
+    for data_name in ['norman', 'adamson', 'dixit']:
+        regulatoryKB = RegulatoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz',
+                                    neg_trn_pth=f'rules/human/{data_name}_KB_N.npz',
+                                    device=device)
 
-    #metabolicKB = MetabolicKB(pos_gem_pth='rules/gem_pos.npz', neg_gem_pth='rules/gem_neg.npz', annotation_pth='rules/gem_annot.npz')
-    #print(metabolicKB.KB_P, metabolicKB.KB_P.shape)
-    #print(type(metabolicKB.KB_P), metabolicKB.KB_P.device)
-    #print('closure times:', metabolicKB.T)
+        test_idx = np.load(f'dataset/human/{data_name}_test_idx.npy')
+        X_test = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray(), dtype = torch.float32)[test_idx]
+        Y_test = load_npz(f'dataset/human/{data_name}_Y.npz').toarray()[test_idx]
+        Y_d = regulatoryKB.deduce(X_test.to(device)).cpu().numpy()
+        f1 = f1_score(Y_test.flatten(), Y_d.flatten(), average='macro')
+        print(f'deduction result on {data_name}: data cons. {f1}, balanced cons. {weighted_mean(f1,1.,.5)}')
 
-    exit()
-    import random
-    import time
-    pos_lst = sorted(random.sample(range(622), k=random.randint(1, 622)))
-    pos_vec = pgb.Vector.from_lists(pos_lst, True, size=623, typ=pgb.BOOL)
-    neg_lst = sorted(random.sample(range(622), k=random.randint(1, 622)))
-    neg_vec = pgb.Vector.from_lists(neg_lst, True, size=623, typ=pgb.BOOL)
 
-    t_0 = time.time()
-    res = metabolicKB.deduce(pos_vec,neg_vec)
-    t = time.time() - t_0
+    data_name = 'norman'
+    regulatoryKB = RegulatoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz',
+                                neg_trn_pth=f'rules/human/{data_name}_KB_N.npz',
+                                device=device)
+    regulatoryKB.closure_(T=5, closure_type='naive')
+    KB_P_5 = regulatoryKB.KB_P
+    KB_N_5 = regulatoryKB.KB_N
 
-    print(res)
-    print(f'time: {t}')
+    regulatoryKB.closure_(T=None, closure_type='naive')
+    KB_P_inf = regulatoryKB.KB_P
+    KB_N_inf = regulatoryKB.KB_N
+
+    print(f'P coverage: {1-torch.count_nonzero(KB_P_inf != KB_P_5)/torch.count_nonzero(KB_P_inf)}')
+    print(f'N coverage: {1-torch.count_nonzero(KB_N_inf != KB_N_5)/torch.count_nonzero(KB_N_inf)}')
+    print(f'overall coverage: {1- (torch.count_nonzero(KB_P_inf != KB_P_5)+torch.count_nonzero(KB_N_inf != KB_N_5))/(torch.count_nonzero(KB_P_inf) + torch.count_nonzero(KB_N_inf))}')
+
+    #print(regulatoryKB.KB_P, regulatoryKB.KB_P.shape)
+    #print('closure times:', regulatoryKB.T)
+
+    #print(np.count_nonzero(np.sum(regulatoryKB.KB_P & regulatoryKB.KB_N, axis=0)))
+    #print(np.count_nonzero(np.sum(regulatoryKB.KB_P | regulatoryKB.KB_N, axis=0)))
+
+    ##metabolicKB = MetabolicKB(pos_gem_pth='rules/gem_pos.npz', neg_gem_pth='rules/gem_neg.npz', annotation_pth='rules/gem_annot.npz')
+    ##print(metabolicKB.KB_P, metabolicKB.KB_P.shape)
+    ##print(type(metabolicKB.KB_P), metabolicKB.KB_P.device)
+    ##print('closure times:', metabolicKB.T)
+
+    #import random
+    #import time
+    #pos_lst = sorted(random.sample(range(622), k=random.randint(1, 622)))
+    #pos_vec = pgb.Vector.from_lists(pos_lst, True, size=623, typ=pgb.BOOL)
+    #neg_lst = sorted(random.sample(range(622), k=random.randint(1, 622)))
+    #neg_vec = pgb.Vector.from_lists(neg_lst, True, size=623, typ=pgb.BOOL)
+
+    #t_0 = time.time()
+    #res = metabolicKB.deduce(pos_vec,neg_vec)
+    #t = time.time() - t_0
+
+    #print(res)
+    #print(f'time: {t}')

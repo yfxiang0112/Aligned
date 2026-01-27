@@ -25,7 +25,7 @@ plt.rcParams.update({
 # Load data
 
 df = pd.read_csv('data_anal/experiment_results/results.csv', index_col=0)
-x_labels = ['Baseline', 'Align 1', 'Refine 1', 'Align 2', 'Refine 2']
+x_labels = ['GNN Only', 'A', 'A-R', 'A-R-A', 'A-R-A-R']
 x_pos = np.arange(len(x_labels))
 
 datasets = ['norman', 'dixit', 'adamson']
@@ -72,7 +72,7 @@ for i, dataset in enumerate(datasets):
     #ax.set_xlabel('ABL Stage', fontsize=18, labelpad=5)
     ax.set_ylabel('$F_1$ Score',  labelpad=5)
     ax.set_xticks(x_pos)
-    ax.set_xticklabels(x_labels, rotation=15, ha='right',  fontweight='bold')
+    ax.set_xticklabels(x_labels, rotation=0, ha='center',  fontweight='bold')
     ax.set_title(f'({["a","b","c"][i]}) {dataset.capitalize()} et al. Dataset',  fontweight='bold', pad=10)
     
     # Add grid and clean spines

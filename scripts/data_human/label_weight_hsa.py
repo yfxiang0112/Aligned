@@ -9,7 +9,7 @@ from scipy.sparse import load_npz
 from egoal.reasoner import RegulatoryKB
 from egoal.learner_refl import ReflectLearner
 
-data_name = 'dixit'
+data_name = 'norman'
 
 device = 'cuda'
 
@@ -18,15 +18,12 @@ X = load_npz(f'dataset/human/{data_name}_X.npz').toarray()
 
 
 KB = RegulatoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz', neg_trn_pth=f'rules/human/{data_name}_KB_N.npz', device=device)
+#KB = RegulatoryKB(pos_trn_pth=f'scripts/test/rand_kb/{data_name}_KB_P_rand.npz', neg_trn_pth=f'scripts/test/rand_kb/{data_name}_KB_N_rand.npz', device=device)
+#KB = RegulatoryKB(pos_trn_pth=f'data_anal/xref_csbench/recovery_KB/{data_name}_KB_P_42.npz', neg_trn_pth=f'data_anal/xref_csbench/recovery_KB/{data_name}_KB_N_42.npz', device=device)
 KB.closure_(T=5, closure_type='weighted')
 
 
 Y_deduction = KB.deduce(torch.tensor(X).float().to(device)).to('cpu').numpy()
-
-KB.closure_(T=5, closure_type='naive')
-adj_matrix = torch.round(torch.abs(KB.get_KB()))
-learner = ReflectLearner(input_dim= X.shape[1], output_dim= Y.shape[1], hidden_dim= 64, base_learner_type= 'GNN', adj_matrix= adj_matrix, device='cuda')
-learner.load('models/human_Aug12_GNN_r_warmup.pt')
 
 test_idx = np.load(f'dataset/human/{data_name}_test_idx.npy')
 X_test = X[test_idx]
@@ -37,10 +34,10 @@ adj_matrix = torch.round(torch.clamp(torch.abs(KB.Regu_N_0 + KB.Regu_P_0), 0,1))
 learner = ReflectLearner(input_dim= X.shape[1],
                          output_dim= Y.shape[1],
                          hidden_dim= 64,
-                         base_learner_type= 'GNN',
+                         base_learner_type= 'MLP',
                          adj_matrix= adj_matrix,
                          device=device)
-learner.load('models/GNN_dixit_sep5_1.pt')
+learner.load('data_anal/experiment_results/norman/models/MLP_1.pt')
 
 
 #test_df = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
@@ -67,12 +64,12 @@ total = len(Y)
 print('consistent 1:',np.sum((Y_deduction==1)&(Y==Y_deduction)))
 print('consistent -1:',np.sum((Y_deduction==-1)&(Y==Y_deduction)))
 
-#kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist()) # norman
-#kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist()) # norman
+kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist()) # norman
+kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist()) # norman
 #kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .23)[0].tolist()) # adamson
 #kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .2)[0].tolist()) # adamson
-kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .21)[0].tolist()) # dixit
-kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist()) # dixit
+#kb_con_idx = (np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=0) / total > .21)[0].tolist()) # dixit
+#kb_con_idx_0 = (np.nonzero(np.sum((Y_deduction == 0) & (Y_deduction == Y), axis=0) / total > .3)[0].tolist()) # dixit
 kb_con_idx_1 = (np.nonzero((np.sum((Y_deduction == 1), axis=0) / total > .5) | (np.sum((Y_deduction == -1), axis=0) / total > .5))[0].tolist())
 
 data_idx = np.nonzero(np.sum((Y_deduction != 0) & (Y_deduction == Y), axis=1) > 150)[0].tolist()
@@ -171,9 +168,9 @@ print('f1 of Y_grn_weight:', f1_score(Y_test.flatten(), y_mask_regu.flatten(), a
 
 ' get label weight '
 weights = np.full(shape=Y_test.shape[1], fill_value=.1, dtype=np.float32)
-#weights += (go_annot_num - .2) + (regulatory_num - .1) # norman
+weights += (go_annot_num - .2) + (regulatory_num - .1) # norman
 #weights += (go_annot_num - .3) + (regulatory_num - .2) # adamson
-weights += (go_annot_num - .35) + (regulatory_num - .25) # dixit
+#weights += (go_annot_num - .35) + (regulatory_num - .25) # dixit
 weights[kb_con_idx] += .8
 weights[kb_con_idx_0] += .3
 weights[kb_con_idx_1] += .2
@@ -181,6 +178,7 @@ weights = np.clip(weights, 0., 1.)
 #print(weights)
 print('w >= .5:', np.count_nonzero(weights >= .5))
 np.save(f'dataset/human/{data_name}_label_weight.npy', weights)
+#np.save(f'scripts/test/rand_kb/{data_name}_label_weight.npy', weights)
 
 
 Y_w = np.where(weights>=.5, Y_d, Y_p)

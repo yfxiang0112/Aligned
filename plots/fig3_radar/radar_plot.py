@@ -50,6 +50,7 @@ def create_radar_plot(ax, dataset_name, algorithm_values, algorithm_names, ax_nu
         'ALIGNED (MLP)': '#A23B72',         
         'scFoundation': '#F18F01',
         'scGPT': '#C73E1D',       
+        'State': '#aa7f0e',
         'GEARS': '#2D5016',       
         'Linear': "#3ECE51"
     }
@@ -60,6 +61,7 @@ def create_radar_plot(ax, dataset_name, algorithm_values, algorithm_names, ax_nu
         'ALIGNED (MLP)': 's', 
         'scFoundation': '^',
         'scGPT': 'D',
+        'State': 'o',
         'GEARS': 'v',
         'Linear': 'P'
     }
@@ -118,7 +120,7 @@ def create_radar_plot(ax, dataset_name, algorithm_values, algorithm_names, ax_nu
 
 if __name__ == '__main__':
     datasets = ['norman', 'dixit', 'adamson']
-    algorithms = ['ALIGNED (GNN)', 'ALIGNED (MLP)', 'Linear', 'GEARS', 'scGPT', 'scFoundation']
+    algorithms = ['ALIGNED (GNN)', 'ALIGNED (MLP)', 'Linear', 'GEARS', 'State', 'scGPT', 'scFoundation']
 
     columns = ['data_f1_mean', 'kb_f1_mean', 'bal_f1_mean']
     df_benchmk = pd.read_csv('data_anal/pert_benchmark/benchmark_results.csv')
@@ -130,7 +132,7 @@ if __name__ == '__main__':
             (df_experim['score']=='integrated') &\
             (df_experim['data_name'].isin(datasets))].set_index(['data_name', 'model'], drop=True)
 
-    plot_alg_names = {'additive':'Linear', 'gears':'GEARS', 'scgpt':'scGPT', 'scfoundation':'scFoundation'}
+    plot_alg_names = {'additive':'Linear', 'gears':'GEARS', 'state':'State', 'scgpt':'scGPT', 'scfoundation':'scFoundation'}
     df_benchmk['model'] = df_benchmk['model'].apply(lambda x: plot_alg_names[x])
     df_benchmk.set_index(['data_name', 'model'], drop=True, inplace=True)
 

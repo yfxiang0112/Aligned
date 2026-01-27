@@ -1,0 +1,1571 @@
+MLP_norman_randKB
+log/EGOAL-hsa-2025-10-10-11:55:28.563728.txt
+random seed: 42
+test perts: ["['MAML2', 'ctrl']", "['ctrl', 'CEBPE']", "['CBL', 'PTPN9']", "['MAP2K6', 'SPI1']", "['FOXA3', 'FOXA1']", "['ETS2', 'IGDCC3']", "['BAK1', 'ctrl']", "['ctrl', 'FEV']", "['LHX1', 'ctrl']", "['TBX3', 'TBX2']", "['ctrl', 'KLF1']", "['COL2A1', 'ctrl']", "['CEBPE', 'KLF1']", "['SLC6A9', 'ctrl']", "['DUSP9', 'ETS2']", "['ctrl', 'CBFA2T3']", "['KLF1', 'BAK1']", "['ctrl', 'RUNX1T1']", "['MAP4K3', 'ctrl']", "['ZC3HAV1', 'CEBPE']", "['MAP2K3', 'MAP2K6']", "['ctrl', 'MEIS1']", "['PTPN12', 'ctrl']", "['ctrl', 'MAP7D1']", "['C19orf26', 'ctrl']", "['ETS2', 'CEBPE']", "['ctrl', 'HOXB9']", "['CKS1B', 'ctrl']", "['ETS2', 'ctrl']", "['CEBPB', 'CEBPA']", "['FOXF1', 'ctrl']", "['ARRDC3', 'ctrl']", "['ctrl', 'MAP2K6']", "['MAP2K6', 'ctrl']", "['PTPN12', 'PTPN9']", "['ISL2', 'ctrl']", "['SAMD1', 'ZBTB1']", "['ctrl', 'ZBTB1']", "['ctrl', 'COL2A1']", "['ZC3HAV1', 'HOXC13']", "['ctrl', 'IKZF3']", "['CBL', 'UBASH3B']", "['BCL2L11', 'ctrl']", "['ctrl', 'SPI1']", "['FOSB', 'UBASH3B']", "['CEBPB', 'OSR2']", "['FEV', 'ISL2']", "['KLF1', 'CLDN6']", "['FOXA1', 'HOXB9']", "['SAMD1', 'TGFBR2']", "['FOXA1', 'ctrl']", "['CEBPE', 'SPI1']", "['KLF1', 'TGFBR2']", "['CITED1', 'ctrl']", "['TGFBR2', 'PRTG']", "['FOSB', 'PTPN12']", "['FOXL2', 'HOXB9']", "['ctrl', 'TGFBR2']", "['CDKN1C', 'CDKN1B']", "['CDKN1C', 'CDKN1A']"]
+train: torch.Size([69676, 5045])
+unlabel: torch.Size([5045, 5045])
+cuda availability: True
+/home/u-xiangyf/anaconda3/envs/egoal/lib/python3.13/site-packages/torch/nn/modules/loss.py:608: UserWarning: Using a target size (torch.Size([5045])) that is different to the input size (torch.Size([5045, 5045])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(input, target, reduction=self.reduction)
+Epoch 0, Loss: 0.1112
+Epoch 100, Loss: 0.1073
+Epoch 200, Loss: 0.1035
+Epoch 300, Loss: 0.0997
+Epoch 400, Loss: 0.0961
+Epoch 500, Loss: 0.0927
+Epoch 600, Loss: 0.0893
+Epoch 700, Loss: 0.0860
+Epoch 800, Loss: 0.0828
+Epoch 900, Loss: 0.0798
+Final loss: 0.07683355361223221
+Achieved outputs: tensor([[0.4382, 0.4582, 0.4389,  ..., 0.4224, 0.4167, 0.4514],
+        [0.4382, 0.4580, 0.4388,  ..., 0.4223, 0.4164, 0.4512],
+        [0.4381, 0.4580, 0.4389,  ..., 0.4224, 0.4168, 0.4514],
+        ...,
+        [0.4381, 0.4578, 0.4386,  ..., 0.4223, 0.4164, 0.4511],
+        [0.4381, 0.4581, 0.4388,  ..., 0.4224, 0.4165, 0.4513],
+        [0.4382, 0.4578, 0.4387,  ..., 0.4222, 0.4166, 0.4510]],
+       device='cuda:7')
+Eval weight w_data: 0.002595233909305971
+Before pretrain: integrated f1 0.1645
+Epoch 100, Total loss: 23838902272.0000, CE loss: 1085.1512, RL loss: 2383889920.0000, Reward: -296989873.5625
+    full cols: 235, non-full cols: 0
+   r - labels: 1, labels - r: 1
+    violated: 29248, weighted: 0.1527423858642578, len: 0.0, nonzero: 0.04658077284693718
+Epoch 200, Total loss: 12544771072.0000, CE loss: 983.0792, RL loss: 1254477056.0000, Reward: -297181711.6406
+    full cols: 235, non-full cols: 0
+   r - labels: 1, labels - r: 1
+    violated: 29120, weighted: 0.1527423858642578, len: 0.0, nonzero: 0.04658077284693718
+Epoch 300, Total loss: -33796954112.0000, CE loss: 907.4070, RL loss: -3379695360.0000, Reward: -296682447.9219
+    full cols: 235, non-full cols: 0
+   r - labels: 1, labels - r: 1
+    violated: 29058, weighted: 0.1527423858642578, len: 0.0, nonzero: 0.04658077284693718
+------ Before ABL ------
+--- eval ---
+prediction result:
+f1 on test:    0.5770
+f1 on test:    0.9097 (micro)
+f1 on KB:      0.3170
+f1 on orig KB: 0.3170
+integrated f1: 0.3173, w_data: 0.0026, w_klg: 0.9974
+
+integrated result:
+f1 on test:    0.5724
+f1 on test:    0.9092 (micro)
+f1 on KB:      0.3176
+f1 on orig KB: 0.3176
+integrated f1: 0.3179, w_data: 0.0026, w_klg: 0.9974
+------------
+integrated f1 0.3173
+
+Epoch 100, Total loss: -33727868928.0000, CE loss: 67.6130, RL loss: -337278688.0000, Reward: -19975863.3438
+    full cols: 234, non-full cols: 0
+   r - labels: 0, labels - r: 1
+    violated: 29057, weighted: 0.30101776123046875, len: 0.0, nonzero: 0.04638255760073662
+Epoch 200, Total loss: 107263959040.0000, CE loss: 65.8181, RL loss: 1072639552.0000, Reward: -19277329.6094
+    full cols: 234, non-full cols: 0
+   r - labels: 0, labels - r: 1
+    violated: 29056, weighted: 0.30101776123046875, len: 0.0, nonzero: 0.04638255760073662
+Epoch 300, Total loss: 85627805696.0000, CE loss: 63.0686, RL loss: 856278080.0000, Reward: -17938333.6250
+    full cols: 233, non-full cols: 1
+   r - labels: 1, labels - r: 2
+    violated: 29056, weighted: 1.9281203746795654, len: 0.0, nonzero: 0.046376362442970276
+Epoch 400, Total loss: -46119251968.0000, CE loss: 60.7619, RL loss: -461192512.0000, Reward: -16941831.8125
+    full cols: 234, non-full cols: 0
+   r - labels: 1, labels - r: 2
+    violated: 29057, weighted: 1.7427787780761719, len: 0.0, nonzero: 0.04638255760073662
+Epoch 500, Total loss: -136619646976.0000, CE loss: 57.8427, RL loss: -1366196480.0000, Reward: -15271866.7188
+    full cols: 236, non-full cols: 1
+   r - labels: 5, labels - r: 3
+    violated: 29120, weighted: 5.1433210372924805, len: 0.0, nonzero: 0.04684712737798691
+Epoch 600, Total loss: -256715603968.0000, CE loss: 54.5379, RL loss: -2567155968.0000, Reward: -12888181.0469
+    full cols: 234, non-full cols: 0
+   r - labels: 4, labels - r: 5
+    violated: 29120, weighted: 5.057704925537109, len: 0.0, nonzero: 0.04638255760073662
+Epoch 700, Total loss: 6079708672.0000, CE loss: 52.3674, RL loss: 60797088.0000, Reward: -10763256.5859
+    full cols: 234, non-full cols: 0
+   r - labels: 3, labels - r: 4
+    violated: 29120, weighted: 4.192649841308594, len: 0.0, nonzero: 0.04638255760073662
+Epoch 800, Total loss: 309793521664.0000, CE loss: 49.8679, RL loss: 3097935104.0000, Reward: -7998652.3984
+    full cols: 230, non-full cols: 0
+   r - labels: 5, labels - r: 10
+    violated: 29184, weighted: 13.741798400878906, len: 0.0, nonzero: 0.045589692890644073
+Epoch 900, Total loss: -65118253056.0000, CE loss: 47.8113, RL loss: -651182528.0000, Reward: -5427204.9688
+    full cols: 233, non-full cols: 1
+   r - labels: 9, labels - r: 10
+    violated: 29121, weighted: 55.8371467590332, len: 0.0, nonzero: 0.04619363322854042
+Epoch 1000, Total loss: -84145283072.0000, CE loss: 46.9029, RL loss: -841452864.0000, Reward: -4491708.0234
+    full cols: 236, non-full cols: 0
+   r - labels: 13, labels - r: 12
+    violated: 29184, weighted: 102.05204010009766, len: 0.0, nonzero: 0.04677899181842804
+Epoch 1100, Total loss: -258255618048.0000, CE loss: 46.2545, RL loss: -2582556160.0000, Reward: -3647087.8867
+    full cols: 234, non-full cols: 1
+   r - labels: 14, labels - r: 14
+    violated: 29184, weighted: 110.21497344970703, len: 0.0, nonzero: 0.04656219109892845
+Epoch 1200, Total loss: 39340318720.0000, CE loss: 45.8336, RL loss: 393403200.0000, Reward: -3178094.9805
+    full cols: 236, non-full cols: 1
+   r - labels: 15, labels - r: 13
+    violated: 29056, weighted: 122.34478759765625, len: 0.0, nonzero: 0.046868808567523956
+Epoch 1300, Total loss: -143785623552.0000, CE loss: 45.5088, RL loss: -1437856256.0000, Reward: -2867534.0703
+    full cols: 236, non-full cols: 0
+   r - labels: 14, labels - r: 13
+    violated: 29056, weighted: 131.65692138671875, len: 0.0, nonzero: 0.04677899181842804
+Epoch 1400, Total loss: 297390342144.0000, CE loss: 45.3386, RL loss: 2973903360.0000, Reward: -2690197.3203
+    full cols: 232, non-full cols: 3
+   r - labels: 12, labels - r: 12
+    violated: 28946, weighted: 83.48049926757812, len: 0.0, nonzero: 0.046401139348745346
+Epoch 1500, Total loss: -7523465728.0000, CE loss: 45.1053, RL loss: -75234656.0000, Reward: -2393721.2129
+    full cols: 235, non-full cols: 1
+   r - labels: 16, labels - r: 15
+    violated: 29120, weighted: 137.83755493164062, len: 0.0, nonzero: 0.04677589237689972
+Epoch 1600, Total loss: 14122273792.0000, CE loss: 44.9544, RL loss: 141222736.0000, Reward: -2379583.7773
+    full cols: 236, non-full cols: 0
+   r - labels: 16, labels - r: 15
+    violated: 29056, weighted: 137.8173828125, len: 0.0, nonzero: 0.04677899181842804
+Epoch 1700, Total loss: 11038791680.0000, CE loss: 44.8205, RL loss: 110387912.0000, Reward: -2374541.3613
+    full cols: 236, non-full cols: 0
+   r - labels: 16, labels - r: 15
+    violated: 29056, weighted: 137.8173828125, len: 0.0, nonzero: 0.04677899181842804
+Epoch 1800, Total loss: -8511740928.0000, CE loss: 44.6986, RL loss: -85117408.0000, Reward: -2366278.7207
+    full cols: 236, non-full cols: 0
+   r - labels: 16, labels - r: 15
+    violated: 28992, weighted: 137.8173828125, len: 0.0, nonzero: 0.04677899181842804
+Epoch 1900, Total loss: -4528911360.0000, CE loss: 44.5929, RL loss: -45289116.0000, Reward: -2358631.9941
+    full cols: 236, non-full cols: 1
+   r - labels: 16, labels - r: 14
+    violated: 28928, weighted: 137.6577606201172, len: 0.0, nonzero: 0.04679757356643677
+--- eval ---
+prediction result:
+f1 on test:    0.5732
+f1 on test:    0.9094 (micro)
+f1 on KB:      0.3176
+integrated f1: 0.3568, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5720
+f1 on test:    0.9093 (micro)
+f1 on KB:      0.3177
+integrated f1: 0.3569, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 2000, Total loss: 5344566784.0000, CE loss: 44.4993, RL loss: 53445668.0000, Reward: -2350349.2676
+    full cols: 236, non-full cols: 1
+   r - labels: 16, labels - r: 14
+    violated: 28928, weighted: 137.790771484375, len: 0.0, nonzero: 0.04678208753466606
+Epoch 2100, Total loss: 5671387136.0000, CE loss: 44.4175, RL loss: 56713872.0000, Reward: -2345072.4473
+    full cols: 236, non-full cols: 0
+   r - labels: 16, labels - r: 15
+    violated: 28928, weighted: 137.8173828125, len: 0.0, nonzero: 0.04677899181842804
+Epoch 2200, Total loss: 3143680512.0000, CE loss: 44.3427, RL loss: 31436806.0000, Reward: -2339478.7305
+    full cols: 236, non-full cols: 0
+   r - labels: 16, labels - r: 15
+    violated: 28929, weighted: 137.8173828125, len: 0.0, nonzero: 0.04677899181842804
+Epoch 2300, Total loss: -5057934336.0000, CE loss: 44.2760, RL loss: -50579344.0000, Reward: -2333506.9141
+    full cols: 236, non-full cols: 0
+   r - labels: 16, labels - r: 15
+    violated: 28928, weighted: 137.8173828125, len: 0.0, nonzero: 0.04677899181842804
+Epoch 2400, Total loss: 1020681088.0000, CE loss: 44.2171, RL loss: 10206811.0000, Reward: -2326216.8359
+    full cols: 235, non-full cols: 1
+   r - labels: 16, labels - r: 15
+    violated: 28928, weighted: 137.80941772460938, len: 0.0, nonzero: 0.04677589237689972
+Epoch 2500, Total loss: -5340092416.0000, CE loss: 44.1672, RL loss: -53400924.0000, Reward: -2322699.3438
+    full cols: 236, non-full cols: 0
+   r - labels: 16, labels - r: 15
+    violated: 28928, weighted: 137.8173828125, len: 0.0, nonzero: 0.04677899181842804
+Epoch 2600, Total loss: 4807825408.0000, CE loss: 44.1145, RL loss: 48078256.0000, Reward: -2313789.6406
+    full cols: 236, non-full cols: 0
+   r - labels: 16, labels - r: 15
+    violated: 28929, weighted: 137.8173828125, len: 0.0, nonzero: 0.04677899181842804
+Epoch 2700, Total loss: 2313181696.0000, CE loss: 44.0740, RL loss: 23131818.0000, Reward: -2309964.3145
+    full cols: 236, non-full cols: 0
+   r - labels: 16, labels - r: 15
+    violated: 28928, weighted: 137.8173828125, len: 0.0, nonzero: 0.04677899181842804
+Epoch 2800, Total loss: 790474944.0000, CE loss: 44.0408, RL loss: 7904749.5000, Reward: -2308848.8418
+    full cols: 236, non-full cols: 0
+   r - labels: 16, labels - r: 15
+    violated: 28928, weighted: 137.8173828125, len: 0.0, nonzero: 0.04677899181842804
+Epoch 2900, Total loss: 2870338304.0000, CE loss: 44.0007, RL loss: 28703382.0000, Reward: -2300992.2969
+    full cols: 235, non-full cols: 2
+   r - labels: 16, labels - r: 14
+    violated: 28928, weighted: 136.87319946289062, len: 0.0, nonzero: 0.04663962125778198
+Epoch 3000, Total loss: 8099296256.0000, CE loss: 43.9712, RL loss: 80992960.0000, Reward: -2296911.9219
+    full cols: 236, non-full cols: 0
+   r - labels: 16, labels - r: 15
+    violated: 28928, weighted: 137.8173828125, len: 0.0, nonzero: 0.04677899181842804
+Epoch 3100, Total loss: 10846031872.0000, CE loss: 43.9412, RL loss: 108460320.0000, Reward: -2291732.0078
+    full cols: 236, non-full cols: 0
+   r - labels: 16, labels - r: 15
+    violated: 28929, weighted: 137.8173828125, len: 0.0, nonzero: 0.04677899181842804
+Epoch 3200, Total loss: -8317487104.0000, CE loss: 43.9161, RL loss: -83174872.0000, Reward: -2289201.8828
+    full cols: 235, non-full cols: 1
+   r - labels: 16, labels - r: 15
+    violated: 28929, weighted: 137.79348754882812, len: 0.0, nonzero: 0.04676969721913338
+Epoch 3300, Total loss: 15371661312.0000, CE loss: 43.8893, RL loss: 153716608.0000, Reward: -2281407.1348
+    full cols: 237, non-full cols: 0
+   r - labels: 16, labels - r: 14
+    violated: 28930, weighted: 137.1072998046875, len: 0.0, nonzero: 0.0469772070646286
+Epoch 3400, Total loss: -10198724608.0000, CE loss: 43.8654, RL loss: -101987248.0000, Reward: -2274559.5918
+    full cols: 235, non-full cols: 1
+   r - labels: 15, labels - r: 14
+    violated: 28928, weighted: 124.56058502197266, len: 0.0, nonzero: 0.04661484435200691
+Epoch 3500, Total loss: -12696885248.0000, CE loss: 43.8440, RL loss: -126968848.0000, Reward: -2268227.1113
+    full cols: 236, non-full cols: 1
+   r - labels: 16, labels - r: 14
+    violated: 28930, weighted: 141.4928741455078, len: 0.0, nonzero: 0.04694933071732521
+Epoch 3600, Total loss: -5684867584.0000, CE loss: 43.8266, RL loss: -56848676.0000, Reward: -2263270.9648
+    full cols: 237, non-full cols: 1
+   r - labels: 16, labels - r: 13
+    violated: 28930, weighted: 141.8443603515625, len: 0.0, nonzero: 0.04717232659459114
+Epoch 3700, Total loss: -1742959232.0000, CE loss: 43.8122, RL loss: -17429592.0000, Reward: -2260988.7910
+    full cols: 236, non-full cols: 1
+   r - labels: 16, labels - r: 14
+    violated: 28981, weighted: 125.85185241699219, len: 0.0, nonzero: 0.046813059598207474
+Epoch 3800, Total loss: -13248877568.0000, CE loss: 43.7991, RL loss: -132488776.0000, Reward: -2257310.5410
+    full cols: 236, non-full cols: 1
+   r - labels: 16, labels - r: 14
+    violated: 28992, weighted: 124.86677551269531, len: 0.0, nonzero: 0.046794477850198746
+Epoch 3900, Total loss: -12551310336.0000, CE loss: 43.7814, RL loss: -125513104.0000, Reward: -2251474.3477
+    full cols: 237, non-full cols: 1
+   r - labels: 17, labels - r: 14
+    violated: 28928, weighted: 144.71267700195312, len: 0.0, nonzero: 0.04716303572058678
+--- eval ---
+prediction result:
+f1 on test:    0.5724
+f1 on test:    0.9092 (micro)
+f1 on KB:      0.3176
+integrated f1: 0.3568, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5722
+f1 on test:    0.9093 (micro)
+f1 on KB:      0.3177
+integrated f1: 0.3568, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 4000, Total loss: -8165700096.0000, CE loss: 43.7659, RL loss: -81657000.0000, Reward: -2243756.5391
+    full cols: 236, non-full cols: 1
+   r - labels: 15, labels - r: 13
+    violated: 28994, weighted: 123.08194732666016, len: 0.0, nonzero: 0.04693074896931648
+Epoch 4100, Total loss: 4485274112.0000, CE loss: 43.7549, RL loss: 44852740.0000, Reward: -2239219.7344
+    full cols: 237, non-full cols: 0
+   r - labels: 15, labels - r: 13
+    violated: 28994, weighted: 122.68447875976562, len: 0.0, nonzero: 0.0469772070646286
+Epoch 4200, Total loss: -8784151552.0000, CE loss: 43.7423, RL loss: -87841512.0000, Reward: -2234723.1621
+    full cols: 236, non-full cols: 0
+   r - labels: 15, labels - r: 14
+    violated: 28992, weighted: 122.82381439208984, len: 0.0, nonzero: 0.04677899181842804
+Epoch 4300, Total loss: -10135390208.0000, CE loss: 43.7318, RL loss: -101353904.0000, Reward: -2232932.1367
+    full cols: 236, non-full cols: 0
+   r - labels: 15, labels - r: 14
+    violated: 28992, weighted: 122.82381439208984, len: 0.0, nonzero: 0.04677899181842804
+Epoch 4400, Total loss: 3839249152.0000, CE loss: 43.7211, RL loss: 38392492.0000, Reward: -2229244.8203
+    full cols: 238, non-full cols: 1
+   r - labels: 18, labels - r: 14
+    violated: 28992, weighted: 126.84733581542969, len: 0.0, nonzero: 0.0472249761223793
+Epoch 4500, Total loss: 5827808256.0000, CE loss: 43.7125, RL loss: 58278080.0000, Reward: -2226831.0137
+    full cols: 238, non-full cols: 0
+   r - labels: 17, labels - r: 14
+    violated: 28992, weighted: 126.60368347167969, len: 0.0, nonzero: 0.04717542231082916
+Epoch 4600, Total loss: -2177011200.0000, CE loss: 43.7045, RL loss: -21770112.0000, Reward: -2224960.2520
+    full cols: 238, non-full cols: 0
+   r - labels: 17, labels - r: 14
+    violated: 28992, weighted: 123.31781005859375, len: 0.0, nonzero: 0.04717542231082916
+Epoch 4700, Total loss: 17338306560.0000, CE loss: 43.6958, RL loss: 173383056.0000, Reward: -2216910.4531
+    full cols: 238, non-full cols: 0
+   r - labels: 16, labels - r: 13
+    violated: 28992, weighted: 106.15452575683594, len: 0.0, nonzero: 0.04717542231082916
+Epoch 4800, Total loss: -1705411968.0000, CE loss: 43.6878, RL loss: -17054120.0000, Reward: -2212609.2949
+    full cols: 238, non-full cols: 1
+   r - labels: 15, labels - r: 11
+    violated: 28992, weighted: 102.7675552368164, len: 0.0, nonzero: 0.04728382080793381
+Epoch 4900, Total loss: 4961317888.0000, CE loss: 43.6804, RL loss: 49613180.0000, Reward: -2207572.7812
+    full cols: 239, non-full cols: 0
+   r - labels: 16, labels - r: 12
+    violated: 28992, weighted: 78.59344482421875, len: 0.0, nonzero: 0.047373637557029724
+Epoch 5000, Total loss: 6340776960.0000, CE loss: 43.6725, RL loss: 63407772.0000, Reward: -2203431.7812
+    full cols: 236, non-full cols: 1
+   r - labels: 16, labels - r: 14
+    violated: 28992, weighted: 93.997314453125, len: 0.0, nonzero: 0.04696791619062424
+Epoch 5100, Total loss: 1214333184.0000, CE loss: 43.6675, RL loss: 12143332.0000, Reward: -2202940.4219
+    full cols: 240, non-full cols: 1
+   r - labels: 19, labels - r: 13
+    violated: 28993, weighted: 135.0672607421875, len: 0.0, nonzero: 0.04759043827652931
+Epoch 5200, Total loss: 5057754624.0000, CE loss: 43.6614, RL loss: 50577548.0000, Reward: -2200073.3887
+    full cols: 239, non-full cols: 1
+   r - labels: 18, labels - r: 13
+    violated: 28948, weighted: 123.27397155761719, len: 0.0, nonzero: 0.04751300811767578
+Epoch 5300, Total loss: -499894912.0000, CE loss: 43.6571, RL loss: -4998949.0000, Reward: -2200176.7441
+    full cols: 239, non-full cols: 0
+   r - labels: 16, labels - r: 12
+    violated: 28929, weighted: 121.72180938720703, len: 0.0, nonzero: 0.047373637557029724
+Epoch 5400, Total loss: -1641698176.0000, CE loss: 43.6522, RL loss: -16416982.0000, Reward: -2200150.2031
+    full cols: 237, non-full cols: 0
+   r - labels: 17, labels - r: 15
+    violated: 28928, weighted: 129.15042114257812, len: 0.0, nonzero: 0.0469772070646286
+Epoch 5500, Total loss: -13134903296.0000, CE loss: 43.6483, RL loss: -131349032.0000, Reward: -2200007.8711
+    full cols: 239, non-full cols: 2
+   r - labels: 20, labels - r: 14
+    violated: 28993, weighted: 162.26318359375, len: 0.0, nonzero: 0.0476028248667717
+Epoch 5600, Total loss: -2657484288.0000, CE loss: 43.6446, RL loss: -26574842.0000, Reward: -2198419.1543
+    full cols: 237, non-full cols: 3
+   r - labels: 19, labels - r: 14
+    violated: 28992, weighted: 148.80120849609375, len: 0.0, nonzero: 0.04739531874656677
+Epoch 5700, Total loss: -15544980480.0000, CE loss: 43.6409, RL loss: -155449808.0000, Reward: -2202096.3691
+    full cols: 237, non-full cols: 2
+   r - labels: 19, labels - r: 15
+    violated: 28864, weighted: 128.65113830566406, len: 0.0, nonzero: 0.04698959365487099
+Epoch 5800, Total loss: -7481522176.0000, CE loss: 43.6376, RL loss: -74815224.0000, Reward: -2201875.6387
+    full cols: 241, non-full cols: 0
+   r - labels: 20, labels - r: 14
+    violated: 28930, weighted: 213.501953125, len: 0.0, nonzero: 0.047770071774721146
+Epoch 5900, Total loss: -11563725824.0000, CE loss: 43.6342, RL loss: -115637256.0000, Reward: -2201387.8184
+    full cols: 240, non-full cols: 2
+   r - labels: 22, labels - r: 15
+    violated: 28928, weighted: 224.10385131835938, len: 0.0, nonzero: 0.04768025502562523
+--- eval ---
+prediction result:
+f1 on test:    0.5724
+f1 on test:    0.9092 (micro)
+f1 on KB:      0.3176
+integrated f1: 0.3568, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5717
+f1 on test:    0.9093 (micro)
+f1 on KB:      0.3177
+integrated f1: 0.3569, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 6000, Total loss: 8951770112.0000, CE loss: 43.6305, RL loss: 89517704.0000, Reward: -2199964.8516
+    full cols: 239, non-full cols: 4
+   r - labels: 25, labels - r: 17
+    violated: 28866, weighted: 266.4071350097656, len: 0.0, nonzero: 0.04788466542959213
+Epoch 6100, Total loss: -1268210432.0000, CE loss: 43.6278, RL loss: -12682104.0000, Reward: -2201320.2031
+    full cols: 240, non-full cols: 2
+   r - labels: 23, labels - r: 16
+    violated: 28743, weighted: 238.62103271484375, len: 0.0, nonzero: 0.0478939563035965
+Epoch 6200, Total loss: 1479069696.0000, CE loss: 43.6245, RL loss: 14790697.0000, Reward: -2203505.4258
+    full cols: 236, non-full cols: 0
+   r - labels: 18, labels - r: 17
+    violated: 28864, weighted: 167.4136962890625, len: 0.0, nonzero: 0.04677899181842804
+Epoch 6300, Total loss: -20492052480.0000, CE loss: 43.6229, RL loss: -204920528.0000, Reward: -2206633.2246
+    full cols: 238, non-full cols: 1
+   r - labels: 20, labels - r: 16
+    violated: 28865, weighted: 193.79066467285156, len: 0.0, nonzero: 0.04736744612455368
+Epoch 6400, Total loss: -15360806912.0000, CE loss: 43.6202, RL loss: -153608064.0000, Reward: -2206356.1504
+    full cols: 240, non-full cols: 1
+   r - labels: 22, labels - r: 16
+    violated: 28800, weighted: 215.83056640625, len: 0.0, nonzero: 0.047766972333192825
+Epoch 6500, Total loss: -6733854208.0000, CE loss: 43.6172, RL loss: -67338544.0000, Reward: -2206107.6836
+    full cols: 239, non-full cols: 1
+   r - labels: 25, labels - r: 20
+    violated: 28864, weighted: 244.97991943359375, len: 0.0, nonzero: 0.047379832714796066
+Epoch 6600, Total loss: -15089427.0000, CE loss: 43.6146, RL loss: -150894.2656, Reward: -2207122.2578
+    full cols: 235, non-full cols: 1
+   r - labels: 21, labels - r: 20
+    violated: 28865, weighted: 240.89862060546875, len: 0.0, nonzero: 0.046624135226011276
+Epoch 6700, Total loss: 11463352320.0000, CE loss: 43.6120, RL loss: 114633520.0000, Reward: -2207282.4336
+    full cols: 238, non-full cols: 1
+   r - labels: 26, labels - r: 22
+    violated: 28800, weighted: 299.6789855957031, len: 0.0, nonzero: 0.04736125096678734
+Epoch 6800, Total loss: 8032552960.0000, CE loss: 43.6103, RL loss: 80325528.0000, Reward: -2207281.1152
+    full cols: 245, non-full cols: 2
+   r - labels: 32, labels - r: 20
+    violated: 28800, weighted: 395.5539245605469, len: 0.0, nonzero: 0.04858771339058876
+Epoch 6900, Total loss: -22700466176.0000, CE loss: 43.6084, RL loss: -227004656.0000, Reward: -2209320.7344
+    full cols: 246, non-full cols: 2
+   r - labels: 34, labels - r: 21
+    violated: 28800, weighted: 429.9200744628906, len: 0.0, nonzero: 0.04894388094544411
+Epoch 7000, Total loss: 25053175808.0000, CE loss: 43.6055, RL loss: 250531760.0000, Reward: -2205679.1289
+    full cols: 258, non-full cols: 3
+   r - labels: 45, labels - r: 19
+    violated: 28800, weighted: 560.2711791992188, len: 0.0, nonzero: 0.05134415253996849
+Epoch 7100, Total loss: 2515720448.0000, CE loss: 43.6039, RL loss: 25157204.0000, Reward: -2208868.9766
+    full cols: 255, non-full cols: 1
+   r - labels: 42, labels - r: 21
+    violated: 28737, weighted: 584.2359008789062, len: 0.0, nonzero: 0.05070304870605469
+Epoch 7200, Total loss: -26880329728.0000, CE loss: 43.6027, RL loss: -268803296.0000, Reward: -2211840.0547
+    full cols: 255, non-full cols: 1
+   r - labels: 41, labels - r: 20
+    violated: 28800, weighted: 559.3080444335938, len: 0.0, nonzero: 0.05071543902158737
+Epoch 7300, Total loss: -11527171072.0000, CE loss: 43.6005, RL loss: -115271712.0000, Reward: -2210400.9941
+    full cols: 255, non-full cols: 2
+   r - labels: 43, labels - r: 21
+    violated: 28800, weighted: 614.0360107421875, len: 0.0, nonzero: 0.05072782561182976
+Epoch 7400, Total loss: 3722839296.0000, CE loss: 43.5991, RL loss: 37228392.0000, Reward: -2209303.1934
+    full cols: 259, non-full cols: 3
+   r - labels: 46, labels - r: 19
+    violated: 28803, weighted: 665.3925170898438, len: 0.0, nonzero: 0.05164147913455963
+Epoch 7500, Total loss: -4226012672.0000, CE loss: 43.5978, RL loss: -42260128.0000, Reward: -2212313.5938
+    full cols: 257, non-full cols: 2
+   r - labels: 45, labels - r: 21
+    violated: 28865, weighted: 586.8743286132812, len: 0.0, nonzero: 0.051306989043951035
+Epoch 7600, Total loss: -1916109568.0000, CE loss: 43.5964, RL loss: -19161096.0000, Reward: -2211855.9102
+    full cols: 260, non-full cols: 1
+   r - labels: 46, labels - r: 20
+    violated: 28928, weighted: 579.6828002929688, len: 0.0, nonzero: 0.051725100725889206
+Epoch 7700, Total loss: -3394692864.0000, CE loss: 43.5950, RL loss: -33946928.0000, Reward: -2212352.5215
+    full cols: 261, non-full cols: 3
+   r - labels: 48, labels - r: 19
+    violated: 28929, weighted: 642.4353637695312, len: 0.0, nonzero: 0.05215250328183174
+Epoch 7800, Total loss: -3714768384.0000, CE loss: 43.5936, RL loss: -37147684.0000, Reward: -2213528.9785
+    full cols: 265, non-full cols: 4
+   r - labels: 52, labels - r: 18
+    violated: 28928, weighted: 749.0640258789062, len: 0.0, nonzero: 0.053165264427661896
+Epoch 7900, Total loss: 1495409408.0000, CE loss: 43.5920, RL loss: 14954094.0000, Reward: -2214723.0938
+    full cols: 265, non-full cols: 1
+   r - labels: 50, labels - r: 19
+    violated: 28928, weighted: 744.1326904296875, len: 0.0, nonzero: 0.05264494568109512
+--- eval ---
+prediction result:
+f1 on test:    0.5724
+f1 on test:    0.9092 (micro)
+f1 on KB:      0.3176
+integrated f1: 0.3568, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5716
+f1 on test:    0.9092 (micro)
+f1 on KB:      0.3177
+integrated f1: 0.3569, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 8000, Total loss: -5511459328.0000, CE loss: 43.5910, RL loss: -55114592.0000, Reward: -2215341.4492
+    full cols: 268, non-full cols: 5
+   r - labels: 56, labels - r: 18
+    violated: 28864, weighted: 754.6386108398438, len: 0.0, nonzero: 0.0537630096077919
+Epoch 8100, Total loss: -6390403584.0000, CE loss: 43.5898, RL loss: -63904036.0000, Reward: -2218808.8672
+    full cols: 270, non-full cols: 5
+   r - labels: 57, labels - r: 17
+    violated: 28800, weighted: 769.7750244140625, len: 0.0, nonzero: 0.05397980660200119
+Epoch 8200, Total loss: -10362858496.0000, CE loss: 43.5885, RL loss: -103628584.0000, Reward: -2219049.3613
+    full cols: 274, non-full cols: 3
+   r - labels: 62, labels - r: 20
+    violated: 28738, weighted: 847.0206298828125, len: 0.0, nonzero: 0.05471692606806755
+Epoch 8300, Total loss: -799421376.0000, CE loss: 43.5874, RL loss: -7994214.0000, Reward: -2217963.8926
+    full cols: 276, non-full cols: 4
+   r - labels: 65, labels - r: 20
+    violated: 28736, weighted: 899.903076171875, len: 0.0, nonzero: 0.05520317330956459
+Epoch 8400, Total loss: 11115687936.0000, CE loss: 43.5862, RL loss: 111156880.0000, Reward: -2219521.3965
+    full cols: 277, non-full cols: 2
+   r - labels: 65, labels - r: 21
+    violated: 28736, weighted: 908.8364868164062, len: 0.0, nonzero: 0.05510406568646431
+Epoch 8500, Total loss: -5507676160.0000, CE loss: 43.5855, RL loss: -55076760.0000, Reward: -2222132.8145
+    full cols: 275, non-full cols: 3
+   r - labels: 65, labels - r: 22
+    violated: 28671, weighted: 940.363525390625, len: 0.0, nonzero: 0.05472002178430557
+Epoch 8600, Total loss: 10726947840.0000, CE loss: 43.5842, RL loss: 107269480.0000, Reward: -2221022.9805
+    full cols: 282, non-full cols: 3
+   r - labels: 69, labels - r: 19
+    violated: 28761, weighted: 993.2509765625, len: 0.0, nonzero: 0.056389372795820236
+Epoch 8700, Total loss: 2485373696.0000, CE loss: 43.5832, RL loss: 24853738.0000, Reward: -2223991.3164
+    full cols: 279, non-full cols: 6
+   r - labels: 71, labels - r: 21
+    violated: 28736, weighted: 1005.1959228515625, len: 0.0, nonzero: 0.056020814925432205
+Epoch 8800, Total loss: 15745780736.0000, CE loss: 43.5820, RL loss: 157457808.0000, Reward: -2224542.9785
+    full cols: 285, non-full cols: 5
+   r - labels: 76, labels - r: 21
+    violated: 28672, weighted: 1128.525146484375, len: 0.0, nonzero: 0.05707693472504616
+Epoch 8900, Total loss: -8708137984.0000, CE loss: 43.5809, RL loss: -87081384.0000, Reward: -2229084.9062
+    full cols: 288, non-full cols: 8
+   r - labels: 85, labels - r: 24
+    violated: 28545, weighted: 1298.91748046875, len: 0.0, nonzero: 0.05803394690155983
+Epoch 9000, Total loss: 16625158144.0000, CE loss: 43.5799, RL loss: 166251584.0000, Reward: -2227888.7266
+    full cols: 291, non-full cols: 6
+   r - labels: 86, labels - r: 24
+    violated: 28480, weighted: 1231.61572265625, len: 0.0, nonzero: 0.057947225868701935
+Epoch 9100, Total loss: -5870649344.0000, CE loss: 43.5797, RL loss: -58706496.0000, Reward: -2231458.5488
+    full cols: 298, non-full cols: 7
+   r - labels: 95, labels - r: 25
+    violated: 28416, weighted: 1404.3511962890625, len: 0.0, nonzero: 0.06010592356324196
+Epoch 9200, Total loss: 351636480.0000, CE loss: 43.5791, RL loss: 3516364.7500, Reward: -2231430.8633
+    full cols: 289, non-full cols: 10
+   r - labels: 88, labels - r: 24
+    violated: 28342, weighted: 1307.39404296875, len: 0.0, nonzero: 0.058802034705877304
+Epoch 9300, Total loss: -3210338560.0000, CE loss: 43.5787, RL loss: -32103386.0000, Reward: -2231552.7285
+    full cols: 295, non-full cols: 1
+   r - labels: 87, labels - r: 26
+    violated: 28224, weighted: 1383.4039306640625, len: 0.0, nonzero: 0.05854497104883194
+Epoch 9400, Total loss: 1086191232.0000, CE loss: 43.5781, RL loss: 10861912.0000, Reward: -2232878.4883
+    full cols: 297, non-full cols: 5
+   r - labels: 93, labels - r: 26
+    violated: 28160, weighted: 1470.44287109375, len: 0.0, nonzero: 0.059464819729328156
+Epoch 9500, Total loss: 695221184.0000, CE loss: 43.5776, RL loss: 6952212.0000, Reward: -2233419.4746
+    full cols: 300, non-full cols: 8
+   r - labels: 97, labels - r: 24
+    violated: 28158, weighted: 1539.0777587890625, len: 0.0, nonzero: 0.06022361293435097
+Epoch 9600, Total loss: 10869112832.0000, CE loss: 43.5773, RL loss: 108691128.0000, Reward: -2233132.5547
+    full cols: 297, non-full cols: 11
+   r - labels: 100, labels - r: 27
+    violated: 28288, weighted: 1526.60205078125, len: 0.0, nonzero: 0.06062004715204239
+Epoch 9700, Total loss: 10047438848.0000, CE loss: 43.5767, RL loss: 100474384.0000, Reward: -2233954.7148
+    full cols: 309, non-full cols: 3
+   r - labels: 105, labels - r: 28
+    violated: 28032, weighted: 1640.7764892578125, len: 0.0, nonzero: 0.06155537813901901
+Epoch 9800, Total loss: 3507879680.0000, CE loss: 43.5761, RL loss: 35078796.0000, Reward: -2235356.2637
+    full cols: 301, non-full cols: 9
+   r - labels: 103, labels - r: 28
+    violated: 28226, weighted: 1543.9532470703125, len: 0.0, nonzero: 0.06067889183759689
+Epoch 9900, Total loss: 2788620288.0000, CE loss: 43.5759, RL loss: 27886204.0000, Reward: -2236755.6875
+    full cols: 311, non-full cols: 7
+   r - labels: 113, labels - r: 30
+    violated: 28096, weighted: 1692.765380859375, len: 0.0, nonzero: 0.06237301975488663
+--- eval ---
+prediction result:
+f1 on test:    0.5724
+f1 on test:    0.9092 (micro)
+f1 on KB:      0.3176
+integrated f1: 0.3568, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5682
+f1 on test:    0.9089 (micro)
+f1 on KB:      0.3182
+integrated f1: 0.3571, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 10000, Total loss: 2534475520.0000, CE loss: 43.5754, RL loss: 25344756.0000, Reward: -2237229.3867
+    full cols: 318, non-full cols: 4
+   r - labels: 115, labels - r: 28
+    violated: 28082, weighted: 1701.1181640625, len: 0.0, nonzero: 0.06358709186315536
+Epoch 10100, Total loss: 10125803520.0000, CE loss: 43.5749, RL loss: 101258032.0000, Reward: -2237198.3672
+    full cols: 322, non-full cols: 4
+   r - labels: 119, labels - r: 28
+    violated: 28051, weighted: 1781.0162353515625, len: 0.0, nonzero: 0.06431801617145538
+Epoch 10200, Total loss: 3455406080.0000, CE loss: 43.5746, RL loss: 34554060.0000, Reward: -2238139.4805
+    full cols: 324, non-full cols: 10
+   r - labels: 126, labels - r: 27
+    violated: 28032, weighted: 1961.372802734375, len: 0.0, nonzero: 0.06554137915372849
+Epoch 10300, Total loss: 9024361472.0000, CE loss: 43.5742, RL loss: 90243616.0000, Reward: -2239255.4434
+    full cols: 321, non-full cols: 12
+   r - labels: 128, labels - r: 30
+    violated: 28164, weighted: 2034.949462890625, len: 0.0, nonzero: 0.06482904404401779
+Epoch 10400, Total loss: 6102565376.0000, CE loss: 43.5737, RL loss: 61025656.0000, Reward: -2240667.2852
+    full cols: 326, non-full cols: 7
+   r - labels: 131, labels - r: 33
+    violated: 28034, weighted: 2173.84375, len: 0.0, nonzero: 0.06554757058620453
+Epoch 10500, Total loss: -3902842112.0000, CE loss: 43.5737, RL loss: -39028420.0000, Reward: -2242054.5820
+    full cols: 324, non-full cols: 10
+   r - labels: 127, labels - r: 28
+    violated: 28097, weighted: 2139.0087890625, len: 0.0, nonzero: 0.06552589684724808
+Epoch 10600, Total loss: -15119137792.0000, CE loss: 43.5736, RL loss: -151191376.0000, Reward: -2244493.3125
+    full cols: 325, non-full cols: 7
+   r - labels: 129, labels - r: 32
+    violated: 28113, weighted: 2104.92236328125, len: 0.0, nonzero: 0.06513874977827072
+Epoch 10700, Total loss: -13232023552.0000, CE loss: 43.5732, RL loss: -132320232.0000, Reward: -2245499.7383
+    full cols: 337, non-full cols: 7
+   r - labels: 139, labels - r: 30
+    violated: 27970, weighted: 2386.970703125, len: 0.0, nonzero: 0.0676845908164978
+Epoch 10800, Total loss: -6149537792.0000, CE loss: 43.5730, RL loss: -61495380.0000, Reward: -2245985.7910
+    full cols: 347, non-full cols: 16
+   r - labels: 157, labels - r: 29
+    violated: 27852, weighted: 2610.3330078125, len: 0.0, nonzero: 0.07091179490089417
+Epoch 10900, Total loss: 8220997632.0000, CE loss: 43.5729, RL loss: 82209976.0000, Reward: -2245100.8809
+    full cols: 359, non-full cols: 12
+   r - labels: 164, labels - r: 28
+    violated: 27649, weighted: 2742.5078125, len: 0.0, nonzero: 0.0724603608250618
+Epoch 11000, Total loss: -3153319680.0000, CE loss: 43.5729, RL loss: -31533196.0000, Reward: -2247745.1797
+    full cols: 353, non-full cols: 26
+   r - labels: 173, labels - r: 29
+    violated: 27653, weighted: 2839.326904296875, len: 0.0, nonzero: 0.07337091118097305
+Epoch 11100, Total loss: -13533025280.0000, CE loss: 43.5730, RL loss: -135330256.0000, Reward: -2250131.5137
+    full cols: 366, non-full cols: 17
+   r - labels: 176, labels - r: 28
+    violated: 27584, weighted: 2959.368896484375, len: 0.0, nonzero: 0.07481417804956436
+Epoch 11200, Total loss: 6723943424.0000, CE loss: 43.5733, RL loss: 67239432.0000, Reward: -2249023.7129
+    full cols: 369, non-full cols: 25
+   r - labels: 188, labels - r: 29
+    violated: 27540, weighted: 3059.17529296875, len: 0.0, nonzero: 0.07572782784700394
+Epoch 11300, Total loss: 241871728.0000, CE loss: 43.5738, RL loss: 2418717.2500, Reward: -2251575.1602
+    full cols: 368, non-full cols: 23
+   r - labels: 184, labels - r: 28
+    violated: 27589, weighted: 2976.4375, len: 0.0, nonzero: 0.0754026249051094
+Epoch 11400, Total loss: 4189461504.0000, CE loss: 43.5742, RL loss: 41894616.0000, Reward: -2250429.5430
+    full cols: 373, non-full cols: 25
+   r - labels: 190, labels - r: 27
+    violated: 27584, weighted: 3208.697509765625, len: 0.0, nonzero: 0.07780599594116211
+Epoch 11500, Total loss: -10665323520.0000, CE loss: 43.5742, RL loss: -106653240.0000, Reward: -2251891.9668
+    full cols: 365, non-full cols: 23
+   r - labels: 182, labels - r: 29
+    violated: 27394, weighted: 3023.55615234375, len: 0.0, nonzero: 0.07527564465999603
+Epoch 11600, Total loss: -6373150720.0000, CE loss: 43.5737, RL loss: -63731508.0000, Reward: -2252824.3398
+    full cols: 376, non-full cols: 27
+   r - labels: 197, labels - r: 29
+    violated: 27522, weighted: 3210.7666015625, len: 0.0, nonzero: 0.07785245776176453
+Epoch 11700, Total loss: 1549203328.0000, CE loss: 43.5739, RL loss: 15492033.0000, Reward: -2252900.2227
+    full cols: 364, non-full cols: 43
+   r - labels: 202, labels - r: 30
+    violated: 27325, weighted: 3254.12158203125, len: 0.0, nonzero: 0.07786484062671661
+Epoch 11800, Total loss: -3091860480.0000, CE loss: 43.5737, RL loss: -30918606.0000, Reward: -2253776.5332
+    full cols: 378, non-full cols: 35
+   r - labels: 207, labels - r: 29
+    violated: 27405, weighted: 3373.0439453125, len: 0.0, nonzero: 0.07988417148590088
+Epoch 11900, Total loss: -1410900352.0000, CE loss: 43.5735, RL loss: -14109003.0000, Reward: -2255122.5586
+    full cols: 376, non-full cols: 36
+   r - labels: 209, labels - r: 32
+    violated: 27334, weighted: 3340.489501953125, len: 0.0, nonzero: 0.0782550796866417
+--- eval ---
+prediction result:
+f1 on test:    0.5724
+f1 on test:    0.9092 (micro)
+f1 on KB:      0.3176
+integrated f1: 0.3568, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5655
+f1 on test:    0.9088 (micro)
+f1 on KB:      0.3185
+integrated f1: 0.3572, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 12000, Total loss: -7667380736.0000, CE loss: 43.5724, RL loss: -76673808.0000, Reward: -2255575.2949
+    full cols: 387, non-full cols: 31
+   r - labels: 214, labels - r: 31
+    violated: 27497, weighted: 3512.002197265625, len: 0.0, nonzero: 0.08039209991693497
+Epoch 12100, Total loss: -370072288.0000, CE loss: 43.5723, RL loss: -3700723.0000, Reward: -2255698.2246
+    full cols: 390, non-full cols: 24
+   r - labels: 208, labels - r: 29
+    violated: 27492, weighted: 3449.320068359375, len: 0.0, nonzero: 0.08003902435302734
+Epoch 12200, Total loss: -1088584704.0000, CE loss: 43.5716, RL loss: -10885847.0000, Reward: -2255635.2168
+    full cols: 393, non-full cols: 23
+   r - labels: 211, labels - r: 30
+    violated: 27405, weighted: 3576.96240234375, len: 0.0, nonzero: 0.08079162985086441
+Epoch 12300, Total loss: 1713240576.0000, CE loss: 43.5714, RL loss: 17132406.0000, Reward: -2255476.2656
+    full cols: 390, non-full cols: 19
+   r - labels: 207, labels - r: 33
+    violated: 27529, weighted: 3520.51904296875, len: 0.0, nonzero: 0.07973551005125046
+Epoch 12400, Total loss: -6098485760.0000, CE loss: 43.5711, RL loss: -60984860.0000, Reward: -2257822.5605
+    full cols: 397, non-full cols: 18
+   r - labels: 212, labels - r: 32
+    violated: 27581, weighted: 3627.118408203125, len: 0.0, nonzero: 0.08114469796419144
+Epoch 12500, Total loss: 2769235456.0000, CE loss: 43.5711, RL loss: 27692354.0000, Reward: -2257324.6152
+    full cols: 389, non-full cols: 36
+   r - labels: 220, labels - r: 30
+    violated: 27332, weighted: 3730.03271484375, len: 0.0, nonzero: 0.08205525577068329
+Epoch 12600, Total loss: 2439344640.0000, CE loss: 43.5716, RL loss: 24393446.0000, Reward: -2257729.6523
+    full cols: 415, non-full cols: 11
+   r - labels: 224, labels - r: 33
+    violated: 27264, weighted: 3922.34912109375, len: 0.0, nonzero: 0.0836595669388771
+Epoch 12700, Total loss: 8090505728.0000, CE loss: 43.5710, RL loss: 80905056.0000, Reward: -2257483.4844
+    full cols: 426, non-full cols: 14
+   r - labels: 238, labels - r: 33
+    violated: 27012, weighted: 4121.27880859375, len: 0.0, nonzero: 0.08646555989980698
+Epoch 12800, Total loss: 4409472512.0000, CE loss: 43.5706, RL loss: 44094724.0000, Reward: -2257919.8652
+    full cols: 429, non-full cols: 23
+   r - labels: 246, labels - r: 29
+    violated: 27201, weighted: 4243.2216796875, len: 0.0, nonzero: 0.08793050050735474
+Epoch 12900, Total loss: 2598743040.0000, CE loss: 43.5706, RL loss: 25987430.0000, Reward: -2258257.2617
+    full cols: 444, non-full cols: 21
+   r - labels: 258, labels - r: 28
+    violated: 26978, weighted: 4492.91162109375, len: 0.0, nonzero: 0.09047014266252518
+Epoch 13000, Total loss: 3735168512.0000, CE loss: 43.5700, RL loss: 37351684.0000, Reward: -2257779.9668
+    full cols: 445, non-full cols: 26
+   r - labels: 264, labels - r: 28
+    violated: 27108, weighted: 4363.22021484375, len: 0.0, nonzero: 0.0909099355340004
+Epoch 13100, Total loss: -5747982336.0000, CE loss: 43.5695, RL loss: -57479824.0000, Reward: -2259702.3418
+    full cols: 465, non-full cols: 12
+   r - labels: 270, labels - r: 28
+    violated: 26880, weighted: 4736.59521484375, len: 0.0, nonzero: 0.09353939443826675
+Epoch 13200, Total loss: 6768217600.0000, CE loss: 43.5692, RL loss: 67682176.0000, Reward: -2257774.9258
+    full cols: 459, non-full cols: 26
+   r - labels: 278, labels - r: 28
+    violated: 26989, weighted: 4682.484375, len: 0.0, nonzero: 0.09309341013431549
+Epoch 13300, Total loss: -656838720.0000, CE loss: 43.5691, RL loss: -6568387.5000, Reward: -2259748.6680
+    full cols: 455, non-full cols: 13
+   r - labels: 267, labels - r: 34
+    violated: 27000, weighted: 4617.240234375, len: 0.0, nonzero: 0.09187004715204239
+Epoch 13400, Total loss: -107486176.0000, CE loss: 43.5695, RL loss: -1074861.7500, Reward: -2259626.7207
+    full cols: 441, non-full cols: 44
+   r - labels: 282, labels - r: 32
+    violated: 27131, weighted: 4601.65087890625, len: 0.0, nonzero: 0.09260097146034241
+Epoch 13500, Total loss: -7972209664.0000, CE loss: 43.5694, RL loss: -79722096.0000, Reward: -2260018.6758
+    full cols: 454, non-full cols: 23
+   r - labels: 276, labels - r: 34
+    violated: 26758, weighted: 4787.4248046875, len: 0.0, nonzero: 0.09313058108091354
+Epoch 13600, Total loss: 2198486272.0000, CE loss: 43.5691, RL loss: 21984862.0000, Reward: -2260474.9824
+    full cols: 448, non-full cols: 19
+   r - labels: 266, labels - r: 34
+    violated: 27071, weighted: 4588.54052734375, len: 0.0, nonzero: 0.09113293141126633
+Epoch 13700, Total loss: -7100337664.0000, CE loss: 43.5691, RL loss: -71003376.0000, Reward: -2262389.3164
+    full cols: 463, non-full cols: 14
+   r - labels: 273, labels - r: 31
+    violated: 26948, weighted: 4743.806640625, len: 0.0, nonzero: 0.09329782426357269
+Epoch 13800, Total loss: 3173038080.0000, CE loss: 43.5690, RL loss: 31730380.0000, Reward: -2261148.2031
+    full cols: 460, non-full cols: 26
+   r - labels: 281, labels - r: 30
+    violated: 26880, weighted: 4890.853515625, len: 0.0, nonzero: 0.0951189324259758
+Epoch 13900, Total loss: 1063040128.0000, CE loss: 43.5690, RL loss: 10630401.0000, Reward: -2260660.1504
+    full cols: 464, non-full cols: 18
+   r - labels: 279, labels - r: 32
+    violated: 26947, weighted: 4897.8857421875, len: 0.0, nonzero: 0.09429509937763214
+--- eval ---
+prediction result:
+f1 on test:    0.5724
+f1 on test:    0.9092 (micro)
+f1 on KB:      0.3176
+integrated f1: 0.3568, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5630
+f1 on test:    0.9084 (micro)
+f1 on KB:      0.3188
+integrated f1: 0.3572, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 14000, Total loss: -141283344.0000, CE loss: 43.5690, RL loss: -1412833.3750, Reward: -2261466.3691
+    full cols: 465, non-full cols: 35
+   r - labels: 297, labels - r: 32
+    violated: 27023, weighted: 5103.69970703125, len: 0.0, nonzero: 0.09606355428695679
+Epoch 14100, Total loss: -1246094848.0000, CE loss: 43.5689, RL loss: -12460949.0000, Reward: -2262108.6875
+    full cols: 463, non-full cols: 32
+   r - labels: 290, labels - r: 30
+    violated: 27026, weighted: 5088.205078125, len: 0.0, nonzero: 0.09624318778514862
+Epoch 14200, Total loss: -4525253632.0000, CE loss: 43.5690, RL loss: -45252536.0000, Reward: -2263482.8555
+    full cols: 463, non-full cols: 38
+   r - labels: 296, labels - r: 30
+    violated: 26989, weighted: 5055.169921875, len: 0.0, nonzero: 0.09637326747179031
+Epoch 14300, Total loss: 6080041984.0000, CE loss: 43.5688, RL loss: 60800420.0000, Reward: -2262945.7734
+    full cols: 477, non-full cols: 17
+   r - labels: 291, labels - r: 32
+    violated: 26911, weighted: 5143.5166015625, len: 0.0, nonzero: 0.09687500447034836
+Epoch 14400, Total loss: -2912877312.0000, CE loss: 43.5685, RL loss: -29128772.0000, Reward: -2263026.7734
+    full cols: 462, non-full cols: 48
+   r - labels: 305, labels - r: 30
+    violated: 27019, weighted: 5175.728515625, len: 0.0, nonzero: 0.09730859845876694
+Epoch 14500, Total loss: -6253499392.0000, CE loss: 43.5686, RL loss: -62534992.0000, Reward: -2264492.4961
+    full cols: 481, non-full cols: 20
+   r - labels: 296, labels - r: 30
+    violated: 26775, weighted: 5184.1875, len: 0.0, nonzero: 0.09786298871040344
+Epoch 14600, Total loss: 7723214336.0000, CE loss: 43.5684, RL loss: 77232144.0000, Reward: -2261618.8477
+    full cols: 478, non-full cols: 32
+   r - labels: 306, labels - r: 31
+    violated: 26826, weighted: 5327.74853515625, len: 0.0, nonzero: 0.09931553900241852
+Epoch 14700, Total loss: 12264284160.0000, CE loss: 43.5684, RL loss: 122642840.0000, Reward: -2262615.5527
+    full cols: 483, non-full cols: 17
+   r - labels: 297, labels - r: 32
+    violated: 26821, weighted: 5252.8662109375, len: 0.0, nonzero: 0.09842976182699203
+Epoch 14800, Total loss: 1051129216.0000, CE loss: 43.5686, RL loss: 10511292.0000, Reward: -2262453.9629
+    full cols: 480, non-full cols: 25
+   r - labels: 301, labels - r: 31
+    violated: 26817, weighted: 5180.6328125, len: 0.0, nonzero: 0.0987735390663147
+Epoch 14900, Total loss: -4936348160.0000, CE loss: 43.5680, RL loss: -49363480.0000, Reward: -2264148.8555
+    full cols: 482, non-full cols: 25
+   r - labels: 303, labels - r: 31
+    violated: 26816, weighted: 5175.13525390625, len: 0.0, nonzero: 0.09851647913455963
+Epoch 15000, Total loss: -2977366528.0000, CE loss: 43.5678, RL loss: -29773666.0000, Reward: -2262785.3516
+    full cols: 487, non-full cols: 36
+   r - labels: 318, labels - r: 30
+    violated: 26577, weighted: 5429.919921875, len: 0.0, nonzero: 0.10123265534639359
+------ ABL Loop 0 ------
+--- eval ---
+prediction result:
+f1 on test:    0.5724
+f1 on test:    0.9092 (micro)
+f1 on KB:      0.3176
+f1 on orig KB: 0.3176
+integrated f1: 0.3179, w_data: 0.0026, w_klg: 0.9974
+
+integrated result:
+f1 on test:    0.5611
+f1 on test:    0.9084 (micro)
+f1 on KB:      0.3190
+f1 on orig KB: 0.3190
+integrated f1: 0.3193, w_data: 0.0026, w_klg: 0.9974
+------------
+integrated f1 0.3179
+
+KB before refine:
+num_nodes: 5045.0000
+num_edges: 222038.0000
+density: 0.0087
+avg_degree: 44.0115
+avg_clustering: 0.0173
+degree_assortativity: 0.0008
+modularity: 0.0818
+avg_betweenness: 0.0003
+avg_closeness: 0.3751
+Iteration 0: Loss = 27627830.000000
+|Xk-Y|_F:  27627830.000000, |X-X0|:  0.000000
+rounded |X_k-Y|_0 = 24257023, f1 =  0.056530, approx slack: 0
+rounded before pow |X_k-Y|_0 = 24311860, f1 =  0.028584
+
+Iteration 20: Loss = 27873542.000000
+|Xk-Y|_F:  27762654.000000, |X-X0|:  110887.765625
+rounded |X_k-Y|_0 = 24311860, f1 =  0.028584, approx slack: 0
+rounded before pow |X_k-Y|_0 = 24311860, f1 =  0.028584
+
+Converged at iteration 27
+
+KB after refine:
+num_nodes: 5045.0000
+num_edges: 110722.0000
+density: 0.0044
+avg_degree: 21.9469
+avg_clustering: 0.0085
+degree_assortativity: 0.0035
+modularity: 0.1213
+avg_betweenness: 0.0004
+avg_closeness: 0.3296
+------ ABL 0 after refine ------
+--- eval ---
+prediction result:
+f1 on test:    0.5724
+f1 on test:    0.9092 (micro)
+f1 on KB:      0.0286
+f1 on orig KB: 0.3176
+integrated f1: 0.3179, w_data: 0.0026, w_klg: 0.9974
+
+integrated result:
+f1 on test:    0.5052
+f1 on test:    0.8245 (micro)
+f1 on KB:      0.0832
+f1 on orig KB: 0.2997
+integrated f1: 0.2999, w_data: 0.0026, w_klg: 0.9974
+------------
+integrated f1 0.3179
+Epoch 100, Total loss: 484619808.0000, CE loss: 61.6222, RL loss: 4846198.0000, Reward: -3796050.7656
+    full cols: 485, non-full cols: 37
+   r - labels: 319, labels - r: 32
+    violated: 276697, weighted: 5452.67578125, len: 0.0, nonzero: 0.10159192234277725
+Epoch 200, Total loss: -4929333248.0000, CE loss: 61.6220, RL loss: -49293332.0000, Reward: -3797340.9102
+    full cols: 485, non-full cols: 37
+   r - labels: 319, labels - r: 32
+    violated: 276754, weighted: 5439.88525390625, len: 0.0, nonzero: 0.10141228884458542
+Epoch 300, Total loss: -6022516224.0000, CE loss: 61.6219, RL loss: -60225164.0000, Reward: -3797568.7148
+    full cols: 486, non-full cols: 38
+   r - labels: 320, labels - r: 31
+    violated: 276764, weighted: 5435.486328125, len: 0.0, nonzero: 0.10137822479009628
+Epoch 400, Total loss: -800835520.0000, CE loss: 61.6218, RL loss: -8008355.5000, Reward: -3796084.9258
+    full cols: 491, non-full cols: 28
+   r - labels: 316, labels - r: 32
+    violated: 276764, weighted: 5436.4970703125, len: 0.0, nonzero: 0.1013813242316246
+Epoch 500, Total loss: -6135585792.0000, CE loss: 61.6216, RL loss: -61355856.0000, Reward: -3795990.7539
+    full cols: 483, non-full cols: 40
+   r - labels: 318, labels - r: 30
+    violated: 276756, weighted: 5438.177734375, len: 0.0, nonzero: 0.10141228884458542
+Epoch 600, Total loss: 4524879360.0000, CE loss: 61.6215, RL loss: 45248796.0000, Reward: -3795859.4023
+    full cols: 489, non-full cols: 33
+   r - labels: 317, labels - r: 30
+    violated: 276800, weighted: 5421.11767578125, len: 0.0, nonzero: 0.10125743597745895
+Epoch 700, Total loss: -4436949504.0000, CE loss: 61.6213, RL loss: -44369496.0000, Reward: -3795607.5703
+    full cols: 477, non-full cols: 51
+   r - labels: 322, labels - r: 29
+    violated: 276867, weighted: 5394.1611328125, len: 0.0, nonzero: 0.10104373097419739
+Epoch 800, Total loss: -7824029696.0000, CE loss: 61.6211, RL loss: -78240296.0000, Reward: -3796595.6484
+    full cols: 493, non-full cols: 24
+   r - labels: 315, labels - r: 33
+    violated: 276780, weighted: 5429.8427734375, len: 0.0, nonzero: 0.10129769891500473
+Epoch 900, Total loss: 3130439168.0000, CE loss: 61.6208, RL loss: 31304392.0000, Reward: -3795460.3203
+    full cols: 495, non-full cols: 22
+   r - labels: 315, labels - r: 33
+    violated: 276731, weighted: 5445.33154296875, len: 0.0, nonzero: 0.10144636034965515
+Epoch 1000, Total loss: 1113578112.0000, CE loss: 61.6205, RL loss: 11135781.0000, Reward: -3795999.3555
+    full cols: 479, non-full cols: 50
+   r - labels: 323, labels - r: 29
+    violated: 276790, weighted: 5425.6279296875, len: 0.0, nonzero: 0.10122646391391754
+Epoch 1100, Total loss: -140403888.0000, CE loss: 61.6199, RL loss: -1404038.8750, Reward: -3796242.1602
+    full cols: 470, non-full cols: 64
+   r - labels: 326, labels - r: 27
+    violated: 276876, weighted: 5391.2529296875, len: 0.0, nonzero: 0.10092294961214066
+Epoch 1200, Total loss: -145422832.0000, CE loss: 61.6191, RL loss: -1454228.3750, Reward: -3795509.9609
+    full cols: 492, non-full cols: 24
+   r - labels: 313, labels - r: 32
+    violated: 276892, weighted: 5389.14306640625, len: 0.0, nonzero: 0.10089197754859924
+Epoch 1300, Total loss: -2163947520.0000, CE loss: 61.6179, RL loss: -21639474.0000, Reward: -3794674.7070
+    full cols: 485, non-full cols: 35
+   r - labels: 314, labels - r: 29
+    violated: 276989, weighted: 5381.408203125, len: 0.0, nonzero: 0.10058226436376572
+Epoch 1400, Total loss: 4337800192.0000, CE loss: 61.6160, RL loss: 43378004.0000, Reward: -3795191.6016
+    full cols: 491, non-full cols: 23
+   r - labels: 311, labels - r: 32
+    violated: 277024, weighted: 5374.390625, len: 0.0, nonzero: 0.10041811317205429
+Epoch 1500, Total loss: 66213992.0000, CE loss: 61.6130, RL loss: 662139.9375, Reward: -3795106.6602
+    full cols: 479, non-full cols: 46
+   r - labels: 319, labels - r: 29
+    violated: 276980, weighted: 5373.11962890625, len: 0.0, nonzero: 0.1004490852355957
+Epoch 1600, Total loss: 2652805888.0000, CE loss: 61.6078, RL loss: 26528058.0000, Reward: -3793777.8281
+    full cols: 496, non-full cols: 17
+   r - labels: 311, labels - r: 33
+    violated: 276907, weighted: 5381.8251953125, len: 0.0, nonzero: 0.1007680892944336
+Epoch 1700, Total loss: 6125886976.0000, CE loss: 61.5989, RL loss: 61258868.0000, Reward: -3794022.0234
+    full cols: 468, non-full cols: 63
+   r - labels: 323, labels - r: 27
+    violated: 277023, weighted: 5365.302734375, len: 0.0, nonzero: 0.10052032023668289
+Epoch 1800, Total loss: -7509849600.0000, CE loss: 61.5840, RL loss: -75098496.0000, Reward: -3795113.0664
+    full cols: 497, non-full cols: 14
+   r - labels: 310, labels - r: 34
+    violated: 276949, weighted: 5389.72607421875, len: 0.0, nonzero: 0.10071543604135513
+Epoch 1900, Total loss: 1815161984.0000, CE loss: 61.5600, RL loss: 18151620.0000, Reward: -3794065.8633
+    full cols: 474, non-full cols: 54
+   r - labels: 322, labels - r: 29
+    violated: 276967, weighted: 5364.42333984375, len: 0.0, nonzero: 0.10066898167133331
+--- eval ---
+prediction result:
+f1 on test:    0.5724
+f1 on test:    0.9092 (micro)
+f1 on KB:      0.0286
+integrated f1: 0.0341, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5049
+f1 on test:    0.8245 (micro)
+f1 on KB:      0.0831
+integrated f1: 0.0987, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 2000, Total loss: 8141600768.0000, CE loss: 61.5214, RL loss: 81416008.0000, Reward: -3793946.1719
+    full cols: 483, non-full cols: 35
+   r - labels: 314, labels - r: 31
+    violated: 276899, weighted: 5387.9248046875, len: 0.0, nonzero: 0.10093843191862106
+Epoch 2100, Total loss: -3687553536.0000, CE loss: 61.4630, RL loss: -36875536.0000, Reward: -3794031.0273
+    full cols: 488, non-full cols: 32
+   r - labels: 317, labels - r: 32
+    violated: 276736, weighted: 5430.0234375, len: 0.0, nonzero: 0.10136893391609192
+Epoch 2200, Total loss: 3461088512.0000, CE loss: 61.3795, RL loss: 34610884.0000, Reward: -3793175.2656
+    full cols: 486, non-full cols: 38
+   r - labels: 320, labels - r: 31
+    violated: 276797, weighted: 5401.6953125, len: 0.0, nonzero: 0.10110258311033249
+Epoch 2300, Total loss: -1844013440.0000, CE loss: 61.2625, RL loss: -18440134.0000, Reward: -3794172.3984
+    full cols: 494, non-full cols: 23
+   r - labels: 314, labels - r: 32
+    violated: 276916, weighted: 5368.83544921875, len: 0.0, nonzero: 0.10086719691753387
+Epoch 2400, Total loss: 6425114624.0000, CE loss: 61.0961, RL loss: 64251148.0000, Reward: -3791826.4688
+    full cols: 494, non-full cols: 27
+   r - labels: 318, labels - r: 32
+    violated: 276820, weighted: 5408.0400390625, len: 0.0, nonzero: 0.10118930041790009
+Epoch 2500, Total loss: 371777376.0000, CE loss: 60.8560, RL loss: 3717773.7500, Reward: -3791941.1914
+    full cols: 473, non-full cols: 53
+   r - labels: 320, labels - r: 29
+    violated: 276920, weighted: 5366.37890625, len: 0.0, nonzero: 0.10087958723306656
+Epoch 2600, Total loss: -2844866304.0000, CE loss: 60.4969, RL loss: -28448662.0000, Reward: -3792120.8867
+    full cols: 488, non-full cols: 32
+   r - labels: 317, labels - r: 32
+    violated: 276922, weighted: 5370.65625, len: 0.0, nonzero: 0.10082074254751205
+Epoch 2700, Total loss: 11320495104.0000, CE loss: 59.9441, RL loss: 113204952.0000, Reward: -3789841.4922
+    full cols: 497, non-full cols: 16
+   r - labels: 312, labels - r: 34
+    violated: 276872, weighted: 5403.0419921875, len: 0.0, nonzero: 0.10103753954172134
+Epoch 2800, Total loss: 3311262464.0000, CE loss: 59.0895, RL loss: 33112624.0000, Reward: -3789886.6719
+    full cols: 492, non-full cols: 27
+   r - labels: 317, labels - r: 33
+    violated: 276888, weighted: 5431.0126953125, len: 0.0, nonzero: 0.10099727660417557
+Epoch 2900, Total loss: -5882710016.0000, CE loss: 57.8190, RL loss: -58827100.0000, Reward: -3789729.4023
+    full cols: 486, non-full cols: 35
+   r - labels: 317, labels - r: 31
+    violated: 276840, weighted: 5407.439453125, len: 0.0, nonzero: 0.10112735629081726
+Epoch 3000, Total loss: -1612797952.0000, CE loss: 56.0954, RL loss: -16127980.0000, Reward: -3789055.8359
+    full cols: 487, non-full cols: 29
+   r - labels: 314, labels - r: 33
+    violated: 277040, weighted: 5339.53955078125, len: 0.0, nonzero: 0.10051412880420685
+Epoch 3100, Total loss: -1739716608.0000, CE loss: 54.0257, RL loss: -17397166.0000, Reward: -3787377.4766
+    full cols: 484, non-full cols: 36
+   r - labels: 317, labels - r: 32
+    violated: 276911, weighted: 5374.43701171875, len: 0.0, nonzero: 0.10090436041355133
+Epoch 3200, Total loss: -1010719808.0000, CE loss: 51.8513, RL loss: -10107198.0000, Reward: -3783142.5391
+    full cols: 484, non-full cols: 35
+   r - labels: 316, labels - r: 32
+    violated: 277010, weighted: 5327.4736328125, len: 0.0, nonzero: 0.10032210499048233
+Epoch 3300, Total loss: 1406171136.0000, CE loss: 50.0173, RL loss: 14061712.0000, Reward: -3748384.2305
+    full cols: 473, non-full cols: 53
+   r - labels: 320, labels - r: 29
+    violated: 276145, weighted: 5285.8134765625, len: 0.0, nonzero: 0.09958498924970627
+Epoch 3400, Total loss: 6006169088.0000, CE loss: 48.7253, RL loss: 60061692.0000, Reward: -3747569.0078
+    full cols: 481, non-full cols: 32
+   r - labels: 310, labels - r: 32
+    violated: 275907, weighted: 5274.099609375, len: 0.0, nonzero: 0.09945490956306458
+Epoch 3500, Total loss: 5934700544.0000, CE loss: 47.7686, RL loss: 59347008.0000, Reward: -3746309.5117
+    full cols: 474, non-full cols: 48
+   r - labels: 316, labels - r: 29
+    violated: 275876, weighted: 5256.90478515625, len: 0.0, nonzero: 0.09934651106595993
+Epoch 3600, Total loss: 500135936.0000, CE loss: 47.0616, RL loss: 5001359.5000, Reward: -3746847.2930
+    full cols: 489, non-full cols: 23
+   r - labels: 309, labels - r: 32
+    violated: 275764, weighted: 5264.3603515625, len: 0.0, nonzero: 0.0995602086186409
+Epoch 3700, Total loss: 3633979136.0000, CE loss: 46.5301, RL loss: 36339792.0000, Reward: -3746864.5820
+    full cols: 488, non-full cols: 25
+   r - labels: 310, labels - r: 32
+    violated: 275648, weighted: 5283.54638671875, len: 0.0, nonzero: 0.09985443949699402
+Epoch 3800, Total loss: 165383888.0000, CE loss: 46.1243, RL loss: 1653838.8750, Reward: -3746315.5742
+    full cols: 486, non-full cols: 29
+   r - labels: 311, labels - r: 31
+    violated: 275789, weighted: 5294.1396484375, len: 0.0, nonzero: 0.09981107711791992
+Epoch 3900, Total loss: -4297412608.0000, CE loss: 45.8097, RL loss: -42974124.0000, Reward: -3746646.8086
+    full cols: 488, non-full cols: 25
+   r - labels: 309, labels - r: 31
+    violated: 275655, weighted: 5263.72265625, len: 0.0, nonzero: 0.09977391362190247
+--- eval ---
+prediction result:
+f1 on test:    0.5056
+f1 on test:    0.8249 (micro)
+f1 on KB:      0.0828
+integrated f1: 0.0983, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5034
+f1 on test:    0.8211 (micro)
+f1 on KB:      0.0851
+integrated f1: 0.1010, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 4000, Total loss: -7325660160.0000, CE loss: 45.5594, RL loss: -73256600.0000, Reward: -3745817.0469
+    full cols: 475, non-full cols: 42
+   r - labels: 311, labels - r: 29
+    violated: 275668, weighted: 5207.08251953125, len: 0.0, nonzero: 0.09939606487751007
+Epoch 4100, Total loss: -914965696.0000, CE loss: 45.3559, RL loss: -9149657.0000, Reward: -3743820.6484
+    full cols: 483, non-full cols: 32
+   r - labels: 310, labels - r: 30
+    violated: 275528, weighted: 5209.1865234375, len: 0.0, nonzero: 0.09955711662769318
+Epoch 4200, Total loss: -34020200.0000, CE loss: 45.1873, RL loss: -340202.0000, Reward: -3743462.5781
+    full cols: 487, non-full cols: 26
+   r - labels: 308, labels - r: 30
+    violated: 275586, weighted: 5175.1162109375, len: 0.0, nonzero: 0.09946420043706894
+Epoch 4300, Total loss: 5565776896.0000, CE loss: 45.0464, RL loss: 55657768.0000, Reward: -3743109.8594
+    full cols: 476, non-full cols: 43
+   r - labels: 313, labels - r: 29
+    violated: 275482, weighted: 5166.7568359375, len: 0.0, nonzero: 0.09932482987642288
+Epoch 4400, Total loss: -3331473920.0000, CE loss: 44.9286, RL loss: -33314740.0000, Reward: -3743352.9922
+    full cols: 474, non-full cols: 43
+   r - labels: 311, labels - r: 29
+    violated: 275373, weighted: 5106.5380859375, len: 0.0, nonzero: 0.09898724406957626
+Epoch 4500, Total loss: -197451168.0000, CE loss: 44.8265, RL loss: -1974511.6250, Reward: -3742552.2188
+    full cols: 475, non-full cols: 40
+   r - labels: 309, labels - r: 29
+    violated: 275424, weighted: 5061.177734375, len: 0.0, nonzero: 0.09849479794502258
+Epoch 4600, Total loss: -1714522624.0000, CE loss: 44.7364, RL loss: -17145226.0000, Reward: -3742143.6523
+    full cols: 475, non-full cols: 41
+   r - labels: 310, labels - r: 29
+    violated: 275496, weighted: 5093.7958984375, len: 0.0, nonzero: 0.0983956903219223
+Epoch 4700, Total loss: 1068807168.0000, CE loss: 44.6554, RL loss: 10688072.0000, Reward: -3741883.7031
+    full cols: 467, non-full cols: 54
+   r - labels: 315, labels - r: 29
+    violated: 275474, weighted: 5065.93603515625, len: 0.0, nonzero: 0.09820057451725006
+Epoch 4800, Total loss: -7651075072.0000, CE loss: 44.5828, RL loss: -76510752.0000, Reward: -3742640.8750
+    full cols: 477, non-full cols: 33
+   r - labels: 305, labels - r: 30
+    violated: 275460, weighted: 5098.29833984375, len: 0.0, nonzero: 0.09812624007463455
+Epoch 4900, Total loss: 475318752.0000, CE loss: 44.5177, RL loss: 4753187.5000, Reward: -3740709.0156
+    full cols: 466, non-full cols: 48
+   r - labels: 308, labels - r: 29
+    violated: 275488, weighted: 5147.1376953125, len: 0.0, nonzero: 0.09834923595190048
+Epoch 5000, Total loss: 1038186176.0000, CE loss: 44.4555, RL loss: 10381862.0000, Reward: -3740930.6211
+    full cols: 472, non-full cols: 37
+   r - labels: 304, labels - r: 30
+    violated: 275592, weighted: 5056.66162109375, len: 0.0, nonzero: 0.09750991314649582
+Epoch 5100, Total loss: -481996448.0000, CE loss: 44.4006, RL loss: -4819964.5000, Reward: -3740812.7070
+    full cols: 469, non-full cols: 44
+   r - labels: 307, labels - r: 29
+    violated: 275506, weighted: 5149.6181640625, len: 0.0, nonzero: 0.09869921207427979
+Epoch 5200, Total loss: 6745171968.0000, CE loss: 44.3503, RL loss: 67451720.0000, Reward: -3739665.5508
+    full cols: 471, non-full cols: 48
+   r - labels: 313, labels - r: 29
+    violated: 275271, weighted: 5112.142578125, len: 0.0, nonzero: 0.09875185787677765
+Epoch 5300, Total loss: 1495527808.0000, CE loss: 44.3057, RL loss: 14955278.0000, Reward: -3740628.4688
+    full cols: 479, non-full cols: 29
+   r - labels: 303, labels - r: 30
+    violated: 274924, weighted: 5141.2392578125, len: 0.0, nonzero: 0.0990801528096199
+Epoch 5400, Total loss: 7726179840.0000, CE loss: 44.2657, RL loss: 77261800.0000, Reward: -3738849.2891
+    full cols: 463, non-full cols: 53
+   r - labels: 310, labels - r: 29
+    violated: 275103, weighted: 5044.8505859375, len: 0.0, nonzero: 0.09822844713926315
+Epoch 5500, Total loss: 4974256640.0000, CE loss: 44.2305, RL loss: 49742568.0000, Reward: -3739270.8828
+    full cols: 448, non-full cols: 75
+   r - labels: 317, labels - r: 29
+    violated: 275079, weighted: 5055.08203125, len: 0.0, nonzero: 0.09793731570243835
+Epoch 5600, Total loss: -2835272192.0000, CE loss: 44.1996, RL loss: -28352722.0000, Reward: -3738766.8750
+    full cols: 462, non-full cols: 54
+   r - labels: 310, labels - r: 29
+    violated: 275058, weighted: 5096.162109375, len: 0.0, nonzero: 0.09814172983169556
+Epoch 5700, Total loss: -10097635328.0000, CE loss: 44.1723, RL loss: -100976352.0000, Reward: -3739026.2734
+    full cols: 477, non-full cols: 26
+   r - labels: 301, labels - r: 33
+    violated: 275115, weighted: 5016.86572265625, len: 0.0, nonzero: 0.09790325164794922
+Epoch 5800, Total loss: 3103881472.0000, CE loss: 44.1447, RL loss: 31038814.0000, Reward: -3737453.5352
+    full cols: 465, non-full cols: 42
+   r - labels: 302, labels - r: 30
+    violated: 275255, weighted: 4931.47216796875, len: 0.0, nonzero: 0.09722188115119934
+Epoch 5900, Total loss: -5695922176.0000, CE loss: 44.1196, RL loss: -56959220.0000, Reward: -3737707.7305
+    full cols: 466, non-full cols: 43
+   r - labels: 304, labels - r: 30
+    violated: 275063, weighted: 4924.6826171875, len: 0.0, nonzero: 0.09738912433385849
+--- eval ---
+prediction result:
+f1 on test:    0.5055
+f1 on test:    0.8246 (micro)
+f1 on KB:      0.0830
+integrated f1: 0.0986, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.5021
+f1 on test:    0.8192 (micro)
+f1 on KB:      0.0860
+integrated f1: 0.1021, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 6000, Total loss: -9197235200.0000, CE loss: 44.0942, RL loss: -91972352.0000, Reward: -3738166.7852
+    full cols: 465, non-full cols: 43
+   r - labels: 304, labels - r: 31
+    violated: 275050, weighted: 4929.015625, len: 0.0, nonzero: 0.09748513996601105
+Epoch 6100, Total loss: 5014882304.0000, CE loss: 44.0695, RL loss: 50148824.0000, Reward: -3735979.4297
+    full cols: 478, non-full cols: 30
+   r - labels: 303, labels - r: 30
+    violated: 274741, weighted: 4940.97265625, len: 0.0, nonzero: 0.09839878976345062
+Epoch 6200, Total loss: 2333216000.0000, CE loss: 44.0461, RL loss: 23332160.0000, Reward: -3735816.0391
+    full cols: 467, non-full cols: 42
+   r - labels: 303, labels - r: 29
+    violated: 274818, weighted: 4939.1669921875, len: 0.0, nonzero: 0.09812314808368683
+Epoch 6300, Total loss: -4228876800.0000, CE loss: 44.0267, RL loss: -42288768.0000, Reward: -3736062.5859
+    full cols: 482, non-full cols: 26
+   r - labels: 302, labels - r: 29
+    violated: 274747, weighted: 4931.13134765625, len: 0.0, nonzero: 0.09820366650819778
+Epoch 6400, Total loss: -7795772928.0000, CE loss: 44.0078, RL loss: -77957728.0000, Reward: -3737030.7617
+    full cols: 468, non-full cols: 46
+   r - labels: 307, labels - r: 28
+    violated: 274496, weighted: 4958.25927734375, len: 0.0, nonzero: 0.09851028770208359
+Epoch 6500, Total loss: 2461862912.0000, CE loss: 43.9906, RL loss: 24618628.0000, Reward: -3736327.0078
+    full cols: 469, non-full cols: 42
+   r - labels: 304, labels - r: 28
+    violated: 274706, weighted: 4893.88720703125, len: 0.0, nonzero: 0.09758114814758301
+Epoch 6600, Total loss: 1042641792.0000, CE loss: 43.9757, RL loss: 10426418.0000, Reward: -3735771.3281
+    full cols: 478, non-full cols: 33
+   r - labels: 305, labels - r: 29
+    violated: 274421, weighted: 4942.8359375, len: 0.0, nonzero: 0.09815102070569992
+Epoch 6700, Total loss: 511589600.0000, CE loss: 43.9627, RL loss: 5115896.0000, Reward: -3735125.7305
+    full cols: 469, non-full cols: 42
+   r - labels: 304, labels - r: 28
+    violated: 274445, weighted: 4935.0810546875, len: 0.0, nonzero: 0.09781962633132935
+Epoch 6800, Total loss: -4691654144.0000, CE loss: 43.9509, RL loss: -46916540.0000, Reward: -3734998.5508
+    full cols: 481, non-full cols: 29
+   r - labels: 305, labels - r: 30
+    violated: 274157, weighted: 5018.548828125, len: 0.0, nonzero: 0.0982346385717392
+Epoch 6900, Total loss: -9576812544.0000, CE loss: 43.9396, RL loss: -95768128.0000, Reward: -3735915.6172
+    full cols: 470, non-full cols: 41
+   r - labels: 304, labels - r: 28
+    violated: 274472, weighted: 4892.48046875, len: 0.0, nonzero: 0.09725595265626907
+Epoch 7000, Total loss: 2197473536.0000, CE loss: 43.9272, RL loss: 21974736.0000, Reward: -3734378.5312
+    full cols: 468, non-full cols: 50
+   r - labels: 310, labels - r: 27
+    violated: 273951, weighted: 5063.8955078125, len: 0.0, nonzero: 0.09882929176092148
+Epoch 7100, Total loss: -5215832576.0000, CE loss: 43.9175, RL loss: -52158324.0000, Reward: -3733598.2266
+    full cols: 478, non-full cols: 38
+   r - labels: 309, labels - r: 28
+    violated: 273722, weighted: 4998.6669921875, len: 0.0, nonzero: 0.09902750700712204
+Epoch 7200, Total loss: -1355409152.0000, CE loss: 43.9075, RL loss: -13554091.0000, Reward: -3733309.0195
+    full cols: 478, non-full cols: 36
+   r - labels: 307, labels - r: 28
+    violated: 273775, weighted: 4963.0302734375, len: 0.0, nonzero: 0.09875805675983429
+Epoch 7300, Total loss: -478181664.0000, CE loss: 43.8994, RL loss: -4781816.5000, Reward: -3732975.9648
+    full cols: 476, non-full cols: 38
+   r - labels: 309, labels - r: 30
+    violated: 273443, weighted: 4988.2197265625, len: 0.0, nonzero: 0.09898724406957626
+Epoch 7400, Total loss: 4058340352.0000, CE loss: 43.8903, RL loss: 40583404.0000, Reward: -3732498.0586
+    full cols: 464, non-full cols: 54
+   r - labels: 311, labels - r: 28
+    violated: 273508, weighted: 4908.125, len: 0.0, nonzero: 0.09800855070352554
+Epoch 7500, Total loss: 2081945856.0000, CE loss: 43.8804, RL loss: 20819458.0000, Reward: -3731768.0703
+    full cols: 477, non-full cols: 24
+   r - labels: 297, labels - r: 31
+    violated: 273487, weighted: 4793.517578125, len: 0.0, nonzero: 0.0970267653465271
+Epoch 7600, Total loss: -6255298560.0000, CE loss: 43.8724, RL loss: -62552988.0000, Reward: -3731772.8945
+    full cols: 475, non-full cols: 39
+   r - labels: 309, labels - r: 30
+    violated: 273232, weighted: 4952.34033203125, len: 0.0, nonzero: 0.09863107651472092
+Epoch 7700, Total loss: 2402907648.0000, CE loss: 43.8636, RL loss: 24029076.0000, Reward: -3731290.8398
+    full cols: 483, non-full cols: 29
+   r - labels: 306, labels - r: 29
+    violated: 273155, weighted: 5044.2373046875, len: 0.0, nonzero: 0.09914519637823105
+Epoch 7800, Total loss: -3148915712.0000, CE loss: 43.8559, RL loss: -31489156.0000, Reward: -3731515.6484
+    full cols: 486, non-full cols: 32
+   r - labels: 312, labels - r: 29
+    violated: 272744, weighted: 5086.89013671875, len: 0.0, nonzero: 0.0999535471200943
+Epoch 7900, Total loss: -5168927744.0000, CE loss: 43.8471, RL loss: -51689280.0000, Reward: -3731099.9453
+    full cols: 476, non-full cols: 44
+   r - labels: 312, labels - r: 27
+    violated: 272616, weighted: 4945.16357421875, len: 0.0, nonzero: 0.09942703694105148
+--- eval ---
+prediction result:
+f1 on test:    0.5054
+f1 on test:    0.8244 (micro)
+f1 on KB:      0.0831
+integrated f1: 0.0987, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.4989
+f1 on test:    0.8133 (micro)
+f1 on KB:      0.0894
+integrated f1: 0.1061, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 8000, Total loss: 5132868096.0000, CE loss: 43.8381, RL loss: 51328680.0000, Reward: -3730068.9648
+    full cols: 478, non-full cols: 23
+   r - labels: 297, labels - r: 31
+    violated: 272870, weighted: 4785.79638671875, len: 0.0, nonzero: 0.09776697307825089
+Epoch 8100, Total loss: -518835648.0000, CE loss: 43.8285, RL loss: -5188356.5000, Reward: -3730208.6250
+    full cols: 470, non-full cols: 45
+   r - labels: 308, labels - r: 28
+    violated: 272442, weighted: 4859.66455078125, len: 0.0, nonzero: 0.09883858263492584
+Epoch 8200, Total loss: -148241328.0000, CE loss: 43.8209, RL loss: -1482413.2500, Reward: -3730129.1758
+    full cols: 483, non-full cols: 25
+   r - labels: 303, labels - r: 30
+    violated: 272427, weighted: 4880.376953125, len: 0.0, nonzero: 0.0987890288233757
+Epoch 8300, Total loss: 56879544.0000, CE loss: 43.8147, RL loss: 568795.4375, Reward: -3730879.9297
+    full cols: 471, non-full cols: 40
+   r - labels: 308, labels - r: 32
+    violated: 272600, weighted: 4897.78369140625, len: 0.0, nonzero: 0.09798996895551682
+Epoch 8400, Total loss: -2572418304.0000, CE loss: 43.8082, RL loss: -25724184.0000, Reward: -3731415.2305
+    full cols: 476, non-full cols: 35
+   r - labels: 308, labels - r: 32
+    violated: 272249, weighted: 4942.029296875, len: 0.0, nonzero: 0.09877044707536697
+Epoch 8500, Total loss: -1500015360.0000, CE loss: 43.8027, RL loss: -15000153.0000, Reward: -3730412.6484
+    full cols: 492, non-full cols: 24
+   r - labels: 314, labels - r: 33
+    violated: 271961, weighted: 5068.1572265625, len: 0.0, nonzero: 0.10029113292694092
+Epoch 8600, Total loss: -7241802240.0000, CE loss: 43.7978, RL loss: -72418024.0000, Reward: -3731543.8828
+    full cols: 483, non-full cols: 39
+   r - labels: 319, labels - r: 32
+    violated: 271572, weighted: 5092.23095703125, len: 0.0, nonzero: 0.10045837610960007
+Epoch 8700, Total loss: 155905248.0000, CE loss: 43.7926, RL loss: 1559052.5000, Reward: -3730697.1562
+    full cols: 477, non-full cols: 43
+   r - labels: 316, labels - r: 31
+    violated: 271709, weighted: 5047.0439453125, len: 0.0, nonzero: 0.0999380573630333
+Epoch 8800, Total loss: 4644221952.0000, CE loss: 43.7888, RL loss: 46442220.0000, Reward: -3730324.7461
+    full cols: 482, non-full cols: 35
+   r - labels: 315, labels - r: 33
+    violated: 271536, weighted: 5059.05419921875, len: 0.0, nonzero: 0.09978939592838287
+Epoch 8900, Total loss: 3992692480.0000, CE loss: 43.7848, RL loss: 39926924.0000, Reward: -3730096.1289
+    full cols: 488, non-full cols: 29
+   r - labels: 317, labels - r: 35
+    violated: 271456, weighted: 5039.0390625, len: 0.0, nonzero: 0.09944871813058853
+Epoch 9000, Total loss: -595869312.0000, CE loss: 43.7815, RL loss: -5958693.0000, Reward: -3731401.0469
+    full cols: 456, non-full cols: 72
+   r - labels: 323, labels - r: 30
+    violated: 271278, weighted: 5041.6025390625, len: 0.0, nonzero: 0.09954472631216049
+Epoch 9100, Total loss: 222693776.0000, CE loss: 43.7777, RL loss: 2226937.7500, Reward: -3731113.5938
+    full cols: 480, non-full cols: 27
+   r - labels: 308, labels - r: 36
+    violated: 271188, weighted: 4982.484375, len: 0.0, nonzero: 0.09823773801326752
+Epoch 9200, Total loss: -2966630144.0000, CE loss: 43.7741, RL loss: -29666302.0000, Reward: -3731211.3984
+    full cols: 482, non-full cols: 24
+   r - labels: 308, labels - r: 37
+    violated: 271061, weighted: 5009.59814453125, len: 0.0, nonzero: 0.0990801528096199
+Epoch 9300, Total loss: -2951413760.0000, CE loss: 43.7704, RL loss: -29514138.0000, Reward: -3731625.9180
+    full cols: 477, non-full cols: 33
+   r - labels: 312, labels - r: 37
+    violated: 270710, weighted: 4912.5810546875, len: 0.0, nonzero: 0.0981912836432457
+Epoch 9400, Total loss: -5899026432.0000, CE loss: 43.7678, RL loss: -58990264.0000, Reward: -3731785.8945
+    full cols: 486, non-full cols: 24
+   r - labels: 313, labels - r: 38
+    violated: 270267, weighted: 5069.9140625, len: 0.0, nonzero: 0.09929695725440979
+Epoch 9500, Total loss: -2599497472.0000, CE loss: 43.7656, RL loss: -25994974.0000, Reward: -3730392.5078
+    full cols: 485, non-full cols: 23
+   r - labels: 311, labels - r: 38
+    violated: 270564, weighted: 5045.05712890625, len: 0.0, nonzero: 0.09832136332988739
+Epoch 9600, Total loss: 1917608832.0000, CE loss: 43.7629, RL loss: 19176088.0000, Reward: -3730183.2344
+    full cols: 487, non-full cols: 24
+   r - labels: 314, labels - r: 38
+    violated: 269913, weighted: 5105.896484375, len: 0.0, nonzero: 0.09901201725006104
+Epoch 9700, Total loss: 4208617216.0000, CE loss: 43.7612, RL loss: 42086172.0000, Reward: -3729974.8555
+    full cols: 490, non-full cols: 29
+   r - labels: 319, labels - r: 35
+    violated: 269847, weighted: 5149.5908203125, len: 0.0, nonzero: 0.10060084611177444
+Epoch 9800, Total loss: -2648738304.0000, CE loss: 43.7588, RL loss: -26487382.0000, Reward: -3730721.6836
+    full cols: 487, non-full cols: 29
+   r - labels: 317, labels - r: 36
+    violated: 269864, weighted: 5117.7734375, len: 0.0, nonzero: 0.09969028830528259
+Epoch 9900, Total loss: 1320455424.0000, CE loss: 43.7563, RL loss: 13204554.0000, Reward: -3730877.0000
+    full cols: 474, non-full cols: 49
+   r - labels: 323, labels - r: 35
+    violated: 269532, weighted: 5095.595703125, len: 0.0, nonzero: 0.09947659075260162
+--- eval ---
+prediction result:
+f1 on test:    0.5052
+f1 on test:    0.8243 (micro)
+f1 on KB:      0.0832
+integrated f1: 0.0988, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.4937
+f1 on test:    0.8039 (micro)
+f1 on KB:      0.0943
+integrated f1: 0.1119, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 10000, Total loss: -2719914496.0000, CE loss: 43.7536, RL loss: -27199144.0000, Reward: -3732454.3398
+    full cols: 481, non-full cols: 30
+   r - labels: 312, labels - r: 36
+    violated: 269685, weighted: 5013.66015625, len: 0.0, nonzero: 0.09825631976127625
+Epoch 10100, Total loss: 257932624.0000, CE loss: 43.7518, RL loss: 2579326.2500, Reward: -3732201.1406
+    full cols: 465, non-full cols: 46
+   r - labels: 314, labels - r: 38
+    violated: 270232, weighted: 4897.3017578125, len: 0.0, nonzero: 0.0960356816649437
+Epoch 10200, Total loss: -653037120.0000, CE loss: 43.7508, RL loss: -6530371.5000, Reward: -3732225.5938
+    full cols: 489, non-full cols: 20
+   r - labels: 314, labels - r: 40
+    violated: 269497, weighted: 5090.3359375, len: 0.0, nonzero: 0.09876424819231033
+Epoch 10300, Total loss: 429119488.0000, CE loss: 43.7487, RL loss: 4291195.0000, Reward: -3732183.5625
+    full cols: 479, non-full cols: 37
+   r - labels: 318, labels - r: 37
+    violated: 269211, weighted: 5088.69873046875, len: 0.0, nonzero: 0.0988323837518692
+Epoch 10400, Total loss: -1946254592.0000, CE loss: 43.7473, RL loss: -19462546.0000, Reward: -3734456.3828
+    full cols: 477, non-full cols: 38
+   r - labels: 319, labels - r: 39
+    violated: 269085, weighted: 5052.3642578125, len: 0.0, nonzero: 0.09809217602014542
+Epoch 10500, Total loss: -5838315008.0000, CE loss: 43.7444, RL loss: -58383152.0000, Reward: -3735420.9219
+    full cols: 486, non-full cols: 27
+   r - labels: 317, labels - r: 39
+    violated: 268482, weighted: 5184.646484375, len: 0.0, nonzero: 0.09951375424861908
+Epoch 10600, Total loss: -2135227648.0000, CE loss: 43.7417, RL loss: -21352276.0000, Reward: -3736512.5703
+    full cols: 495, non-full cols: 31
+   r - labels: 330, labels - r: 39
+    violated: 267913, weighted: 5384.1494140625, len: 0.0, nonzero: 0.10157334059476852
+Epoch 10700, Total loss: -2383842048.0000, CE loss: 43.7388, RL loss: -23838420.0000, Reward: -3736053.0703
+    full cols: 480, non-full cols: 59
+   r - labels: 343, labels - r: 39
+    violated: 268038, weighted: 5314.7080078125, len: 0.0, nonzero: 0.10075879842042923
+Epoch 10800, Total loss: 4093974784.0000, CE loss: 43.7366, RL loss: 40939748.0000, Reward: -3736328.4961
+    full cols: 488, non-full cols: 44
+   r - labels: 338, labels - r: 41
+    violated: 267608, weighted: 5419.89697265625, len: 0.0, nonzero: 0.10113664716482162
+Epoch 10900, Total loss: -2165853952.0000, CE loss: 43.7331, RL loss: -21658540.0000, Reward: -3738466.4648
+    full cols: 497, non-full cols: 36
+   r - labels: 341, labels - r: 43
+    violated: 266977, weighted: 5559.07421875, len: 0.0, nonzero: 0.10276263952255249
+Epoch 11000, Total loss: -64676592.0000, CE loss: 43.7299, RL loss: -646765.9375, Reward: -3739176.7344
+    full cols: 489, non-full cols: 59
+   r - labels: 357, labels - r: 44
+    violated: 266506, weighted: 5671.06787109375, len: 0.0, nonzero: 0.10362054407596588
+Epoch 11100, Total loss: 4808913408.0000, CE loss: 43.7270, RL loss: 48089136.0000, Reward: -3739238.6172
+    full cols: 503, non-full cols: 33
+   r - labels: 343, labels - r: 42
+    violated: 266888, weighted: 5614.546875, len: 0.0, nonzero: 0.10320862382650375
+Epoch 11200, Total loss: -2738127872.0000, CE loss: 43.7251, RL loss: -27381280.0000, Reward: -3741620.1289
+    full cols: 488, non-full cols: 66
+   r - labels: 356, labels - r: 37
+    violated: 266463, weighted: 5579.7041015625, len: 0.0, nonzero: 0.10322101414203644
+Epoch 11300, Total loss: 5918414848.0000, CE loss: 43.7227, RL loss: 59184148.0000, Reward: -3740929.7734
+    full cols: 476, non-full cols: 59
+   r - labels: 341, labels - r: 41
+    violated: 266698, weighted: 5436.07421875, len: 0.0, nonzero: 0.1004057228565216
+Epoch 11400, Total loss: -2112868224.0000, CE loss: 43.7216, RL loss: -21128682.0000, Reward: -3742180.0156
+    full cols: 494, non-full cols: 43
+   r - labels: 343, labels - r: 41
+    violated: 266471, weighted: 5658.48046875, len: 0.0, nonzero: 0.10269759595394135
+Epoch 11500, Total loss: -3856578304.0000, CE loss: 43.7201, RL loss: -38565784.0000, Reward: -3745685.5156
+    full cols: 498, non-full cols: 40
+   r - labels: 346, labels - r: 43
+    violated: 265881, weighted: 5608.7197265625, len: 0.0, nonzero: 0.10274715721607208
+Epoch 11600, Total loss: 34177409024.0000, CE loss: 43.7189, RL loss: 341774080.0000, Reward: -3741439.5273
+    full cols: 496, non-full cols: 48
+   r - labels: 352, labels - r: 43
+    violated: 265883, weighted: 5576.205078125, len: 0.0, nonzero: 0.10270069539546967
+Epoch 11700, Total loss: -3362667264.0000, CE loss: 43.7184, RL loss: -33626672.0000, Reward: -3744990.1172
+    full cols: 501, non-full cols: 54
+   r - labels: 364, labels - r: 44
+    violated: 265219, weighted: 5776.2294921875, len: 0.0, nonzero: 0.103899285197258
+Epoch 11800, Total loss: 5878866944.0000, CE loss: 43.7187, RL loss: 58788672.0000, Reward: -3747436.6094
+    full cols: 511, non-full cols: 49
+   r - labels: 366, labels - r: 41
+    violated: 264992, weighted: 5812.79638671875, len: 0.0, nonzero: 0.10533325374126434
+Epoch 11900, Total loss: -10603059200.0000, CE loss: 43.7201, RL loss: -106030592.0000, Reward: -3750758.9648
+    full cols: 529, non-full cols: 41
+   r - labels: 378, labels - r: 43
+    violated: 263672, weighted: 6219.4560546875, len: 0.0, nonzero: 0.10860691219568253
+--- eval ---
+prediction result:
+f1 on test:    0.5053
+f1 on test:    0.8241 (micro)
+f1 on KB:      0.0833
+integrated f1: 0.0990, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.4844
+f1 on test:    0.7830 (micro)
+f1 on KB:      0.1060
+integrated f1: 0.1254, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 12000, Total loss: -68446867456.0000, CE loss: 43.7209, RL loss: -684468672.0000, Reward: -3768750.3008
+    full cols: 550, non-full cols: 44
+   r - labels: 404, labels - r: 45
+    violated: 261843, weighted: 6601.2841796875, len: 0.0, nonzero: 0.11282829940319061
+Epoch 12100, Total loss: -25901776896.0000, CE loss: 43.7211, RL loss: -259017776.0000, Reward: -3774308.5039
+    full cols: 558, non-full cols: 50
+   r - labels: 418, labels - r: 45
+    violated: 261679, weighted: 6801.0732421875, len: 0.0, nonzero: 0.11550112068653107
+Epoch 12200, Total loss: 48256212992.0000, CE loss: 43.7234, RL loss: 482562144.0000, Reward: -3790838.5898
+    full cols: 571, non-full cols: 68
+   r - labels: 447, labels - r: 43
+    violated: 260174, weighted: 7233.322265625, len: 0.0, nonzero: 0.11968223750591278
+Epoch 12300, Total loss: 73647890432.0000, CE loss: 43.7217, RL loss: 736478912.0000, Reward: -3800595.1250
+    full cols: 579, non-full cols: 57
+   r - labels: 446, labels - r: 45
+    violated: 259731, weighted: 7396.5859375, len: 0.0, nonzero: 0.12038218975067139
+Epoch 12400, Total loss: -17386739712.0000, CE loss: 43.7203, RL loss: -173867392.0000, Reward: -3809476.0000
+    full cols: 587, non-full cols: 52
+   r - labels: 449, labels - r: 45
+    violated: 259308, weighted: 7592.87255859375, len: 0.0, nonzero: 0.12189049273729324
+Epoch 12500, Total loss: 98850856960.0000, CE loss: 43.7198, RL loss: 988508544.0000, Reward: -3827030.6406
+    full cols: 582, non-full cols: 55
+   r - labels: 444, labels - r: 42
+    violated: 259957, weighted: 7416.697265625, len: 0.0, nonzero: 0.12060827761888504
+Epoch 12600, Total loss: -33332944896.0000, CE loss: 43.7202, RL loss: -333329440.0000, Reward: -3863443.7383
+    full cols: 585, non-full cols: 63
+   r - labels: 456, labels - r: 43
+    violated: 259307, weighted: 7561.5263671875, len: 0.0, nonzero: 0.12204844504594803
+Epoch 12700, Total loss: 218972536832.0000, CE loss: 43.7187, RL loss: 2189725440.0000, Reward: -3840903.4336
+    full cols: 573, non-full cols: 80
+   r - labels: 466, labels - r: 48
+    violated: 259115, weighted: 7607.765625, len: 0.0, nonzero: 0.1217666044831276
+Epoch 12800, Total loss: 79144624128.0000, CE loss: 43.7183, RL loss: 791446208.0000, Reward: -3874692.9961
+    full cols: 588, non-full cols: 55
+   r - labels: 453, labels - r: 45
+    violated: 259258, weighted: 7699.09033203125, len: 0.0, nonzero: 0.12237054109573364
+Epoch 12900, Total loss: 160798801920.0000, CE loss: 43.7167, RL loss: 1607988096.0000, Reward: -3884509.9961
+    full cols: 600, non-full cols: 53
+   r - labels: 466, labels - r: 48
+    violated: 258300, weighted: 7912.232421875, len: 0.0, nonzero: 0.12447968870401382
+Epoch 13000, Total loss: -219084767232.0000, CE loss: 43.7177, RL loss: -2190847744.0000, Reward: -3954035.8477
+    full cols: 610, non-full cols: 41
+   r - labels: 465, labels - r: 49
+    violated: 258358, weighted: 8011.28955078125, len: 0.0, nonzero: 0.1254243105649948
+Epoch 13100, Total loss: -136046002176.0000, CE loss: 43.7166, RL loss: -1360460032.0000, Reward: -3948365.8633
+    full cols: 586, non-full cols: 70
+   r - labels: 469, labels - r: 48
+    violated: 258248, weighted: 7851.06640625, len: 0.0, nonzero: 0.12345144152641296
+Epoch 13200, Total loss: -82363523072.0000, CE loss: 43.7153, RL loss: -823635200.0000, Reward: -3953898.8555
+    full cols: 600, non-full cols: 56
+   r - labels: 474, labels - r: 53
+    violated: 257936, weighted: 8084.18505859375, len: 0.0, nonzero: 0.12447968870401382
+Epoch 13300, Total loss: -318088609792.0000, CE loss: 43.7150, RL loss: -3180886016.0000, Reward: -4001725.2852
+    full cols: 601, non-full cols: 57
+   r - labels: 474, labels - r: 51
+    violated: 258044, weighted: 8071.70166015625, len: 0.0, nonzero: 0.12451066076755524
+Epoch 13400, Total loss: 134893387776.0000, CE loss: 43.7141, RL loss: 1348933888.0000, Reward: -3979844.7969
+    full cols: 604, non-full cols: 59
+   r - labels: 478, labels - r: 50
+    violated: 257524, weighted: 8247.416015625, len: 0.0, nonzero: 0.12554819881916046
+Epoch 13500, Total loss: 39846375424.0000, CE loss: 43.7131, RL loss: 398463744.0000, Reward: -3970609.4141
+    full cols: 591, non-full cols: 78
+   r - labels: 485, labels - r: 51
+    violated: 257587, weighted: 8213.255859375, len: 0.0, nonzero: 0.12546147406101227
+Epoch 13600, Total loss: 10110093312.0000, CE loss: 43.7113, RL loss: 101100936.0000, Reward: -3982974.2656
+    full cols: 605, non-full cols: 62
+   r - labels: 482, labels - r: 50
+    violated: 257248, weighted: 8229.7548828125, len: 0.0, nonzero: 0.12661360204219818
+Epoch 13700, Total loss: 158818320384.0000, CE loss: 43.7110, RL loss: 1588183168.0000, Reward: -4000098.4531
+    full cols: 605, non-full cols: 70
+   r - labels: 488, labels - r: 48
+    violated: 257309, weighted: 8195.408203125, len: 0.0, nonzero: 0.12678705155849457
+Epoch 13800, Total loss: 8298555904.0000, CE loss: 43.7096, RL loss: 82985560.0000, Reward: -4028431.0859
+    full cols: 619, non-full cols: 44
+   r - labels: 481, labels - r: 53
+    violated: 257273, weighted: 8316.779296875, len: 0.0, nonzero: 0.12726709246635437
+Epoch 13900, Total loss: 82547490816.0000, CE loss: 43.7084, RL loss: 825474944.0000, Reward: -4022181.6875
+    full cols: 598, non-full cols: 84
+   r - labels: 497, labels - r: 50
+    violated: 257444, weighted: 8260.044921875, len: 0.0, nonzero: 0.12638132274150848
+--- eval ---
+prediction result:
+f1 on test:    0.5053
+f1 on test:    0.8241 (micro)
+f1 on KB:      0.0833
+integrated f1: 0.0990, w_data: 0.3000, w_klg: 0.7000
+
+integrated result:
+f1 on test:    0.4777
+f1 on test:    0.7709 (micro)
+f1 on KB:      0.1123
+integrated f1: 0.1327, w_data: 0.3000, w_klg: 0.7000
+------------
+Epoch 14000, Total loss: -341896003584.0000, CE loss: 43.7058, RL loss: -3418960128.0000, Reward: -4065928.3398
+    full cols: 613, non-full cols: 56
+   r - labels: 485, labels - r: 51
+    violated: 257429, weighted: 8256.72265625, len: 0.0, nonzero: 0.12609019875526428
+Epoch 14100, Total loss: -84903403520.0000, CE loss: 43.7029, RL loss: -849034048.0000, Reward: -4035235.0664
+    full cols: 619, non-full cols: 59
+   r - labels: 494, labels - r: 51
+    violated: 256837, weighted: 8515.53515625, len: 0.0, nonzero: 0.12863293290138245
+Epoch 14200, Total loss: -25392883712.0000, CE loss: 43.7000, RL loss: -253928832.0000, Reward: -4058272.3477
+    full cols: 629, non-full cols: 40
+   r - labels: 486, labels - r: 52
+    violated: 256746, weighted: 8478.6806640625, len: 0.0, nonzero: 0.128351092338562
+Epoch 14300, Total loss: 161502429184.0000, CE loss: 43.6965, RL loss: 1615024256.0000, Reward: -4025940.4727
+    full cols: 613, non-full cols: 79
+   r - labels: 508, labels - r: 51
+    violated: 256854, weighted: 8496.93359375, len: 0.0, nonzero: 0.12784625589847565
+Epoch 14400, Total loss: 80900898816.0000, CE loss: 43.6915, RL loss: 809009024.0000, Reward: -4021167.0508
+    full cols: 611, non-full cols: 72
+   r - labels: 499, labels - r: 51
+    violated: 256801, weighted: 8504.1845703125, len: 0.0, nonzero: 0.12784935534000397
+Epoch 14500, Total loss: 38252507136.0000, CE loss: 43.6862, RL loss: 382525056.0000, Reward: -4054310.8203
+    full cols: 613, non-full cols: 70
+   r - labels: 499, labels - r: 51
+    violated: 256965, weighted: 8445.064453125, len: 0.0, nonzero: 0.1273166537284851
+Epoch 14600, Total loss: 58807033856.0000, CE loss: 43.6813, RL loss: 588070336.0000, Reward: -4068129.4766
+    full cols: 613, non-full cols: 50
+   r - labels: 479, labels - r: 51
+    violated: 257426, weighted: 8286.98046875, len: 0.0, nonzero: 0.1259477287530899
+Epoch 14700, Total loss: 177778212864.0000, CE loss: 43.6772, RL loss: 1777782144.0000, Reward: -4069185.8945
+    full cols: 611, non-full cols: 52
+   r - labels: 479, labels - r: 51
+    violated: 257147, weighted: 8273.177734375, len: 0.0, nonzero: 0.12588578462600708
+Epoch 14800, Total loss: -95118671872.0000, CE loss: 43.6743, RL loss: -951186752.0000, Reward: -4070609.3008
+    full cols: 609, non-full cols: 58
+   r - labels: 486, labels - r: 54
+    violated: 257128, weighted: 8338.267578125, len: 0.0, nonzero: 0.12619549036026
+Epoch 14900, Total loss: -46279852032.0000, CE loss: 43.6725, RL loss: -462798528.0000, Reward: -4073275.8672
+    full cols: 607, non-full cols: 64
+   r - labels: 488, labels - r: 52
+    violated: 257363, weighted: 8250.97265625, len: 0.0, nonzero: 0.12589506804943085
+Epoch 15000, Total loss: 22048335872.0000, CE loss: 43.6707, RL loss: 220483360.0000, Reward: -4079355.0195
+    full cols: 606, non-full cols: 75
+   r - labels: 499, labels - r: 53
+    violated: 256815, weighted: 8319.71484375, len: 0.0, nonzero: 0.12670961022377014
+------ ABL Loop 1 ------
+--- eval ---
+prediction result:
+f1 on test:    0.5052
+f1 on test:    0.8241 (micro)
+f1 on KB:      0.0834
+f1 on orig KB: 0.2996
+integrated f1: 0.2998, w_data: 0.0026, w_klg: 0.9974
+
+integrated result:
+f1 on test:    0.4769
+f1 on test:    0.7688 (micro)
+f1 on KB:      0.1133
+f1 on orig KB: 0.2873
+integrated f1: 0.2875, w_data: 0.0026, w_klg: 0.9974
+------------
+integrated f1 0.2998
+
+KB before refine:
+num_nodes: 5045.0000
+num_edges: 110722.0000
+density: 0.0044
+avg_degree: 21.9469
+avg_clustering: 0.0085
+degree_assortativity: 0.0035
+modularity: 0.1213
+avg_betweenness: 0.0004
+avg_closeness: 0.3296
+Iteration 0: Loss = 24941412.000000
+|Xk-Y|_F:  24941412.000000, |X-X0|:  0.000000
+rounded |X_k-Y|_0 = 21820844, f1 =  0.083237, approx slack: 0
+rounded before pow |X_k-Y|_0 = 21820844, f1 =  0.083237
+
+Converged at iteration 1
+
+KB after refine:
+num_nodes: 5045.0000
+num_edges: 110722.0000
+density: 0.0044
+avg_degree: 21.9469
+avg_clustering: 0.0085
+degree_assortativity: 0.0035
+modularity: 0.1213
+avg_betweenness: 0.0004
+avg_closeness: 0.3296
+------ ABL 1 after refine ------
+--- eval ---
+prediction result:
+f1 on test:    0.5052
+f1 on test:    0.8241 (micro)
+f1 on KB:      0.0834
+f1 on orig KB: 0.2996
+integrated f1: 0.2998, w_data: 0.0026, w_klg: 0.9974
+
+integrated result:
+f1 on test:    0.4769
+f1 on test:    0.7688 (micro)
+f1 on KB:      0.1133
+f1 on orig KB: 0.2873
+integrated f1: 0.2875, w_data: 0.0026, w_klg: 0.9974
+------------
+integrated f1 0.2998

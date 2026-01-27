@@ -654,7 +654,7 @@ class ReflectLearner():
 
             ' performance of integrated result '
             confusion_refl = confusion_matrix(flat_y_t, flat_y_p, labels=[-1, 0,1])
-            confusion_refl = confusion_refl / np.sum(confusion_pred)
+            confusion_refl = confusion_refl / np.sum(confusion_refl)
             f1_refl_macro = f1_score(flat_y_t, flat_y_r, average='macro') # micro on labels, macro on classes
             f1_refl_micro = f1_score(flat_y_t, flat_y_r, average='micro') # micro on labels, micro on classes
             f1_refl_kb = f1_score(flat_y_d, flat_y_r, average='macro')
@@ -760,72 +760,91 @@ class ReflectLearner():
 if __name__ == '__main__':
     # NOTE tmp test
 
-    seed = 999
-    data_name = 'norman'
-    model_type = 'GNN'
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    device = 'cuda:2'
+    device = 'cuda:1'
     log_file = 'log/learner.txt'
+    p_train = .5
 
-    X_train = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray(), dtype = torch.float32)
-    Y_train = torch.tensor(load_npz(f'dataset/human/{data_name}_Y_con.npz').toarray(), dtype = torch.float32)
-    label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
+    torch.manual_seed(42)
+    np.random.seed(42)
     
-    p_train = 1.
-    test_idx = np.zeros(shape=len(X_train), dtype=bool)
-    test_idx[np.load(f'dataset/human/{data_name}_test_idx.npy')] = True
+    res = {}
 
-    train_idx = np.random.choice([True, False], size=len(X_train)-np.count_nonzero(test_idx), p=[p_train, 1-p_train])
 
-    X_test = X_train[test_idx]
-    Y_test = Y_train[test_idx]
-    X_train = X_train[~ test_idx][train_idx]
-    Y_train = Y_train[~ test_idx][train_idx]
-    X_train, Y_train = X_train.to(device), Y_train.to(device)
-    X_test, Y_test = X_test.to(device), Y_test.to(device)
-    label_weight = label_weight.to(device)
+    for data_name in ['adamson']:#, 'dixit', 'adamson']:
+        X_train = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray(), dtype = torch.float32)
+        Y_train = torch.tensor(load_npz(f'dataset/human/{data_name}_Y_con.npz').toarray(), dtype = torch.float32)
+        label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
+        test_idx = np.zeros(shape=len(X_train), dtype=bool)
+        test_idx[np.load(f'dataset/human/{data_name}_test_idx.npy')] = True
 
-    reasoner = RegulatoryKB(pos_trn_pth= f'rules/human/{data_name}_GO.npz',
-                            neg_trn_pth= None,
-                            output_idx_list= None,
-                            device=device)
-    reasoner.closure_(T=5, closure_type='naive')
+        train_idx = np.random.choice([True, False], size=len(X_train)-np.count_nonzero(test_idx), p=[p_train, 1-p_train])
+        X_test = X_train[test_idx]
+        Y_test = Y_train[test_idx]
+        X_train = X_train[~ test_idx][train_idx]
+        Y_train = Y_train[~ test_idx][train_idx]
+        X_train, Y_train = X_train.to(device), Y_train.to(device)
+        X_test, Y_test = X_test.to(device), Y_test.to(device)
+        label_weight = label_weight.to(device)
 
-    adj_matrix = torch.round(torch.clamp(torch.abs(reasoner.Regu_P_0 + reasoner.Regu_N_0), 0,1))
-    learner = ReflectLearner(input_dim= X_test.shape[1],
-                             output_dim= Y_test.shape[1],
-                             hidden_dim= 64,
-                             base_learner_type= 'MLP',
-                             adj_matrix= adj_matrix,
-                             device=device,
-                             discretized=False,
-                             gnn_extra_layer=True,
-                             log_path=log_file)
+        for model_type in ['GNN', 'MLP']:
+            replicates = []
+            for seed in [42, 1999, 12345]:
 
-    criterion = nn.MSELoss(reduction='mean')
-    Y_pred, _ = learner.forward(X_test)
-    print(f'MSE baseline: {criterion(torch.zeros_like(Y_test).to(device), Y_test.detach())}')
-    print(f'MSE before training: {criterion(Y_pred.detach(), Y_test.detach())}')
-
-    learner.load_data(X_train, Y_train, X_test, Y_test)
-    learner.train(KB= reasoner,
-                  label_weight= label_weight,
-                  epochs= 1500,
-                  reinforce_epochs= 1,
-                  C=1,
-                  lr=1e-3,
-                  lr_decay=.999,
-                  verbose=True)
-
-    Y_pred, _ = learner.forward(X_test)
-    print(f'MSE: {criterion(Y_pred.detach(), Y_test.detach())}')
-
-    Y_test = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray(), dtype = int)[test_idx].to(device)
-    learner.load_data(_, _, X_test, Y_test)
-    f1 = learner.eval(reasoner, None, .5, verbose=True)
-    print(f'pretrain: integrated f1 {f1:.4f}')
+                torch.manual_seed(seed)
+                np.random.seed(seed)
     
+                #train_idx = np.random.choice([True, False], size=len(X_train)-np.count_nonzero(test_idx), p=[p_train, 1-p_train])
+
+
+                reasoner = RegulatoryKB(pos_trn_pth= f'rules/human/{data_name}_GO.npz',
+                                        neg_trn_pth= None,
+                                        output_idx_list= None,
+                                        device=device)
+                reasoner.closure_(T=5, closure_type='naive')
+
+                adj_matrix = torch.round(torch.clamp(torch.abs(reasoner.Regu_P_0 + reasoner.Regu_N_0), 0,1))
+                learner = ReflectLearner(input_dim= X_test.shape[1],
+                                         output_dim= Y_test.shape[1],
+                                         hidden_dim= 128,
+                                         base_learner_type= model_type,
+                                         adj_matrix= adj_matrix,
+                                         device=device,
+                                         discretized=False,
+                                         gnn_extra_layer=True,
+                                         log_path=log_file)
+
+                criterion = nn.MSELoss(reduction='mean')
+                #Y_pred, _ = learner.forward(X_test)
+                #print(f'MSE baseline: {criterion(torch.zeros_like(Y_test).to(device), Y_test.detach())}')
+                #print(f'MSE before training: {criterion(Y_pred.detach(), Y_test.detach())}')
+
+                learner.load_data(X_train, Y_train, X_test, Y_test)
+                learner.train(KB= reasoner,
+                              label_weight= label_weight,
+                              epochs= 300,
+                              reinforce_epochs= 1,
+                              C=0,
+                              lr=1e-3,
+                              lr_decay=.999,
+                              verbose=True)
+
+                Y_pred, _ = learner.forward(X_test)
+                mse = criterion(Y_pred.detach(), Y_test.detach())
+                print(f'{data_name}, {model_type}, MSE: {mse}')
+                print(f'pred <0: {torch.count_nonzero(Y_pred<0)}, >0: {torch.count_nonzero(Y_pred>0)}')
+                print(f'test <0: {torch.count_nonzero(Y_test<0)}, >0: {torch.count_nonzero(Y_test>0)}')
+                replicates.append(mse)
+
+                #Y_test = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray(), dtype = int)[test_idx].to(device)
+                #learner.load_data(_, _, X_test, Y_test)
+                #f1 = learner.eval(reasoner, None, .5, verbose=True)
+                #print(f'pretrain: integrated f1 {f1:.4f}')
+            res[f'{data_name}_{model_type}'] = f'{.5*(max(replicates)+min(replicates)):.4f}+-{.5*(max(replicates)-min(replicates)):.4f}'
+        del X_train, X_test, Y_train, Y_test
+        torch.cuda.empty_cache()
+
+    for k,v in res.items():
+        print(f'{k}: {v}')
 
     #Y_train = torch.tensor(np.load('dataset/precise1k/Y_label.npy'), dtype=int)
     #X_test = torch.tensor(np.load('dataset/ncbi-sra/X_label.npy'), dtype=torch.float32)

@@ -24,7 +24,7 @@ def network_diffusion_scores(G, seed_genes, alpha=0.85, tol=1e-7, max_iter=1000)
     n = len(nodes)
     node_index = {node: i for i, node in enumerate(nodes)}
     # adjacency matrix row-normalized
-    A = nx.to_scipy_sparse_matrix(G, nodelist=nodes, format='csr')
+    A = nx.to_scipy_sparse_array(G, nodelist=nodes, format='csr')
     # Row normalize
     row_sums = np.array(A.sum(axis=1)).flatten()
     # avoid division by zero
@@ -195,6 +195,11 @@ if __name__ == "__main__":
                   device='cpu')
     if load_model_pth != None:
         KB.load(load_model_pth)
+
+    # NOTE for benchmark
+    #KB = RegulatoryKB(pos_trn_pth=f'data_anal/refine/benchmark/DCDI-G.npz',
+    #              neg_trn_pth=None,
+    #              device='cpu')
 
     adj = torch.clamp(torch.abs(KB.Regu_P_0) + torch.abs(KB.Regu_N_0), 0,1).numpy()
     G = nx.from_numpy_array(adj, create_using=nx.DiGraph)

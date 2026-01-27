@@ -94,7 +94,7 @@ ax1.spines['right'].set_visible(False)
 # Add legend
 ax1.legend(handles = [line1, line2, (line3,line4), lineh],
            labels = ['Direct Interac.', 'Indirect Interac.',
-                     'Baseline', 'Original GRN'],
+                     'Non-sparse', 'Original GRN'],
            handler_map = {tuple: HandlerTuple(ndivide=None)},
            loc='lower left', frameon=True, framealpha=1.0, edgecolor='black')
 
@@ -145,7 +145,7 @@ ax2.spines['right'].set_visible(False)
 # Add legend
 ax2.legend(handles = [line1, line2, (line3,line4), lineh],
            labels = ['Modularity ($\\uparrow$)', 'Assortativity',
-                     'Baseline', 'Original GRN'],
+                     'Non-sparse', 'Original GRN'],
            handler_map = {tuple: HandlerTuple(ndivide=None)},
            loc='lower left', frameon=True, framealpha=1.0, edgecolor='black')
 
@@ -172,7 +172,7 @@ ax3 = fig.add_subplot(1, 3, 3)
 data_for_plot = []
 for vec_index, vec_name in enumerate(pathways_baseline.index):
     for dim_value in pathways_baseline.loc[vec_name]:
-        data_for_plot.append({'Removed Arcs': vec_name, 'Deviation': dim_value, 'Group': 'Baseline'})
+        data_for_plot.append({'Removed Arcs': vec_name, 'Deviation': dim_value, 'Group': 'Non-sparse'})
 
 for vec_index, vec_name in enumerate(pathways.index):
     for dim_value in pathways.loc[vec_name]:
@@ -184,7 +184,7 @@ print(data_for_plot)
 #sns.violinplot(data=data_for_plot, x='Removed Arcs', y='Deviation', ax=ax3, cut=0, inner='box') 
 sns.violinplot(data=data_for_plot, x='Removed Arcs', y='Deviation', hue='Group',
                ax=ax3, cut=0, inner='box', dodge=False,
-               palette={'Baseline': '#1f77b4',
+               palette={'Non-sparse': '#1f77b4',
                         'ALIGNED': '#ff7f0e'})  # Distinct colors
 
 

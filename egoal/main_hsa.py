@@ -47,6 +47,7 @@ if __name__ == '__main__':
         test_data_idx = sum(metadata[test_pert]
                 .apply(lambda x: list(range(x['data_start_idx'],x['data_end_idx+1'])), axis=1), [])
         test_idx[test_data_idx] = True
+    np.save(f'models/{model_name}_split.npy', test_idx)
 
     p_train = args.p_train
     train_idx = np.random.choice([True, False], size=len(X_train)-np.count_nonzero(test_idx), p=[p_train, 1-p_train])
@@ -60,12 +61,18 @@ if __name__ == '__main__':
     regulators = np.nonzero(np.sum(\
             load_npz(f'rules/human/{data_name}_KB_P.npz').toarray()\
             +load_npz(f'rules/human/{data_name}_KB_N.npz').toarray(), axis=1))[0]
+            #load_npz(f'scripts/test/rand_kb/{data_name}_KB_P_rand.npz').toarray()\
+            #+load_npz(f'scripts/test/rand_kb/{data_name}_KB_N_rand.npz').toarray(), axis=1))[0]
     X_unlabel = np.zeros(shape=(len(regulators), X_train.shape[1]))
     X_unlabel[range(len(X_unlabel)), regulators] = 1.
     X_unlabel = torch.tensor(X_unlabel, dtype=torch.float32)
     print('unlabel:', X_unlabel.shape)
 
     label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy'))
+
+    #label_weight = torch.zeros(Y_train.shape[1])+.5
+    #label_weight = torch.tensor(np.random.uniform(.2,.8,Y_train.shape[1])).float()
+    #label_weight = torch.tensor(np.load(f'scripts/test/rand_kb/{data_name}_label_weight.npy'))
 
     X_train, Y_train = X_train.to(device), Y_train.to(device)
     X_test, Y_test = X_test.to(device), Y_test.to(device)
@@ -80,6 +87,10 @@ if __name__ == '__main__':
 
            pos_trn_pth=f'rules/human/{data_name}_KB_P.npz',
            neg_trn_pth=f'rules/human/{data_name}_KB_N.npz',
+           #pos_trn_pth=f'scripts/test/rand_kb/{data_name}_KB_P_rand.npz',
+           #neg_trn_pth=f'scripts/test/rand_kb/{data_name}_KB_N_rand.npz',
+           #pos_trn_pth=f'data_anal/xref_csbench/recovery_KB/{data_name}_KB_P_42.npz',
+           #neg_trn_pth=f'data_anal/xref_csbench/recovery_KB/{data_name}_KB_N_42.npz',
            closure = 5,
            closure_type = 'weighted',
 
