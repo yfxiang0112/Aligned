@@ -8,16 +8,15 @@ Official implementation of **ALIGNED** from the paper:
 > **Adaptive Data-Knowledge Alignment in Genetic Perturbation Prediction**  
 > Yuanfang Xiang, Lun Ai  
 > *arXiv preprint arXiv:2510.00512, 2025*  
-> <!--[OpenReview](https://openreview.net/forum?id=CxLaZWbUjc)-->Accepted by *ICLR 2026* | [arXiv](https://arxiv.org/abs/2510.00512)
+> <!--[OpenReview](https://openreview.net/forum?id=CxLaZWbUjc)-->Accepted by ICLR 2026 | [arXiv](https://arxiv.org/abs/2510.00512)
 
 ## Overview
 
 ALIGNED is a neuro-symbolic framework for predicting genetic perturbation responses that adaptively aligns data-driven learning with biological knowledge. Built on the Abductive Learning (ABL) paradigm, ALIGNED:
 
-- **Handles inconsistencies** between data and knowledge bases (noise, misannotation, incompleteness)
-- **Performs systematic knowledge refinement** to improve biological networks
-- **Achieves state-of-the-art performance** while maintaining biological interpretability
-- **Enables knowledge evolution** by re-discovering biologically meaningful regulatory relationships
+- **Handles inconsistencies** between data and knowledge bases with trade-off between simultaneously imperfect sources
+- **Performs systematic knowledge refinement** to improve biological networks and enables the evolution of domain knowledge bases
+- **Achieves state-of-the-art performance** while substantially improving biological interpretability
 
 ## Installation
 
@@ -130,9 +129,9 @@ Results, figures and trained models in `results/ex1_aligned/`, baseline comparis
 
 **Baseline comparisons**: For state-of-the-art baseline methods in Section 4.1, we use baseline method implementations and results from:
 
-> Constantin Ahlmann-Eltze and Wolfgang Huber. "A benchmark of methods to predict transcriptional responses to chemical and genetic perturbations." *Nature Methods* (2025). DOI: [10.1038/s41592-025-02772-6](https://doi.org/10.1038/s41592-025-02772-6)
+> Constantin Ahlmann-Eltze, Wolfgang Huber and Simon Anders. "Deep-learning-based gene perturbation effect prediction does not yet outperform simple linear baselines" *Nature Methods* (2025). DOI: [10.1038/s41592-025-02772-6](https://doi.org/10.1038/s41592-025-02772-6)
 > 
-> Code: https://github.com/const-ae/linear_perturbation_prediction-Paper
+> Code: [const-ae/linear_perturbation_prediction-Paper](https://github.com/const-ae/linear_perturbation_prediction-Paper)
 
 We thank the authors for making their implementations publicly available.
 
