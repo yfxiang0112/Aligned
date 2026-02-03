@@ -1,25 +1,71 @@
-tools/*
-rules/*.owl
-rules/*/*.owl
-log/*.txt
-
-egoal/__pycache__/*
-egoal/*/__pycache__/*
-scripts/__pycache__/*
-scripts/*/__pycache__/*
-egoal.egg-info/*
-
-/BMLP_GPU
-
-dataset/raw/ecoli_refseq/*
+# Large data files
 dataset/human/*.npz
-models/model_deduc.pt
-
-temp/*
-
-#scripts/klg_refine/*.npz
+dataset/human/*/*.npz
 scripts/klg_refine/kb
-
 data_anal/abduction_results/*hsa.npy
 
+# Model files
+models/*.pt
+models/*.npz
+models/*.npy
+!models/README.md
+
+# Logs
+log/*.txt
+log/*.log
+logs/*.txt
+logs/*.log
+
+# Python - all subdirectories
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments - all locations
+**/venv/
+**/ENV/
+**/env/
+**/.venv/
+venv/
+ENV/
+env/
+.venv/
+
+# IDE - all locations
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+**/*~
+.DS_Store
+**/.DS_Store
+
+# Temporary & external
+temp/*
+tools/*
 Enrichr/*
+dataset/raw/ecoli_refseq/*
+
+# Keep directory structure
+!log/.gitkeep
+!models/.gitkeep

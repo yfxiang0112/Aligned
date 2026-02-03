@@ -1,7 +1,7 @@
 import torch
 import numpy as np
-from egoal.reasoner import RegulatoryKB
-from egoal.learner_refl import ReflectLearner
+from aligned.reasoner import RegulatoryKB
+from aligned.learner_adap import AdaptorLearner
 from scipy.sparse import base, load_npz, coo_matrix, save_npz
 import json
 from scipy.stats import pearsonr

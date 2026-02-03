@@ -12,7 +12,7 @@ import gseapy
 from tqdm import tqdm
 import os
 
-from egoal.reasoner import RegulatoryKB
+from aligned.reasoner import RegulatoryKB
 
 def network_diffusion_scores(G, seed_genes, alpha=0.85, tol=1e-7, max_iter=1000):
     """

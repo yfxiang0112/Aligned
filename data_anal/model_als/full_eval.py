@@ -1,7 +1,7 @@
 import torch
 import numpy as np
-from egoal.reasoner import RegulatoryKB
-from egoal.learner_refl import ReflectLearner
+from aligned.reasoner import RegulatoryKB
+from aligned.learner_adap import AdaptorLearner
 from scipy.sparse import load_npz
 import pandas as pd
 import json
@@ -23,7 +23,7 @@ reasoner = RegulatoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz',
 reasoner.closure_(T=5, closure_type='weighted')
 
 adj_matrix = torch.round(torch.clamp(torch.abs(reasoner.Regu_N_0 + reasoner.Regu_P_0), 0,1))
-learner = ReflectLearner(input_dim= X.shape[1],
+learner = AdaptorLearner(input_dim= X.shape[1],
                          output_dim= Y.shape[1],
                          hidden_dim= 64,
                          base_learner_type= model_type,

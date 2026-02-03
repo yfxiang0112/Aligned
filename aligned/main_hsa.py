@@ -5,7 +5,7 @@ from datetime import datetime
 import argparse
 import pandas as pd
 
-from egoal.abl import abduce
+from aligned.abl import abduce
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

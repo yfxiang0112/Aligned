@@ -7,7 +7,7 @@ from scipy.sparse import load_npz
 import glob
 import os
 
-from egoal.reasoner import RegulatoryKB
+from aligned.reasoner import RegulatoryKB
 
 
 def weighted_mean(f1_data, f1_kb, w):

@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 import pandas as pd
-from egoal.reasoner import RegulatoryKB
-from egoal.learner_refl import ReflectLearner
+from aligned.reasoner import RegulatoryKB
+from aligned.learner_adap import AdaptorLearner
 from scipy.sparse import load_npz
 import json
 from scipy.stats import pearsonr
@@ -77,7 +77,7 @@ d = reasoner.Regu_P_0.shape[0]
 adj_matrix = torch.round(torch.clamp(
         torch.tensor(load_npz(f'rules/human/{data_name}_KB_P.npz').toarray()).to(device) +
         torch.tensor(load_npz(f'rules/human/{data_name}_KB_N.npz').toarray()).to(device) , 0,1))
-learner = ReflectLearner(input_dim= d,
+learner = AdaptorLearner(input_dim= d,
                          output_dim= d,
                          hidden_dim= 64,
                          base_learner_type= 'GNN',

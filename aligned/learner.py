@@ -7,7 +7,7 @@ from tqdm import tqdm
 import pandas as pd
 
 
-from egoal.utils import eval_log
+from aligned.utils import eval_log
 
 class BaseLearnerNN(nn.Module):
     ''' network struct of base learner '''

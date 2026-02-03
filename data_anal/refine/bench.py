@@ -4,7 +4,7 @@ from scipy.sparse import coo_matrix, save_npz
 import torch
 from sklearn.metrics import f1_score
 
-from egoal.reasoner import RegulatoryKB
+from aligned.reasoner import RegulatoryKB
 
 model_name = 'DCDI-G'
 data_name = 'norman'

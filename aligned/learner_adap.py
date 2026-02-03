@@ -9,10 +9,10 @@ from torch.distributions import Bernoulli
 from torch_geometric.utils import dense_to_sparse
 from scipy.sparse import load_npz
 
-from egoal.reasoner import RegulatoryKB
+from aligned.reasoner import RegulatoryKB
 
-class ReflectMLP(nn.Module):
-    """ Network Structure of Base Learner with Reflect Output (RL) """
+class AdaptorMLP(nn.Module):
+    """ Network Structure of Base Learner with Adaptor Output (RL) """
 
     def __init__(self,
                  input_dim,
@@ -25,7 +25,7 @@ class ReflectMLP(nn.Module):
             hidden_dim:
             output_dim:
         """
-        super(ReflectMLP, self).__init__()
+        super(AdaptorMLP, self).__init__()
         self.embedding = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.ReLU(),
@@ -76,14 +76,14 @@ class ReflectMLP(nn.Module):
         return torch.argmax(output_y, dim=-1) -1\
                  if self.discretized else torch.where(torch.abs(output_y)>.1, torch.sign(output_y), 0)
 
-    def reflection(self, x):
+    def adaptor(self, x):
         _, output_r = self.forward(x)
         return torch.round(output_r.detach())
 
 ################################################################################
 
-class ReflectGNN(nn.Module):
-    """ Network Structure of Base Learner with Reflect Output (RL) """
+class AdaptorGNN(nn.Module):
+    """ Network Structure of Base Learner with Adaptor Output (RL) """
 
     def __init__(self,
                  input_dim,
@@ -104,7 +104,7 @@ class ReflectGNN(nn.Module):
             device:
             label_mask:
         '''
-        super(ReflectGNN, self).__init__()
+        super(AdaptorGNN, self).__init__()
 
         self.input_dim = input_dim
         self.num_layers = num_layers
@@ -222,14 +222,14 @@ class ReflectGNN(nn.Module):
         return torch.argmax(output_y, dim=-1) -1\
                 if self.discretized else  torch.where(torch.abs(output_y)>.1, torch.sign(output_y), 0)
 
-    def reflection(self, x):
+    def adaptor(self, x):
         _, output_r = self.forward(x)
         return torch.round(output_r.detach())
 
 ################################################################################
 ################################################################################
 
-class ReflectLearner():
+class AdaptorLearner():
     def __init__(self,
         input_dim,
         output_dim,
@@ -268,13 +268,13 @@ class ReflectLearner():
         self.clf_weight = torch.Tensor([.4,.2,.4])
 
         if base_learner_type == 'MLP':
-            self.model = ReflectMLP(self.input_dim,
+            self.model = AdaptorMLP(self.input_dim,
                                     self.hidden_dim,
                                     self.output_dim,
                                     discretized=self.discretized)
         elif base_learner_type == 'GNN':
             assert adj_matrix != None
-            self.model = ReflectGNN(self.input_dim,
+            self.model = AdaptorGNN(self.input_dim,
                                     self.hidden_dim,
                                     num_layers,
                                     self.output_dim,
@@ -741,7 +741,7 @@ class ReflectLearner():
     def predict(self, x: torch.Tensor):
         return self.model.predict(x)
 
-    def reflection(self, x: torch.Tensor):
+    def adaptor(self, x: torch.Tensor):
         return self.model.reflection(x)
 
     def predict_prob(self, x: torch.Tensor):
@@ -803,7 +803,7 @@ if __name__ == '__main__':
                 reasoner.closure_(T=5, closure_type='naive')
 
                 adj_matrix = torch.round(torch.clamp(torch.abs(reasoner.Regu_P_0 + reasoner.Regu_N_0), 0,1))
-                learner = ReflectLearner(input_dim= X_test.shape[1],
+                learner = AdaptorLearner(input_dim= X_test.shape[1],
                                          output_dim= Y_test.shape[1],
                                          hidden_dim= 128,
                                          base_learner_type= model_type,
@@ -875,7 +875,7 @@ if __name__ == '__main__':
     ##learner.train_loader = data_loader
 
     ## Train
-    #learner = ReflectLearner(input_dim=X_train.shape[1], output_dim=Y_train.shape[1], device=device, log_path='log.txt')
+    #learner = AdaptorLearner(input_dim=X_train.shape[1], output_dim=Y_train.shape[1], device=device, log_path='log.txt')
     #regulatory_kb = RegulatoryKB(pos_trn_pth= 'rules/regu_pos.npz', neg_trn_pth='rules/regu_neg.npz', output_idx_list=idx_list_sra, device=device)
     #regulatory_kb.closure_(T=5, closure_type='weighted')
 

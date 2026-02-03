@@ -7,8 +7,8 @@ from datetime import datetime
 from zoopt import Dimension, ValueType, Dimension2, Objective, Parameter, Opt, ExpOpt, parameter
 from sklearn.metrics import f1_score
 
-from egoal.learner_refl import ReflectLearner
-from egoal.reasoner import RegulatoryKB#, MetabolicKB
+from aligned.learner_adap import AdaptorLearner
+from aligned.reasoner import RegulatoryKB#, MetabolicKB
 
 def eval_weight(X: torch.Tensor, Y: torch.Tensor, KB: RegulatoryKB) -> float:
     '''
@@ -127,7 +127,7 @@ def abduce(X_unlabel: torch.Tensor,
     else:
         adj_matrix = None
 
-    learner = ReflectLearner(input_dim= X_test.shape[1],
+    learner = AdaptorLearner(input_dim= X_test.shape[1],
                              output_dim= Y_test.shape[1],
                              hidden_dim= 64,
                              base_learner_type= base_learner_type,

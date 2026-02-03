@@ -1,49 +1,227 @@
-# EGOAL: predicting gene Expression with GenOme-scale knowledge and Abductive Learning
+# ALIGNED: Adaptive aLignment for Inconsistent Genetic kNowledgE and Data
 
-This repository is
-`ALIGNED: Adaptive aLignment of Inconsistent Genetic kNowledgE and Data`,
-a variant of EGOAL that focuses on balancing data-knowledge inconsistencies.
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
-## Reproducibility
+Official implementation of **ALIGNED** from the paper:
+
+> **Adaptive Data-Knowledge Alignment in Genetic Perturbation Prediction**  
+> Yuanfang Xiang, Lun Ai  
+> *arXiv preprint arXiv:2510.00512, 2024*  
+> [OpenReview](https://openreview.net/forum?id=CxLaZWbUjc) | [arXiv](https://arxiv.org/abs/2510.00512)
+
+## Overview
+
+ALIGNED is a neuro-symbolic framework for predicting genetic perturbation responses that adaptively aligns data-driven learning with biological knowledge. Built on the Abductive Learning (ABL) paradigm, ALIGNED:
+
+- **Handles inconsistencies** between data and knowledge bases (noise, misannotation, incompleteness)
+- **Performs systematic knowledge refinement** to improve biological networks
+- **Achieves state-of-the-art performance** while maintaining biological interpretability
+- **Enables knowledge evolution** by re-discovering biologically meaningful regulatory relationships
+
+## Installation
+
+### Requirements
+- Python ≥ 3.8
+- CUDA-compatible GPU (recommended)
 
 ### Setup
+```bash
+# Clone the repository
+git clone https://github.com/yfxiang0112/Aligned.git
+cd Aligned
 
-```
+# Create conda environment
 conda env create -f environment.yml
-conda activate egoal
+conda activate aligned
+
+# Install the package
+pip install -e .
 ```
 
-### Run ALIGNED on human genome benchmark dataset
+## Quick Start
 
+### Run ALIGNED on Human Benchmark Datasets
+
+```bash
+# Norman dataset (non-random split)
+python experiments/ex1_bench/run_benchmark.py \
+    --data_name='norman' \
+    --model_save_name='norman_gnn' \
+    --model_type='GNN' \
+    --device='cuda:0' \
+    --seed=42 \
+    --random_split=False
+
+# Dixit dataset (random split)
+python experiments/ex1_bench/run_benchmark.py \
+    --data_name='dixit' \
+    --model_save_name='dixit_gnn' \
+    --model_type='GNN' \
+    --device='cuda:0' \
+    --seed=42 \
+    --random_split=True
+
+# Adamson dataset (random split)
+python experiments/ex1_bench/run_benchmark.py \
+    --data_name='adamson' \
+    --model_save_name='adamson_gnn' \
+    --model_type='GNN' \
+    --device='cuda:0' \
+    --seed=42 \
+    --random_split=True
 ```
-python egoal/main_hsa.py --data_name='norman' --model_save_name='...' --model_type='GNN' --device='cuda:...' --seed=... --random_split=False
+
+**Arguments:**
+- `--data_name`: Dataset selection from `['norman', 'dixit', 'adamson']`
+- `--model_save_name`: File name to save trained models in `./models`
+- `--model_type`: Neural component architecture: `['GNN', 'MLP']`
+- `--device`: CUDA device ordinal (e.g., `'cuda:0'`)
+- `--seed`: Random seed for reproducibility
+- `--random_split`: Use random test split (see paper Section 4.1 for details)
+
+### Run Knowledge Refinement Experiment
+
+```bash
+# Network refinement with incompleteness injection
+python experiments/ex2_refinement/run_refinement.py
+
+# Evaluate with gene set recovery
+python experiments/ex2_refinement/eval_gene_set_recovery.py
 ```
 
-- data\_name: select benchmark dataset among `['norman', 'dixit', 'adamson']`.
-- model\_save\_name: file name to save trained models in `./models`.
-- model\_type: select model of the neural component in ALIGNED,
-    currently support `['GNN', 'MLP']` mentioned in section 4.1.
-- device: specify cuda device ordinal to train ALIGNED
-- seed: random seed in training
-- random\_split: use random splitted test set.
-    To reproduce results in section 4.1, use `False` for `norman` dataset and
-    `True` for `dixit` and `adamson` dataset.
+### Run E. coli Experiments
 
-### Git-ignored datasets
+```bash
+python experiments/ex3_ecoli/run_ecoli.py \
+    --data_name='ncbi-sra' \
+    --model_save_name='ecoli_gnn' \
+    --model_type='GNN' \
+    --device='cuda:0' \
+    --seed=42
+```
 
-The datasets in `dataset/human/` are git-ignored due to excessive size,
-and can be obtained from following link:
+## Datasets
+
+### Human Benchmark Datasets (Section 4.1)
+
+The datasets in `dataset/human/` are git-ignored due to file size. Download from:
 ```
 https://box.nju.edu.cn/f/d141fed10400452197ae/?dl=1
 ```
 
-### Figures and Experiment Results
+Place the downloaded files in `dataset/human/` directory.
 
-All results and trained models of ALIGNED in the benchmark experiment
-(section 4.1, 4.3) are at `data_anal/experiment_results`,
-and compared methods are at `data_anal/pert_benchmark`.
+**Available datasets:**
+- **Norman et al.**: K562 cells with combinatorial CRISPR perturbations
+- **Dixit et al.**: Bone marrow-derived dendritic cells
+- **Adamson et al.**: K562 cells with transcription factor perturbations
 
-Results of network refinement experiment (section 4.2)
-are at `data_anal/refine`.
+### E. coli Datasets (Section 4.3)
 
-Scripts to generate figures in the paper are at `plots`.
+Located in `dataset/ncbi-sra/` and `dataset/precise1k/`.
+
+## Reproduce Paper Results
+
+### Section 4.1: Perturbation Prediction on Benchmark Datasets
+Run experiments for all three human datasets using the Quick Start commands above.
+
+Results and trained models will be reorganized in the `results/` directory (structure update in progress).
+
+**Baseline comparisons**: For state-of-the-art baseline methods in Section 4.1, we use baseline method implementations and results from:
+
+> Constantin Ahlmann-Eltze and Wolfgang Huber. "A benchmark of methods to predict transcriptional responses to chemical and genetic perturbations." *Nature Methods* (2025). DOI: [10.1038/s41592-025-02772-6](https://doi.org/10.1038/s41592-025-02772-6)
+> 
+> Code: https://github.com/const-ae/linear_perturbation_prediction-Paper
+
+We thank the authors for making their implementations publicly available.
+
+
+### Section 4.2: Knowledge Refinement of Gene Regulatory Networks
+```bash
+# Run refinement at multiple incompleteness levels
+cd experiments/ex2_refinement
+python run_refinement.py
+python eval_gene_set_recovery.py
+```
+
+Results are saved in `data_anal/refine/` (will be reorganized).
+
+### Section 4.3: Perturbation Prediction on Bacterial Genome
+```bash
+cd experiments/ex3_ecoli
+python run_ecoli.py
+```
+
+### Section 4.4: Ablation Studies
+Ablation results are located in `data_anal/experiment_results/ablations/` (will be reorganized).
+
+## Project Structure
+
+```
+Aligned/
+├── aligned/                      # Core package (renamed from egoal)
+│   ├── abl.py                   # Abductive learning main loop
+│   ├── learner_adap.py          # Neural learner with adaptor (renamed from refl)
+│   ├── reasoner.py              # Symbolic reasoner (knowledge base)
+│   └── utils.py                 # Utility functions
+│
+├── experiments/                 # Experimental scripts
+│   ├── ex1_bench/              # Section 4.1: Benchmark experiments
+│   ├── ex2_refinement/         # Section 4.2: Knowledge refinement
+│   ├── ex3_ecoli/              # Section 4.3: E. coli experiments
+│   └── ex4_ablation/           # Section 4.4: Ablation studies
+│
+├── dataset/                     # Data files
+│   ├── human/                  # Human benchmark datasets
+│   ├── ncbi-sra/              # E. coli RNA-seq data
+│   └── precise1k/             # E. coli PRECISE-1K data
+│
+├── data_anal/                   # Analysis and evaluation scripts
+│   ├── experiment_results/     # Main experimental results (to be reorganized)
+│   ├── refine/                # Refinement experiment results
+│   └── pert_benchmark/        # Baseline comparisons
+│
+├── plots/                       # Figure generation scripts
+│   ├── fig1_incons/           # Inconsistency visualization
+│   ├── fig3_radar/            # Radar plots
+│   ├── fig4_line/             # Performance curves
+│   └── fig5_refine/           # Refinement results
+│
+├── models/                      # Trained model checkpoints
+├── log/                        # Training logs
+└── scripts/                    # Utility and preprocessing scripts
+```
+
+**Note:** Repository structure for experiment results is being updated for better organization.
+
+## Citation
+
+If you use ALIGNED in your research, please cite:
+
+```bibtex
+@article{xiang2024aligned,
+  title={Adaptive Data-Knowledge Alignment in Genetic Perturbation Prediction},
+  author={Xiang, Yuanfang and Ai, Lun},
+  journal={arXiv preprint arXiv:2510.00512},
+  year={2024}
+}
+```
+
+<!-- After official publication at ICLR 2026, please use:
+@inproceedings{xiang2026aligned,
+  title={Adaptive Data-Knowledge Alignment in Genetic Perturbation Prediction},
+  author={Xiang, Yuanfang and Ai, Lun},
+  booktitle={International Conference on Learning Representations (ICLR)},
+  year={2026}
+}
+-->
+
+## License
+
+This project is licensed under the Creative Commons Attribution 4.0 International License (CC BY 4.0). See [LICENSE](LICENSE) file for details.
+
+## Contact
+
+For questions or issues, please open an issue on GitHub or contact:
+- Yuanfang Xiang: yf.xiang@smail.nju.edu.cn

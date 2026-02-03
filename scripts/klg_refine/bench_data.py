@@ -5,7 +5,7 @@ from scipy.sparse import load_npz, coo_matrix, save_npz
 from sklearn.metrics import f1_score
 import gc
 
-from egoal.reasoner import RegulatoryKB
+from aligned.reasoner import RegulatoryKB
 
 gene_id = pd.read_csv('dataset/human/ensembl_mapping.csv')
 

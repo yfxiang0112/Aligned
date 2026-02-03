@@ -9,7 +9,7 @@ import os
 import argparse
 from datetime import datetime
 
-from egoal.reasoner import RegulatoryKB
+from aligned.reasoner import RegulatoryKB
 
 
 def weighted_mean(f1_data, f1_kb, w):

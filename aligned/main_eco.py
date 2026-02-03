@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime
 import argparse
 
-from egoal.abl import abduce
+from aligned.abl import abduce
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

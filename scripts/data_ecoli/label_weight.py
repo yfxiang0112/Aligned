@@ -4,8 +4,8 @@ from sklearn.metrics import f1_score
 from scipy.sparse import load_npz
 import torch
 
-from egoal.reasoner import RegulatoryKB
-from egoal.learner_refl import ReflectLearner
+from aligned.reasoner import RegulatoryKB
+from aligned.learner_adap import AdaptorLearner
 
 label_set = pd.read_csv('dataset/label_set_iml.csv', index_col=0)
 idx_list_p1k = list(label_set['precise1k_idx'])
@@ -42,7 +42,7 @@ Y_d = KB.deduce(torch.tensor(X).float().to(device)).to('cpu').numpy()
 Y_d_test = KB.deduce(torch.tensor(X_test).float().to(device)).to('cpu').numpy()
 
 adj_matrix = torch.round(torch.abs(KB.KB))
-learner = ReflectLearner(input_dim= X_test.shape[1],
+learner = AdaptorLearner(input_dim= X_test.shape[1],
                          output_dim= Y_test.shape[1],
                          hidden_dim= 64,
                          gnn_extra_layer= True,

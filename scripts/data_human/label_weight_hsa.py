@@ -6,8 +6,8 @@ import pickle
 from sklearn.metrics import f1_score
 from scipy.sparse import load_npz
 
-from egoal.reasoner import RegulatoryKB
-from egoal.learner_refl import ReflectLearner
+from aligned.reasoner import RegulatoryKB
+from aligned.learner_adap import AdaptorLearner
 
 data_name = 'norman'
 
@@ -31,7 +31,7 @@ Y_test = Y[test_idx]
 
 
 adj_matrix = torch.round(torch.clamp(torch.abs(KB.Regu_N_0 + KB.Regu_P_0), 0,1))
-learner = ReflectLearner(input_dim= X.shape[1],
+learner = AdaptorLearner(input_dim= X.shape[1],
                          output_dim= Y.shape[1],
                          hidden_dim= 64,
                          base_learner_type= 'MLP',

@@ -1,5 +1,5 @@
 import pandas as pd
-from egoal.reasoner import RegulatoryKB
+from aligned.reasoner import RegulatoryKB
 
 gene_ann = pd.read_csv('dataset/human/norman_gene_ann.csv',index_col='gene_name')
 KB = RegulatoryKB('rules/human/norman_KB_P.npz','rules/human/norman_KB_N.npz',device='cpu')

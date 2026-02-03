@@ -10,8 +10,8 @@ import json
 import gc
 import pandas as pd
 
-from egoal.reasoner import RegulatoryKB
-from egoal.learner_refl import ReflectLearner
+from aligned.reasoner import RegulatoryKB
+from aligned.learner_adap import AdaptorLearner
 
 
 mpl.rcParams['text.usetex'] = True

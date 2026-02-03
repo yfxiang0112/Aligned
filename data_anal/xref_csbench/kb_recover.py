@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 import pandas as pd
-from egoal.reasoner import RegulatoryKB
-from egoal.learner_refl import ReflectLearner
+from aligned.reasoner import RegulatoryKB
+from aligned.learner_adap import AdaptorLearner
 from scipy.sparse import coo_matrix, load_npz, save_npz
 import json
 
