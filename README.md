@@ -7,8 +7,8 @@ Official implementation of **ALIGNED** from the paper:
 
 > **Adaptive Data-Knowledge Alignment in Genetic Perturbation Prediction**  
 > Yuanfang Xiang, Lun Ai  
-> *arXiv preprint arXiv:2510.00512, 2024*  
-> [OpenReview](https://openreview.net/forum?id=CxLaZWbUjc) | [arXiv](https://arxiv.org/abs/2510.00512)
+> *arXiv preprint arXiv:2510.00512, 2025*  
+> <!--[OpenReview](https://openreview.net/forum?id=CxLaZWbUjc)-->Accepted by *ICLR 2026* | [arXiv](https://arxiv.org/abs/2510.00512)
 
 ## Overview
 
