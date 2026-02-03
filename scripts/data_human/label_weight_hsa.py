@@ -37,7 +37,7 @@ learner = AdaptorLearner(input_dim= X.shape[1],
                          base_learner_type= 'MLP',
                          adj_matrix= adj_matrix,
                          device=device)
-learner.load('data_anal/experiment_results/norman/models/MLP_1.pt')
+learner.load('results/ex1_aligned/norman/models/MLP_1.pt')
 
 
 #test_df = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)

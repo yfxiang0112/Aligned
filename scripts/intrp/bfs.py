@@ -67,7 +67,7 @@ reasoner.closure_(T=5, closure_type='weighted')
 
 adj_orig = reasoner.Regu_P_0 + 2* reasoner.Regu_N_0
 
-reasoner.load(f'data_anal/experiment_results/{data_name}/models/GNN_abl0_2.npz')
+reasoner.load(f'results/ex1_aligned/{data_name}/models/GNN_abl0_2.npz')
 #adj_refn = reasoner.Regu_P_0 + 2* reasoner.Regu_N_0
 adj_refn = reasoner.KB_P + 2* reasoner.KB_N
 
@@ -84,7 +84,7 @@ learner = AdaptorLearner(input_dim= d,
                          adj_matrix= adj_matrix,
                          device=device)
 X = torch.eye(d).to(device).float()
-learner.load(f'data_anal/experiment_results/{data_name}/models/GNN_abl0_2.pt')
+learner.load(f'results/ex1_aligned/{data_name}/models/GNN_abl0_2.pt')
 
 
 Y_p = learner.predict(X).float()

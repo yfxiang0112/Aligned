@@ -123,8 +123,8 @@ if __name__ == '__main__':
     algorithms = ['ALIGNED (GNN)', 'ALIGNED (MLP)', 'Linear', 'GEARS', 'State', 'scGPT', 'scFoundation']
 
     columns = ['data_f1_mean', 'kb_f1_mean', 'bal_f1_mean']
-    df_benchmk = pd.read_csv('data_anal/pert_benchmark/benchmark_results.csv')
-    df_experim = pd.read_csv('data_anal/experiment_results/results.csv', index_col=0)
+    df_benchmk = pd.read_csv('results/ex1_baselines/benchmark_results.csv')
+    df_experim = pd.read_csv('results/ex1_aligned/results.csv', index_col=0)
 
     plot_alg_names = {'GNN':'ALIGNED (GNN)', 'MLP':'ALIGNED (MLP)'}
     df_experim['model'] = df_experim['model'].apply(lambda x: plot_alg_names[x])
@@ -185,9 +185,9 @@ if __name__ == '__main__':
     plt.show()
 
     # Save high-resolution version for publication
-    fig.savefig(f'plots/fig3_radar/radar_plots.pdf', dpi=600, bbox_inches='tight', 
+    fig.savefig(f'results/fig3_radar/radar_plots.pdf', dpi=600, bbox_inches='tight', 
                 format='pdf', facecolor='white', edgecolor='none')
-    fig.savefig(f'plots/fig3_radar/radar_plots.pgf', dpi=600, bbox_inches='tight', 
+    fig.savefig(f'results/fig3_radar/radar_plots.pgf', dpi=600, bbox_inches='tight', 
                 format='pgf', facecolor='white', edgecolor='none')
-    fig.savefig(f'plots/fig3_radar/radar_plots.png', dpi=600, bbox_inches='tight', 
+    fig.savefig(f'results/fig3_radar/radar_plots.png', dpi=600, bbox_inches='tight', 
                 facecolor='white', edgecolor='none')

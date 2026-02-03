@@ -159,7 +159,7 @@ if __name__ == "__main__":
         df_lst = []
         for model_name in ['GNN', 'MLP']:
 
-            LOG_DIRECTORY = f"data_anal/experiment_results/{data_name}/"  # Current directory, change as needed
+            LOG_DIRECTORY = f"results/ex1_aligned/{data_name}/"  # Current directory, change as needed
             FILE_PATTERN = f"log_{model_name}_*"  # Pattern for log files
             print(f'{LOG_DIRECTORY}{FILE_PATTERN}:')
 
@@ -228,4 +228,4 @@ if __name__ == "__main__":
 
     final_df = pd.concat(final_df, axis=0).reset_index(drop=True)
     print(final_df)
-    final_df.to_csv(f'data_anal/experiment_results/results.csv')
+    final_df.to_csv(f'results/ex1_aligned/results.csv')

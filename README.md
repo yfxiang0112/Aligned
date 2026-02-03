@@ -126,7 +126,7 @@ Located in `dataset/ncbi-sra/` and `dataset/precise1k/`.
 ### Section 4.1: Perturbation Prediction on Benchmark Datasets
 Run experiments for all three human datasets using the Quick Start commands above.
 
-Results and trained models will be reorganized in the `results/` directory (structure update in progress).
+Results, figures and trained models in `results/ex1_aligned/`, baseline comparison results in `results/ex1_baselines/`.
 
 **Baseline comparisons**: For state-of-the-art baseline methods in Section 4.1, we use baseline method implementations and results from:
 
@@ -145,7 +145,7 @@ python run_refinement.py
 python eval_gene_set_recovery.py
 ```
 
-Results are saved in `data_anal/refine/` (will be reorganized).
+Results in `results/ex2_refinement/`.
 
 ### Section 4.3: Perturbation Prediction on Bacterial Genome
 ```bash
@@ -153,44 +153,46 @@ cd experiments/ex3_ecoli
 python run_ecoli.py
 ```
 
+Results and trained models in `results/ex3_ecoli/`.
+
 ### Section 4.4: Ablation Studies
-Ablation results are located in `data_anal/experiment_results/ablations/` (will be reorganized).
+Ablation results are located in `results/ex4_ablations/`.
 
 ## Project Structure
 
 ```
 Aligned/
-├── aligned/                      # Core package (renamed from egoal)
-│   ├── abl.py                   # Abductive learning main loop
-│   ├── learner_adap.py          # Neural learner with adaptor (renamed from refl)
-│   ├── reasoner.py              # Symbolic reasoner (knowledge base)
-│   └── utils.py                 # Utility functions
+├── aligned/                   # Core package (renamed from egoal)
+│   ├── abl.py                 # Abductive learning main loop
+│   ├── learner_adap.py        # Neural learner with adaptor (renamed from refl)
+│   ├── reasoner.py            # Symbolic reasoner (knowledge base)
+│   └── utils.py               # Utility functions
 │
-├── experiments/                 # Experimental scripts
-│   ├── ex1_bench/              # Section 4.1: Benchmark experiments
-│   ├── ex2_refinement/         # Section 4.2: Knowledge refinement
-│   ├── ex3_ecoli/              # Section 4.3: E. coli experiments
-│   └── ex4_ablation/           # Section 4.4: Ablation studies
+├── experiments/               # Experimental scripts
+│   ├── ex1_bench/             # Section 4.1: Benchmark experiments
+│   ├── ex2_refinement/        # Section 4.2: Knowledge refinement
+│   ├── ex3_ecoli/             # Section 4.3: E. coli experiments
+│   └── ex4_ablation/          # Section 4.4: Ablation studies
 │
-├── dataset/                     # Data files
-│   ├── human/                  # Human benchmark datasets
+├── dataset/                   # Data files
+│   ├── human/                 # Human benchmark datasets
 │   ├── ncbi-sra/              # E. coli RNA-seq data
 │   └── precise1k/             # E. coli PRECISE-1K data
 │
-├── data_anal/                   # Analysis and evaluation scripts
-│   ├── experiment_results/     # Main experimental results (to be reorganized)
-│   ├── refine/                # Refinement experiment results
-│   └── pert_benchmark/        # Baseline comparisons
+├── data_anal/                 # Analysis and evaluation scripts
 │
-├── plots/                       # Figure generation scripts
+├── results/                   # Figure generation scripts
+│   ├── ex1_aligned/           # Main experimental results (to be reorganized)
+│   ├── ex1_baselines/         # Baseline comparisons
+│   ├── ex2_refinement/        # Refinement experiment results
 │   ├── fig1_incons/           # Inconsistency visualization
 │   ├── fig3_radar/            # Radar plots
 │   ├── fig4_line/             # Performance curves
 │   └── fig5_refine/           # Refinement results
 │
-├── models/                      # Trained model checkpoints
-├── log/                        # Training logs
-└── scripts/                    # Utility and preprocessing scripts
+├── models/                    # Trained model checkpoints
+├── log/                       # Training logs
+└── scripts/                   # Utility and preprocessing scripts
 ```
 
 **Note:** Repository structure for experiment results is being updated for better organization.

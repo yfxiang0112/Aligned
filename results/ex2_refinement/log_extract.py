@@ -86,8 +86,8 @@ def calculate_statistics(metrics_dict):
 
 if __name__ == "__main__":
     # Specify your directory path here
-    directory_path = "data_anal/refine/out_mix"
-    save_path = 'data_anal/refine/log_mix.csv'
+    directory_path = "results/ex2_refinement/out_mix"
+    save_path = 'results/ex2_refinement/log_mix.csv'
     
     if not os.path.exists(directory_path):
         print(f"Directory '{directory_path}' does not exist.")

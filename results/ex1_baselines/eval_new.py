@@ -49,7 +49,7 @@ def parse_arguments():
     parser.add_argument('--dataset', type=str, choices=['adamson', 'dixit', 'norman'], required=True,
                         help='Dataset name (adamson, dixit, or norman)')
 
-    parser.add_argument('--predictions_dir', type=str, default='data_anal/pert_benchmark',
+    parser.add_argument('--predictions_dir', type=str, default='results/ex1_baselines',
                         help='Directory containing prediction files')
 
     parser.add_argument('--predictions_pattern', type=str, default='all_predictions*.json',

@@ -10,7 +10,7 @@ model_name = 'DCDI-G'
 data_name = 'norman'
 device = 'cuda'
 
-df_bench = pd.read_csv(f'data_anal/refine/benchmark/{model_name}.csv', index_col=0)
+df_bench = pd.read_csv(f'results/ex2_refinement/benchmark/{model_name}.csv', index_col=0)
 df_ens = pd.read_csv('dataset/human/ensembl_mapping.csv')
 df_genes = pd.read_csv('dataset/human/norman_gene_ann.csv', index_col=0)
 ens_mapping = {row['gene_id']:row['gene_name'] for _,row in df_ens.iterrows()}
@@ -24,10 +24,10 @@ KB_bench_col = np.array(\
         [int(df_genes.loc[g,'vector_idx']) for g in df_bench['target']])
 KB_bench_data = np.full_like(KB_bench_row, fill_value=1.)
 KB_bench = coo_matrix((KB_bench_data, (KB_bench_row,KB_bench_col)), shape=(len(df_genes),len(df_genes)))
-save_npz(f'data_anal/refine/benchmark/{model_name}.npz', KB_bench)
+save_npz(f'results/ex2_refinement/benchmark/{model_name}.npz', KB_bench)
 
 reasoner_bench = RegulatoryKB(
-        pos_trn_pth=f'data_anal/refine/benchmark/{model_name}.npz',
+        pos_trn_pth=f'results/ex2_refinement/benchmark/{model_name}.npz',
         neg_trn_pth=None,
         device=device)
 reasoner_bench.closure_(T=5, closure_type='naive')

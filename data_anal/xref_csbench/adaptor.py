@@ -43,8 +43,8 @@ label_weight = torch.tensor(np.load(f'dataset/human/{data_name}_label_weight.npy
 print('w>.5: ', torch.count_nonzero(label_weight>=.5).item())
 
 for repl in range(5):
-    reasoner.load(f'data_anal/experiment_results/{data_name}/models/GNN_abl0_{repl+1}.npz')
-    learner.load(f'data_anal/experiment_results/{data_name}/models/GNN_abl0_{repl+1}.pt')
+    reasoner.load(f'results/ex1_aligned/{data_name}/models/GNN_abl0_{repl+1}.npz')
+    learner.load(f'results/ex1_aligned/{data_name}/models/GNN_abl0_{repl+1}.pt')
     
     Y_p = learner.predict(X).float()
     R = learner.reflection(X)

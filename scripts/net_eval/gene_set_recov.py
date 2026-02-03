@@ -181,7 +181,7 @@ if __name__ == "__main__":
     repl_num = 1
     save_name = f'abl0_{repl_num}'
     #save_name = 'orig'
-    load_model_pth = f'data_anal/experiment_results/{data_name}/models/GNN_abl0_{repl_num}.npz'\
+    load_model_pth = f'results/ex1_aligned/{data_name}/models/GNN_abl0_{repl_num}.npz'\
             if 'orig' not in save_name else None
     database = 'kegg'
     #database = 'reactome'
@@ -197,7 +197,7 @@ if __name__ == "__main__":
         KB.load(load_model_pth)
 
     # NOTE for benchmark
-    #KB = RegulatoryKB(pos_trn_pth=f'data_anal/refine/benchmark/DCDI-G.npz',
+    #KB = RegulatoryKB(pos_trn_pth=f'results/ex2_refinement/benchmark/DCDI-G.npz',
     #              neg_trn_pth=None,
     #              device='cpu')
 

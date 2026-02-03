@@ -47,15 +47,15 @@ for data_name in ['norman']:#, 'adamson', 'dixit']:
         for stage, learn_model, kb_model in [('baseline','',''), ('align1','abl0_',''), ('refine1','abl0_','abl0_')]:
             for repl in range(5):
         
-                learner.load(f'data_anal/experiment_results/{data_name}/models/{model_type}_{learn_model}{repl+1}.pt')
+                learner.load(f'results/ex1_aligned/{data_name}/models/{model_type}_{learn_model}{repl+1}.pt')
                 if kb_model != '':
-                    reasoner.load(f'data_anal/experiment_results/{data_name}/models/{model_type}_{kb_model}{repl+1}.npz')
+                    reasoner.load(f'results/ex1_aligned/{data_name}/models/{model_type}_{kb_model}{repl+1}.npz')
         
                 test_idx = np.zeros(shape=len(X), dtype=bool)
                 if data_name == 'norman':
                     test_idx[np.load(f'dataset/human/{data_name}_test_idx.npy')] = True
                 else:
-                    test_idx = np.load(f'data_anal/experiment_results/{data_name}/models/{model_type}_split_{repl+1}.npy')
+                    test_idx = np.load(f'results/ex1_aligned/{data_name}/models/{model_type}_split_{repl+1}.npy')
         
                 X_test, Y_test = X[test_idx].to(device), Y[test_idx].to(device)
                 Y_p = learner.predict(torch.tensor(X_test).float().to(device)).float()

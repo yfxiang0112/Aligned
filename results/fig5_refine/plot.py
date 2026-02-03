@@ -5,11 +5,11 @@ import pandas as pd
 import seaborn as sns
 
 save_name = 'reconstruction'
-log_path = 'data_anal/refine/log_mix.csv'
-baseline_log_path = 'data_anal/refine/log_mix_baseline.csv'
+log_path = 'results/ex2_refinement/log_mix.csv'
+baseline_log_path = 'results/ex2_refinement/log_mix_baseline.csv'
 
-gsr_log_path = 'data_anal/refine/gsr_mix.csv'
-gsr_baseline_log_path = 'data_anal/refine/gsr_mix_baseline.csv'
+gsr_log_path = 'results/ex2_refinement/gsr_mix.csv'
+gsr_baseline_log_path = 'results/ex2_refinement/gsr_mix_baseline.csv'
 
 # Set publication-quality style
 plt.style.use('default')
@@ -216,8 +216,8 @@ for x_pos, label in zip(group_x_positions, group_labels):
 
 # Adjust layout and save
 plt.tight_layout()
-plt.savefig(f'plots/fig5_refine/{save_name}.png', bbox_inches='tight', pad_inches=0.05)
-plt.savefig(f'plots/fig5_refine/{save_name}.pdf', format='pdf', bbox_inches='tight', pad_inches=0.05)
-plt.savefig(f'plots/fig5_refine/{save_name}.pgf', format='pgf', dpi=600, bbox_inches='tight', pad_inches=0.05)
+plt.savefig(f'results/fig5_refine/{save_name}.png', bbox_inches='tight', pad_inches=0.05)
+plt.savefig(f'results/fig5_refine/{save_name}.pdf', format='pdf', bbox_inches='tight', pad_inches=0.05)
+plt.savefig(f'results/fig5_refine/{save_name}.pgf', format='pgf', dpi=600, bbox_inches='tight', pad_inches=0.05)
 
 plt.show()

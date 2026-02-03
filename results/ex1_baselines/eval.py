@@ -67,7 +67,7 @@ for data_name in ['norman', 'dixit', 'adamson']:
     model_lst =['state', 'additive', 'gears', 'scgpt', 'scfoundation'] 
     for model_name in model_lst:
 
-        directory = f'data_anal/pert_benchmark/{model_name}_{data_name}'
+        directory = f'results/ex1_baselines/{model_name}_{data_name}'
         file_pattern = 'all_predictions*.json'
         log_files = glob.glob(os.path.join(directory, file_pattern))
         log_files.sort()  # Sort for consistent ordering
@@ -196,7 +196,7 @@ for data_name in ['norman', 'dixit', 'adamson']:
         'lr_mean':      xref_mean_lst[3],
         'lr_stde':      xref_stde_lst[3],
         }).set_index(['data_name', 'model'])
-    #res_df.to_csv(f'data_anal/pert_benchmark/{data_name}_results.csv', index=True)
+    #res_df.to_csv(f'results/ex1_baselines/{data_name}_results.csv', index=True)
     df_lst.append(res_df)
 final_df = pd.concat(df_lst, axis=0)
-final_df.to_csv(f'data_anal/pert_benchmark/benchmark_results.csv', index=True)
+final_df.to_csv(f'results/ex1_baselines/benchmark_results.csv', index=True)

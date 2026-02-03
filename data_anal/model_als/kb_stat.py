@@ -67,9 +67,9 @@ del Y
 gsr_orig = json.load(open('scripts/net_eval/results/kegg_orig_norman.json', 'r'))
 
 for repl in range(5):
-    learner.load(f'data_anal/experiment_results/{data_name}/models/GNN_abl0_{repl+1}.pt')
+    learner.load(f'results/ex1_aligned/{data_name}/models/GNN_abl0_{repl+1}.pt')
     
-    reasoner.load(f'data_anal/experiment_results/{data_name}/models/GNN_abl0_{repl+1}.npz')
+    reasoner.load(f'results/ex1_aligned/{data_name}/models/GNN_abl0_{repl+1}.npz')
     scores_after = reasoner.eval()
     KB_after = reasoner.KB
 
@@ -137,7 +137,7 @@ for repl in range(5):
     results['gsr_+'].append(len([k for k in gsr_refine.keys() if gsr_refine[k]['AUPRC_pos'] > gsr_orig[k]['AUPRC_pos']]))
     results['gsr_-'].append(len([k for k in gsr_refine.keys() if gsr_refine[k]['AUPRC_pos'] < gsr_orig[k]['AUPRC_pos']]))
 
-    reasoner.load(f'data_anal/experiment_results/{data_name}/models/GNN_abl1_{repl+1}.npz')
+    reasoner.load(f'results/ex1_aligned/{data_name}/models/GNN_abl1_{repl+1}.npz')
     scores_after = reasoner.eval()
     results['assortativity_2'].append(scores_after['degree_assortativity'])
     results['modularity_2'].append(scores_after['modularity'])

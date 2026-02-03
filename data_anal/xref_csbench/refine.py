@@ -16,7 +16,7 @@ xref_corum = load_npz('data_anal/xref_csbench/networks/corum.npz').toarray()
 xref_lr = load_npz('data_anal/xref_csbench/networks/lr_pairs.npz').toarray()
 xref_chipseq = load_npz('data_anal/xref_csbench/networks/chipseq.npz').toarray()
 
-directory = f'data_anal/refine/models/'
+directory = f'results/ex2_refinement/models/'
 file_pattern = '*.npz'
 model_files = glob.glob(os.path.join(directory, file_pattern))
 model_files.sort()  # Sort for consistent ordering
@@ -46,8 +46,8 @@ KB_baseline = RegulatoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz',
 #for file in model_files:
 for p_incompl in [0., .05, .1, .2, .3, .4, .5]:
     #KB.load(file)
-    KB.load(f'data_anal/refine/models/restored_{p_incompl}_mix_1.npz')
-    KB_baseline.load(f'data_anal/refine/models/restored_{p_incompl}_mix_baseline_1.npz')
+    KB.load(f'results/ex2_refinement/models/restored_{p_incompl}_mix_1.npz')
+    KB_baseline.load(f'results/ex2_refinement/models/restored_{p_incompl}_mix_baseline_1.npz')
 
     shortcut = torch.count_nonzero(((KB.Regu_P_0!=0)&(KB_P_indirect!=0)))
     direct = torch.count_nonzero(((KB.Regu_P_0!=0)&(KB_P_direct!=0)))
@@ -63,8 +63,8 @@ for p_incompl in [0., .05, .1, .2, .3, .4, .5]:
 
 #for p_incompl in [0., .05, .1, .2, .3, .4, .5]:
 for p_incompl in [0., .05, .1, .3, .5]:
-    KB.load(f'data_anal/refine/models/restored_{p_incompl}_mix_1.npz')
-    KB_baseline.load(f'data_anal/refine/models/restored_{p_incompl}_mix_baseline_1.npz')
+    KB.load(f'results/ex2_refinement/models/restored_{p_incompl}_mix_1.npz')
+    KB_baseline.load(f'results/ex2_refinement/models/restored_{p_incompl}_mix_baseline_1.npz')
 
     #test = []
     #baseline = []

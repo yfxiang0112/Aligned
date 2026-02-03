@@ -132,7 +132,7 @@ if __name__ == "__main__":
     p_lst = [0.0, .05, .1, .2, .3, .4, .5, .7, .9]
     repl_num = 3
     model_name = 'mix'
-    save_path = 'data_anal/refine/gsr_mix.csv'
+    save_path = 'results/ex2_refinement/gsr_mix.csv'
 
     score_types = ['mean_auroc', 'stde_auroc', 'mean_auprc', 'stde_auprc', 'mean_auprc_w', 'stde_auprc_w', 'mean_auprc_p', 'stde_auprc_p']
 
@@ -170,7 +170,7 @@ if __name__ == "__main__":
             print(f'--- Processing p = {p_incomp}, replicate {repl+1} ---')
 
             load_model_pth =\
-                    f'data_anal/refine/models/restored_{p_incomp}_{model_name}_{repl+1}.npz'
+                    f'results/ex2_refinement/models/restored_{p_incomp}_{model_name}_{repl+1}.npz'
             KB.load(load_model_pth)
 
             adj = torch.clamp(torch.abs(KB.Regu_P_0) + torch.abs(KB.Regu_N_0), 0,1).numpy()

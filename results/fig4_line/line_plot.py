@@ -24,7 +24,7 @@ plt.rcParams.update({
 
 # Load data
 
-df = pd.read_csv('data_anal/experiment_results/results.csv', index_col=0)
+df = pd.read_csv('results/ex1_aligned/results.csv', index_col=0)
 x_labels = ['GNN Only', 'A', 'A-R', 'A-R-A', 'A-R-A-R']
 x_pos = np.arange(len(x_labels))
 
@@ -91,8 +91,8 @@ fig.legend(loc='upper center', bbox_to_anchor=(0.5, 0.03),
 
 # Adjust layout and save
 #plt.tight_layout()
-plt.savefig('plots/fig4_line/line_plots.png', bbox_inches='tight', pad_inches=0.05)
-plt.savefig('plots/fig4_line/line_plots.pdf', format='pdf', bbox_inches='tight', pad_inches=0.05)
-plt.savefig('plots/fig4_line/line_plots.pgf', format='pgf', dpi=600, bbox_inches='tight', pad_inches=0.05)
+plt.savefig('results/fig4_line/line_plots.png', bbox_inches='tight', pad_inches=0.05)
+plt.savefig('results/fig4_line/line_plots.pdf', format='pdf', bbox_inches='tight', pad_inches=0.05)
+plt.savefig('results/fig4_line/line_plots.pgf', format='pgf', dpi=600, bbox_inches='tight', pad_inches=0.05)
 
 plt.show()
