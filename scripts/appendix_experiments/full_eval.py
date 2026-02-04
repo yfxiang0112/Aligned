@@ -132,4 +132,4 @@ res_mean = {k: {k1: {k2: .5*(max(v2)+min(v2)) for k2,v2 in v1.items() if 'confus
 res_stde = {k: {k1: {k2: .5*(max(v2)-min(v2)) for k2,v2 in v1.items() if 'confusion' not in k2} for k1,v1 in v.items()} for k,v in res.items()}
 res_final = {'mean':res_mean, 'stde':res_stde, 'orig':res}
     
-json.dump(res_final, open(f'data_anal/model_als/eval_{data_name}_{model_type}.json', 'w'), indent=4)
+json.dump(res_final, open(f'scripts/appendix_experiments/eval_{data_name}_{model_type}.json', 'w'), indent=4)

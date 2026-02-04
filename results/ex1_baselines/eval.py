@@ -38,10 +38,10 @@ for data_name in ['norman', 'dixit', 'adamson']:
     mse_mean_lst, data_f1_mean_lst, kb_f1_mean_lst, bal_f1_mean_lst = [], [], [], []
     mse_stde_lst, data_f1_stde_lst, kb_f1_stde_lst, bal_f1_stde_lst = [], [], [], []
 
-    xref_kb = {'corum':   torch.tensor(load_npz('data_anal/xref_csbench/networks/corum.npz').toarray()).float().to(device),
-               'string':  torch.tensor(load_npz('data_anal/xref_csbench/networks/corum.npz').toarray()).float().to(device),
-               'chipseq': torch.tensor(load_npz('data_anal/xref_csbench/networks/corum.npz').toarray()).float().to(device),
-               'lr':      torch.tensor(load_npz('data_anal/xref_csbench/networks/corum.npz').toarray()).float().to(device)}\
+    xref_kb = {'corum':   torch.tensor(load_npz('scripts/appendix_experiments/networks/corum.npz').toarray()).float().to(device),
+               'string':  torch.tensor(load_npz('scripts/appendix_experiments/networks/corum.npz').toarray()).float().to(device),
+               'chipseq': torch.tensor(load_npz('scripts/appendix_experiments/networks/corum.npz').toarray()).float().to(device),
+               'lr':      torch.tensor(load_npz('scripts/appendix_experiments/networks/corum.npz').toarray()).float().to(device)}\
               if data_name == 'norman' else {}
     xref_mean_lst, xref_stde_lst = [[],[],[],[]], [[],[],[],[]]
 

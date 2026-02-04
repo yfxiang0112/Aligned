@@ -4,7 +4,7 @@ from aligned.reasoner import RegulatoryKB
 gene_ann = pd.read_csv('dataset/human/norman_gene_ann.csv',index_col='gene_name')
 KB = RegulatoryKB('rules/human/norman_KB_P.npz','rules/human/norman_KB_N.npz',device='cpu')
 
-edges = pd.read_csv('data_anal/xref_csbench/recovery_KB/norman_interactions_66.csv',index_col=0)
+edges = pd.read_csv('scripts/appendix_experiments/recovery_KB/norman_interactions_66.csv',index_col=0)
 KB.load('models/GNN_norman_KB_recovery_2_ABL_0.npz')
 
 i = list(edges.source.apply(lambda x: gene_ann['vector_idx'][x]))

@@ -161,27 +161,27 @@ Ablation results are located in `results/ex4_ablations/`.
 
 ```
 Aligned/
-├── aligned/                   # Core package (renamed from egoal)
+├── aligned/                  # Core package (renamed from egoal)
 │   ├── abl.py                 # Abductive learning main loop
 │   ├── learner_adap.py        # Neural learner with adaptor (renamed from refl)
 │   ├── reasoner.py            # Symbolic reasoner (knowledge base)
 │   └── utils.py               # Utility functions
 │
-├── experiments/               # Experimental scripts
+├── experiments/              # Experimental scripts
 │   ├── ex1_bench/             # Section 4.1: Benchmark experiments
 │   ├── ex2_refinement/        # Section 4.2: Knowledge refinement
 │   ├── ex3_ecoli/             # Section 4.3: E. coli experiments
 │   └── ex4_ablation/          # Section 4.4: Ablation studies
 │
-├── dataset/                   # Data files
+├── dataset/                  # Data files
 │   ├── human/                 # Human benchmark datasets
 │   ├── ncbi-sra/              # E. coli RNA-seq data
 │   └── precise1k/             # E. coli PRECISE-1K data
 │
-├── data_anal/                 # Analysis and evaluation scripts
+├── rules/                    # Knowledge bases
 │
-├── results/                   # Figure generation scripts
-│   ├── ex1_aligned/           # Main experimental results (to be reorganized)
+├── results/                  # Experiment results and figure generation scripts
+│   ├── ex1_aligned/           # Main benchmark results
 │   ├── ex1_baselines/         # Baseline comparisons
 │   ├── ex2_refinement/        # Refinement experiment results
 │   ├── fig1_incons/           # Inconsistency visualization
@@ -189,12 +189,10 @@ Aligned/
 │   ├── fig4_line/             # Performance curves
 │   └── fig5_refine/           # Refinement results
 │
-├── models/                    # Trained model checkpoints
+├── models/                   # Trained model checkpoints
 ├── log/                       # Training logs
 └── scripts/                   # Utility and preprocessing scripts
 ```
-
-**Note:** Repository structure for experiment results is being updated for better organization.
 
 ## Citation
 
@@ -224,5 +222,4 @@ This project is licensed under the Creative Commons Attribution 4.0 Internationa
 
 ## Contact
 
-For questions or issues, please open an issue on GitHub or contact:
-- Yuanfang Xiang: yf.xiang@smail.nju.edu.cn
+For questions or issues, please open an issue on GitHub or find my contact information on my GitHub profile.

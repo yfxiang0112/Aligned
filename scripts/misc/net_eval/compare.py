@@ -1,19 +1,19 @@
 import json
 import pandas as pd
 
-orig = json.load(open('scripts/net_eval/results/kegg_orig_norman.json', 'r'))
+orig = json.load(open('scripts/misc/net_eval/results/kegg_orig_norman.json', 'r'))
 df_orig = pd.Series({k:v['AUPRC_pos'] for k,v in orig.items()})
 
 test = {}
 for i in range(3):
-    d = json.load(open(f'scripts/net_eval/results/kegg_norman_abl0_{i+1}.json', 'r'))
+    d = json.load(open(f'scripts/misc/net_eval/results/kegg_norman_abl0_{i+1}.json', 'r'))
     test[str(i)] = {k:v['AUPRC_pos'] for k,v in d.items()}
 df_test = pd.DataFrame(test)
 
 df = pd.concat({'orig':df_orig, 'refined_mean':df_test.mean(axis=1)}, axis=1)
 
 df_improved = df[df['orig'] < df['refined_mean']]
-df_improved.to_csv('scripts/net_eval/dixit_pathways.csv')
+df_improved.to_csv('scripts/misc/net_eval/dixit_pathways.csv')
 
 print(f'P-R increased pathways: {len(df_improved)}\n',df_improved)
 

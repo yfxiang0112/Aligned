@@ -117,4 +117,4 @@ for r in roots:
     df_lst.append(tree_refn)
 
 df_lst = pd.concat(df_lst, axis=0)
-df_lst.to_csv('scripts/intrp/tree.csv', index=False)
+df_lst.to_csv('scripts/misc/intrp/tree.csv', index=False)

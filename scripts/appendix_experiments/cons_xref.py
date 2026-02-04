@@ -13,10 +13,10 @@ device = 'cuda:0'
 res_all = {}
 for data_name in ['norman']:#, 'adamson', 'dixit']:
     #TODO
-    KB_corum =   torch.tensor(load_npz('data_anal/xref_csbench/networks/corum.npz').toarray()).float().to(device)
-    KB_string =  torch.tensor(load_npz('data_anal/xref_csbench/networks/string.npz').toarray()).float().to(device)
-    KB_chipseq = torch.tensor(load_npz('data_anal/xref_csbench/networks/chipseq.npz').toarray()).float().to(device)
-    KB_lr =      torch.tensor(load_npz('data_anal/xref_csbench/networks/lr_pairs.npz').toarray()).float().to(device)
+    KB_corum =   torch.tensor(load_npz('scripts/appendix_experiments/networks/corum.npz').toarray()).float().to(device)
+    KB_string =  torch.tensor(load_npz('scripts/appendix_experiments/networks/string.npz').toarray()).float().to(device)
+    KB_chipseq = torch.tensor(load_npz('scripts/appendix_experiments/networks/chipseq.npz').toarray()).float().to(device)
+    KB_lr =      torch.tensor(load_npz('scripts/appendix_experiments/networks/lr_pairs.npz').toarray()).float().to(device)
 
     for model_type in ['GNN', 'MLP']:
 
@@ -99,4 +99,4 @@ for data_name in ['norman']:#, 'adamson', 'dixit']:
         res_final = {'mean':res_mean, 'stde':res_stde, 'orig':res}
         res_all[f'{data_name}_{model_type}'] = res_final
     
-json.dump(res_all, open(f'data_anal/model_als/xref_cons.json', 'w'), indent=4)
+json.dump(res_all, open(f'scripts/appendix_experiments/xref_cons.json', 'w'), indent=4)

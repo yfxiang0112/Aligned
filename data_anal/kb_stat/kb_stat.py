@@ -64,7 +64,7 @@ corr_before_N = (torch.clamp(unique_X,min=0).T @ Y_means_N)\
         + (torch.clamp(-unique_X,min=0).T @ Y_means_P)
 del Y
 
-gsr_orig = json.load(open('scripts/net_eval/results/kegg_orig_norman.json', 'r'))
+gsr_orig = json.load(open('scripts/misc/net_eval/results/kegg_orig_norman.json', 'r'))
 
 for repl in range(5):
     learner.load(f'results/ex1_aligned/{data_name}/models/GNN_abl0_{repl+1}.pt')
@@ -133,7 +133,7 @@ for repl in range(5):
     del corr_r_N
     torch.cuda.empty_cache()
 
-    gsr_refine = json.load(open(f'scripts/net_eval/results/kegg_norman_abl0_{repl+1}.json', 'r'))
+    gsr_refine = json.load(open(f'scripts/misc/net_eval/results/kegg_norman_abl0_{repl+1}.json', 'r'))
     results['gsr_+'].append(len([k for k in gsr_refine.keys() if gsr_refine[k]['AUPRC_pos'] > gsr_orig[k]['AUPRC_pos']]))
     results['gsr_-'].append(len([k for k in gsr_refine.keys() if gsr_refine[k]['AUPRC_pos'] < gsr_orig[k]['AUPRC_pos']]))
 
@@ -142,7 +142,7 @@ for repl in range(5):
     results['assortativity_2'].append(scores_after['degree_assortativity'])
     results['modularity_2'].append(scores_after['modularity'])
 
-    gsr_refine = json.load(open(f'scripts/net_eval/results/kegg_norman_abl1_{repl+1}.json', 'r'))
+    gsr_refine = json.load(open(f'scripts/misc/net_eval/results/kegg_norman_abl1_{repl+1}.json', 'r'))
     results['gsr_+_2'].append(len([k for k in gsr_refine.keys() if gsr_refine[k]['AUPRC_pos'] > gsr_orig[k]['AUPRC_pos']]))
     results['gsr_-_2'].append(len([k for k in gsr_refine.keys() if gsr_refine[k]['AUPRC_pos'] < gsr_orig[k]['AUPRC_pos']]))
 

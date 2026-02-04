@@ -206,16 +206,16 @@ if __name__ == "__main__":
     G = nx.relabel_nodes(G, dict(enumerate(genes)))
 
     # collect gene set
-    if os.path.exists(f'scripts/net_eval/{database}_{data_name}_genesets.json'):
-        gene_sets = json.load(open(f'scripts/net_eval/{database}_{data_name}_genesets.json','r'))
+    if os.path.exists(f'scripts/misc/net_eval/{database}_{data_name}_genesets.json'):
+        gene_sets = json.load(open(f'scripts/misc/net_eval/{database}_{data_name}_genesets.json','r'))
     elif database == 'signor':
-        gene_sets = json.load(open('scripts/net_eval/signor_genesets.json','r'))
+        gene_sets = json.load(open('scripts/misc/net_eval/signor_genesets.json','r'))
         for k,v in gene_sets.items():
             gene_sets[k] = [x for x in v if x in genes]
     else:
         gene_sets = get_gene_sets(genes,
                                   database_lst = database_lst)
-        json.dump(gene_sets, open(f'scripts/net_eval/{database}_{data_name}_genesets.json','w'), indent=4)
+        json.dump(gene_sets, open(f'scripts/misc/net_eval/{database}_{data_name}_genesets.json','w'), indent=4)
 
     print('--- collected gene sets ---')
 
@@ -234,5 +234,5 @@ if __name__ == "__main__":
         #print("  p-value (AUROC):", p_auroc)
         print()
 
-    json.dump(res, open(f'scripts/net_eval/results/{database}_{data_name}_{save_name}.json', 'w'), indent=4)
+    json.dump(res, open(f'scripts/misc/net_eval/results/{database}_{data_name}_{save_name}.json', 'w'), indent=4)
 

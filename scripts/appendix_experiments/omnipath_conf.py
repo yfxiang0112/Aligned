@@ -18,4 +18,4 @@ data = np.array(df_regu['n_references']) +\
 print(data)
 
 KB_conf = coo_matrix((data, (row,col)), shape=(len(df_genes),len(df_genes)))
-save_npz(f'data_anal/xref_csbench/networks/omni_conf.npz', KB_conf)
+save_npz(f'scripts/appendix_experiments/networks/omni_conf.npz', KB_conf)

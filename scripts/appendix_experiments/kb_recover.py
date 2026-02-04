@@ -14,18 +14,18 @@ np.random.seed(seed)
 gene_ann = pd.read_csv(f'dataset/human/{data_name}_gene_ann.csv', index_col='vector_idx')
 df_omnipath = pd.read_csv('rules/human/omnipath.csv', index_col=0)
 
-xref_string = load_npz('data_anal/xref_csbench/networks/string.npz').toarray()
-xref_corum = load_npz('data_anal/xref_csbench/networks/corum.npz').toarray()
-xref_lr = load_npz('data_anal/xref_csbench/networks/lr_pairs.npz').toarray()
-xref_chipseq = load_npz('data_anal/xref_csbench/networks/chipseq.npz').toarray()
+xref_string = load_npz('scripts/appendix_experiments/networks/string.npz').toarray()
+xref_corum = load_npz('scripts/appendix_experiments/networks/corum.npz').toarray()
+xref_lr = load_npz('scripts/appendix_experiments/networks/lr_pairs.npz').toarray()
+xref_chipseq = load_npz('scripts/appendix_experiments/networks/chipseq.npz').toarray()
 
-omnipath_conf = load_npz('data_anal/xref_csbench/networks/omni_conf.npz').toarray()
+omnipath_conf = load_npz('scripts/appendix_experiments/networks/omni_conf.npz').toarray()
 
-omnipath_P = load_npz(f'data_anal/xref_csbench/networks/{data_name}_omnipath_KB_P.npz').toarray()
-omnipath_N = load_npz(f'data_anal/xref_csbench/networks/{data_name}_omnipath_KB_N.npz').toarray()
+omnipath_P = load_npz(f'scripts/appendix_experiments/networks/{data_name}_omnipath_KB_P.npz').toarray()
+omnipath_N = load_npz(f'scripts/appendix_experiments/networks/{data_name}_omnipath_KB_N.npz').toarray()
 
-corr_P = load_npz(f'data_anal/xref_csbench/networks/{data_name}_Corr_P.npz').toarray()
-corr_N = load_npz(f'data_anal/xref_csbench/networks/{data_name}_Corr_N.npz').toarray()
+corr_P = load_npz(f'scripts/appendix_experiments/networks/{data_name}_Corr_P.npz').toarray()
+corr_N = load_npz(f'scripts/appendix_experiments/networks/{data_name}_Corr_N.npz').toarray()
 
 confirm_P = ((xref_string!=0)|(xref_corum!=0)) & (xref_chipseq!=0) & (omnipath_P!=0) & (omnipath_conf > 5)
 confirm_N = ((xref_string!=0)|(xref_corum!=0)) & (xref_chipseq!=0) & (omnipath_N!=0) & (omnipath_conf > 5)
@@ -55,11 +55,11 @@ for i,j in zip(*np.nonzero(selected)):
 
 df_selected = pd.concat(res_regulations,axis=0)
 print(df_selected)
-df_selected.to_csv(f'data_anal/xref_csbench/recovery_KB/{data_name}_interactions_{seed}.csv')
+df_selected.to_csv(f'scripts/appendix_experiments/recovery_KB/{data_name}_interactions_{seed}.csv')
 
 KB_P = load_npz(f'rules/human/{data_name}_KB_P.npz').toarray()
 KB_N = load_npz(f'rules/human/{data_name}_KB_N.npz').toarray()
 KB_P = np.where(selected, 0, KB_P)
 KB_N = np.where(selected, 0, KB_N)
-save_npz(f'data_anal/xref_csbench/recovery_KB/{data_name}_KB_P_{seed}.npz', coo_matrix(KB_P))
-save_npz(f'data_anal/xref_csbench/recovery_KB/{data_name}_KB_N_{seed}.npz', coo_matrix(KB_N))
+save_npz(f'scripts/appendix_experiments/recovery_KB/{data_name}_KB_P_{seed}.npz', coo_matrix(KB_P))
+save_npz(f'scripts/appendix_experiments/recovery_KB/{data_name}_KB_N_{seed}.npz', coo_matrix(KB_N))

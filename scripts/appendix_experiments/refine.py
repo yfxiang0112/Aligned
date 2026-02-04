@@ -11,10 +11,10 @@ import os
 
 data_name = 'norman'
 
-xref_string = load_npz('data_anal/xref_csbench/networks/string.npz').toarray()
-xref_corum = load_npz('data_anal/xref_csbench/networks/corum.npz').toarray()
-xref_lr = load_npz('data_anal/xref_csbench/networks/lr_pairs.npz').toarray()
-xref_chipseq = load_npz('data_anal/xref_csbench/networks/chipseq.npz').toarray()
+xref_string = load_npz('scripts/appendix_experiments/networks/string.npz').toarray()
+xref_corum = load_npz('scripts/appendix_experiments/networks/corum.npz').toarray()
+xref_lr = load_npz('scripts/appendix_experiments/networks/lr_pairs.npz').toarray()
+xref_chipseq = load_npz('scripts/appendix_experiments/networks/chipseq.npz').toarray()
 
 directory = f'results/ex2_refinement/models/'
 file_pattern = '*.npz'

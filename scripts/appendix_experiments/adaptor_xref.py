@@ -10,16 +10,16 @@ from sklearn.metrics import f1_score
 data_name = 'norman'
 device = 'cuda:0'
 
-xref_string = load_npz('data_anal/xref_csbench/networks/string.npz').toarray()
+xref_string = load_npz('scripts/appendix_experiments/networks/string.npz').toarray()
 xref_string = torch.tensor(xref_string).to(device)
-xref_corum = load_npz('data_anal/xref_csbench/networks/corum.npz').toarray()
+xref_corum = load_npz('scripts/appendix_experiments/networks/corum.npz').toarray()
 xref_corum = torch.tensor(xref_corum).to(device)
-xref_lr = load_npz('data_anal/xref_csbench/networks/lr_pairs.npz').toarray()
+xref_lr = load_npz('scripts/appendix_experiments/networks/lr_pairs.npz').toarray()
 xref_lr = torch.tensor(xref_lr).to(device)
-xref_chipseq = load_npz('data_anal/xref_csbench/networks/chipseq.npz').toarray()
+xref_chipseq = load_npz('scripts/appendix_experiments/networks/chipseq.npz').toarray()
 xref_chipseq = torch.tensor(xref_chipseq).to(device)
 
-omni_conf = load_npz('data_anal/xref_csbench/networks/omni_conf.npz').toarray()
+omni_conf = load_npz('scripts/appendix_experiments/networks/omni_conf.npz').toarray()
 omni_conf = torch.tensor(omni_conf).to(device)
 #omni_conf = (omni_conf>10).int() #TODO
 
