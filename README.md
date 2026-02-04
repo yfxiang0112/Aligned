@@ -38,9 +38,11 @@ conda activate aligned
 pip install -e .
 ```
 
-## Quick Start
+## Reproducibility
 
-### Run ALIGNED on Human Benchmark Datasets
+### Section 4.1: Perturbation Prediction on Benchmark Datasets
+
+Run experiments for all three human datasets using the Quick Start commands above.
 
 ```bash
 # Norman dataset (non-random split)
@@ -79,52 +81,6 @@ python experiments/ex1_bench/run_benchmark.py \
 - `--seed`: Random seed for reproducibility
 - `--random_split`: Use random test split (see paper Section 4.1 for details)
 
-### Run Knowledge Refinement Experiment
-
-```bash
-# Network refinement with incompleteness injection
-python experiments/ex2_refinement/run_refinement.py
-
-# Evaluate with gene set recovery
-python experiments/ex2_refinement/eval_gene_set_recovery.py
-```
-
-### Run E. coli Experiments
-
-```bash
-python experiments/ex3_ecoli/run_ecoli.py \
-    --data_name='ncbi-sra' \
-    --model_save_name='ecoli_gnn' \
-    --model_type='GNN' \
-    --device='cuda:0' \
-    --seed=42
-```
-
-## Datasets
-
-### Human Benchmark Datasets (Section 4.1)
-
-The datasets in `dataset/human/` are git-ignored due to file size. Download from:
-```
-https://box.nju.edu.cn/f/d141fed10400452197ae/?dl=1
-```
-
-Place the downloaded files in `dataset/human/` directory.
-
-**Available datasets:**
-- **Norman et al.**: K562 cells with combinatorial CRISPR perturbations
-- **Dixit et al.**: Bone marrow-derived dendritic cells
-- **Adamson et al.**: K562 cells with transcription factor perturbations
-
-### E. coli Datasets (Section 4.3)
-
-Located in `dataset/ncbi-sra/` and `dataset/precise1k/`.
-
-## Reproduce Paper Results
-
-### Section 4.1: Perturbation Prediction on Benchmark Datasets
-Run experiments for all three human datasets using the Quick Start commands above.
-
 Results, figures and trained models in `results/ex1_aligned/`, baseline comparison results in `results/ex1_baselines/`.
 
 **Baseline comparisons**: For state-of-the-art baseline methods in Section 4.1, we use baseline method implementations and results from:
@@ -137,24 +93,33 @@ We thank the authors for making their implementations publicly available.
 
 
 ### Section 4.2: Knowledge Refinement of Gene Regulatory Networks
+
 ```bash
-# Run refinement at multiple incompleteness levels
-cd experiments/ex2_refinement
-python run_refinement.py
-python eval_gene_set_recovery.py
+# Network refinement with incompleteness injection
+python experiments/ex2_refinement/run_refinement.py
+
+# Evaluate with gene set recovery
+python experiments/ex2_refinement/eval_gene_set_recovery.py
 ```
+
 
 Results in `results/ex2_refinement/`.
 
 ### Section 4.3: Perturbation Prediction on Bacterial Genome
 ```bash
-cd experiments/ex3_ecoli
-python run_ecoli.py
+python experiments/ex3_ecoli/run_ecoli.py \
+    --data_name='ncbi-sra' \
+    --model_save_name='ecoli_gnn' \
+    --model_type='GNN' \
+    --device='cuda:0' \
+    --seed=42
 ```
+
 
 Results and trained models in `results/ex3_ecoli/`.
 
 ### Section 4.4: Ablation Studies
+
 Ablation results are located in `results/ex4_ablations/`.
 
 ## Project Structure
@@ -179,6 +144,8 @@ Aligned/
 │   └── precise1k/             # E. coli PRECISE-1K data
 │
 ├── rules/                    # Knowledge bases
+│   ├── ecoli/                 # E. coli regulatory knowledge base
+│   └── human/                 # Human regulatory knowledge base
 │
 ├── results/                  # Experiment results and figure generation scripts
 │   ├── ex1_aligned/           # Main benchmark results
@@ -189,7 +156,7 @@ Aligned/
 │   ├── fig4_line/             # Performance curves
 │   └── fig5_refine/           # Refinement results
 │
-├── models/                   # Trained model checkpoints
+├── models/                    # Trained models
 ├── log/                       # Training logs
 └── scripts/                   # Utility and preprocessing scripts
 ```
