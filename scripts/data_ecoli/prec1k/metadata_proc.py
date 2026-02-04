@@ -90,4 +90,4 @@ print(missing_genes, len(missing_genes))
 print(len(all_genes))
 
 pre1k_regulators = pd.DataFrame({'locus':list(all_genes), 'symbol':gene_idx.set_index('locus').loc[list(all_genes),'symbol']})
-pre1k_regulators.to_csv('data_anal/list_expe_genes/pre1k_regulators.csv', index=False)
+pre1k_regulators.to_csv('scripts/misc/list_expe_genes/pre1k_regulators.csv', index=False)

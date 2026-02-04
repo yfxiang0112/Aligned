@@ -10,7 +10,7 @@ idx_list = [42,43]
 #metadata = pd.read_csv('dataset/metadata.csv')
 #print(metadata.groupby('overexpression').indices)
 
-pred_df = pd.read_csv('data_anal/predictions.csv', index_col=0)
+pred_df = pd.read_csv('scripts/misc/predictions.csv', index_col=0)
 pred_df = pd.concat([gene_lst_df['Locus tag'],gene_lst_df['Symbol'],pred_df],axis=1)
 
 pvalues = []

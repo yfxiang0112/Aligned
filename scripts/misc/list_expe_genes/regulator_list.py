@@ -28,12 +28,12 @@ modification_num = np.sum(modification, axis=1)
 regulators = {'locus': gene_idx.loc[idx_lst, 'locus'], 'symbol': gene_idx.loc[idx_lst, 'symbol'], 'regulatory': regulatory_num, 'closure':closure_num, 'refined':refined_num, 'modification':modification_num}
 regulators = pd.DataFrame(regulators)
 
-precise1k_regulators = pd.read_csv('data_anal/list_expe_genes/pre1k_regulators.csv')
+precise1k_regulators = pd.read_csv('scripts/misc/list_expe_genes/pre1k_regulators.csv')
 regulators['isin_precise1k'] = regulators['locus'].isin(set(precise1k_regulators['locus']))
 #print(regulators[(regulators['closure'] < regulators['refined']) & (regulators['refined']>30)])
 #print(regulators[(regulators['refined'] - regulators['regulatory'] >= 30)])
 print(regulators[regulators['modification'] >= 50])
 
-regulators.loc[regulators['modification'] >= 50, ['locus','symbol','isin_precise1k']].to_csv('data_anal/list_expe_genes/perturbations_refined.csv')
+regulators.loc[regulators['modification'] >= 50, ['locus','symbol','isin_precise1k']].to_csv('scripts/misc/list_expe_genes/perturbations_refined.csv')
 #print(regulators[regulators['closure'] >= 50])
 

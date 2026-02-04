@@ -5,7 +5,7 @@ import matplotlib.colors as mcolors
 from matplotlib.patches import Patch
 
 
-df_fba = pd.read_csv('data_anal/incons_fba.tsv', sep='\t')
+df_fba = pd.read_csv('scripts/misc/incons_fba.tsv', sep='\t')
 x_t = df_fba['test_growth'][df_fba['locus']!='WT']
 x_p = df_fba['pred_growth'][df_fba['locus']!='WT']
 y = df_fba['ground_growth'][df_fba['locus']!='WT']
@@ -54,6 +54,6 @@ for s,x in [('test',x_t)]:#, ('pred',x_p)]:
     
     # Adjust layout
     plt.tight_layout()
-    plt.savefig(f'data_anal/incons_fba_{s}.png', dpi=300)
+    plt.savefig(f'scripts/misc/incons_fba_{s}.png', dpi=300)
     plt.show()
     

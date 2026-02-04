@@ -52,6 +52,6 @@ def extract_f1_scores(log_file_path, output_csv_path, abl_loops):
     
 
 # Example usage
-log_file_path = 'data_anal/logs/log_5-9_crossval.txt'  # Replace with your log file path
-output_csv_path = 'data_anal/logs/log_5-9_crossval.csv'   # Output CSV file path
+log_file_path = 'scripts/misc/logs/log_5-9_crossval.txt'  # Replace with your log file path
+output_csv_path = 'scripts/misc/logs/log_5-9_crossval.csv'   # Output CSV file path
 extract_f1_scores(log_file_path, output_csv_path, abl_loops=5)

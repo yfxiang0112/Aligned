@@ -103,5 +103,5 @@ plt.legend(handles=expr_legend,# + group_legend,
            title='Sequence Counts')
 
 plt.tight_layout()
-plt.savefig(f'data_anal/expression_plots/count_polar.png', dpi=300)
+plt.savefig(f'scripts/misc/expression_plots/count_polar.png', dpi=300)
 plt.show()

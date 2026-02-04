@@ -76,7 +76,7 @@ class AdaptorMLP(nn.Module):
         return torch.argmax(output_y, dim=-1) -1\
                  if self.discretized else torch.where(torch.abs(output_y)>.1, torch.sign(output_y), 0)
 
-    def adaptor(self, x):
+    def reflection(self, x):
         _, output_r = self.forward(x)
         return torch.round(output_r.detach())
 
@@ -222,7 +222,7 @@ class AdaptorGNN(nn.Module):
         return torch.argmax(output_y, dim=-1) -1\
                 if self.discretized else  torch.where(torch.abs(output_y)>.1, torch.sign(output_y), 0)
 
-    def adaptor(self, x):
+    def reflection(self, x):
         _, output_r = self.forward(x)
         return torch.round(output_r.detach())
 
@@ -741,7 +741,7 @@ class AdaptorLearner():
     def predict(self, x: torch.Tensor):
         return self.model.predict(x)
 
-    def adaptor(self, x: torch.Tensor):
+    def reflection(self, x: torch.Tensor):
         return self.model.reflection(x)
 
     def predict_prob(self, x: torch.Tensor):

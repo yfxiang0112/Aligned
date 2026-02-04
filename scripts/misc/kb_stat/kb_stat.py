@@ -149,4 +149,4 @@ for repl in range(5):
 results_std = {}
 for k,v in results.items():
     results_std[k] = [.5*(max(v)+min(v)), .5*(max(v)-min(v))]
-json.dump(results_std, open('data_anal/kb_stat/kb_stat.json', 'w'), indent=4)
+json.dump(results_std, open('scripts/misc/kb_stat/kb_stat.json', 'w'), indent=4)

@@ -149,4 +149,4 @@ for i in range(len(idx_list)):
     f1_comb_sra.append(f1_score(deduction_comb[:,i], Y_test[:,i], average='macro'))
 
 label_f1 = pd.DataFrame({'diff_p1k':f1_diff_p1k, 'diff_sra':f1_diff_sra, 'weighted_p1k':f1_weighted_p1k, 'weighted_sra':f1_weighted_sra, 'comb_p1k':f1_comb_p1k, 'comb_sra':f1_comb_sra})
-label_f1.to_csv('data_anal/deduction_f1.csv')
+label_f1.to_csv('scripts/misc/deduction_f1.csv')

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 log_file = 'cross_validation_4.24'
-df = pd.read_csv(f'data_anal/logs/log_{log_file}.csv', index_col=0)
+df = pd.read_csv(f'scripts/misc/logs/log_{log_file}.csv', index_col=0)
 
 # Create the bar plot
 plt.figure(figsize=(12, 6))  # Adjust figure size
@@ -40,5 +40,5 @@ add_labels(bars3)
 add_labels(bars4)
 
 plt.tight_layout()  # Adjust layout to prevent label clipping
-plt.savefig(f'data_anal/perf_plots/f1_{log_file}_{f1_type}.png', dpi=300)
+plt.savefig(f'scripts/misc/perf_plots/f1_{log_file}_{f1_type}.png', dpi=300)
 plt.show()

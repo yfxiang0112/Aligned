@@ -55,6 +55,6 @@ for idx,row in df_meta.iterrows():
     plt.legend(handles=legend_elements)
     
     plt.tight_layout()
-    plt.savefig(f'data_anal/expression_plots/{idx}_{gene}.png', dpi=300)
+    plt.savefig(f'scripts/misc/expression_plots/{idx}_{gene}.png', dpi=300)
     #plt.show()
     plt.close()

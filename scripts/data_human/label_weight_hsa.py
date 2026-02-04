@@ -30,33 +30,33 @@ X_test = X[test_idx]
 Y_test = Y[test_idx]
 
 
-adj_matrix = torch.round(torch.clamp(torch.abs(KB.Regu_N_0 + KB.Regu_P_0), 0,1))
-learner = AdaptorLearner(input_dim= X.shape[1],
-                         output_dim= Y.shape[1],
-                         hidden_dim= 64,
-                         base_learner_type= 'MLP',
-                         adj_matrix= adj_matrix,
-                         device=device)
-learner.load('results/ex1_aligned/norman/models/MLP_1.pt')
-
-
-#test_df = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
-#series = test_df[test_df['test_type']=='seen_2_pert'].apply(lambda x: list(range(x['data_start_idx'],x['data_end_idx+1'])), axis=1)
-#pert_idx = sum(series, [])
-#X_test = X_test[pert_idx]
-#Y_test = Y_test[pert_idx]
-
-Y_p = learner.predict(torch.tensor(X_test).float().to(device)).to('cpu').numpy()
-R = learner.reflection(torch.tensor(X_test).float().to(device)).to('cpu').numpy().astype(bool)
-#Y_d = np.load('data_anal/abduction_results/Yd_ABL0_hsa.npy')
-#R = np.load('data_anal/abduction_results/R_ABL0_hsa.npy')
-Y_d = Y_deduction[test_idx]
-
-print(Y_p.shape)
-
-#Y_p = Y_p[pert_idx]
-#Y_deduction = Y_deduction[pert_idx]
-#R = R[pert_idx]
+#adj_matrix = torch.round(torch.clamp(torch.abs(KB.Regu_N_0 + KB.Regu_P_0), 0,1))
+#learner = AdaptorLearner(input_dim= X.shape[1],
+#                         output_dim= Y.shape[1],
+#                         hidden_dim= 64,
+#                         base_learner_type= 'MLP',
+#                         adj_matrix= adj_matrix,
+#                         device=device)
+#learner.load('results/ex1_aligned/norman/models/MLP_1.pt')
+#
+#
+##test_df = pd.read_csv(f'dataset/human/{data_name}_test_set.csv', index_col=0)
+##series = test_df[test_df['test_type']=='seen_2_pert'].apply(lambda x: list(range(x['data_start_idx'],x['data_end_idx+1'])), axis=1)
+##pert_idx = sum(series, [])
+##X_test = X_test[pert_idx]
+##Y_test = Y_test[pert_idx]
+#
+#Y_p = learner.predict(torch.tensor(X_test).float().to(device)).to('cpu').numpy()
+#R = learner.reflection(torch.tensor(X_test).float().to(device)).to('cpu').numpy().astype(bool)
+##Y_d = np.load('data_anal/abduction_results/Yd_ABL0_hsa.npy')
+##R = np.load('data_anal/abduction_results/R_ABL0_hsa.npy')
+#Y_d = Y_deduction[test_idx]
+#
+#print(Y_p.shape)
+#
+##Y_p = Y_p[pert_idx]
+##Y_deduction = Y_deduction[pert_idx]
+##R = R[pert_idx]
 
 total = len(Y)
 
@@ -107,11 +107,9 @@ print(f'Consistent labels with KB: {len(kb_con_idx)}\n')
 ' mask index for labels consistent with kb '
 mask_kb = np.zeros_like(Y_test, dtype=bool)
 mask_kb[:,kb_con_idx] = True
-Y_mask_kb = np.where(mask_kb, Y_d, Y_p)
-
-Y_r = np.where(R, Y_d, Y_p)
-
-print(f'f1 of Y_deduction: {f1_score(Y_test.flatten(), Y_d.flatten(), average="macro")}')
+#Y_mask_kb = np.where(mask_kb, Y_d, Y_p)
+#Y_r = np.where(R, Y_d, Y_p)
+#print(f'f1 of Y_deduction: {f1_score(Y_test.flatten(), Y_d.flatten(), average="macro")}')
 
 size_y = Y.shape[0]*Y.shape[1]
 size_data = np.count_nonzero(np.sum(Y, axis=1))
@@ -128,17 +126,17 @@ w_knowledge = q_data / (q_data + q_knowledge)
 
 print(f'eval weight: data {w_data: .4f}, kb {w_knowledge: .4f}')
 
-f1_test = f1_score(Y_test.flatten(), Y_p.flatten(), average='macro')
-f1_deduc = f1_score(Y_d.flatten(), Y_p.flatten(), average='macro')
-print(f'f1 of Y_p on Y_t: {f1_test: .4f}, on Y_d: {f1_deduc: .4f}, weighted: {w_data*f1_test + w_knowledge*f1_deduc: .4f}')
-
-f1_test = f1_score(Y_test.flatten(), Y_mask_kb.flatten(), average='macro')
-f1_deduc = f1_score(Y_d.flatten(), Y_mask_kb.flatten(), average='macro')
-print(f'f1 of Y_m on Y_t: {f1_test: .4f}, on Y_d: {f1_deduc: .4f}, weighted: {w_data*f1_test + w_knowledge*f1_deduc: .4f}')
-
-f1_test = f1_score(Y_test.flatten(), Y_r.flatten(), average='macro')
-f1_deduc = f1_score(Y_d.flatten(), Y_r.flatten(), average='macro')
-print(f'f1 of Y_r on Y_t: {f1_test: .4f}, on Y_d: {f1_deduc: .4f}, weighted: {w_data*f1_test + w_knowledge*f1_deduc: .4f}')
+#f1_test = f1_score(Y_test.flatten(), Y_p.flatten(), average='macro')
+#f1_deduc = f1_score(Y_d.flatten(), Y_p.flatten(), average='macro')
+#print(f'f1 of Y_p on Y_t: {f1_test: .4f}, on Y_d: {f1_deduc: .4f}, weighted: {w_data*f1_test + w_knowledge*f1_deduc: .4f}')
+#
+#f1_test = f1_score(Y_test.flatten(), Y_mask_kb.flatten(), average='macro')
+#f1_deduc = f1_score(Y_d.flatten(), Y_mask_kb.flatten(), average='macro')
+#print(f'f1 of Y_m on Y_t: {f1_test: .4f}, on Y_d: {f1_deduc: .4f}, weighted: {w_data*f1_test + w_knowledge*f1_deduc: .4f}')
+#
+#f1_test = f1_score(Y_test.flatten(), Y_r.flatten(), average='macro')
+#f1_deduc = f1_score(Y_d.flatten(), Y_r.flatten(), average='macro')
+#print(f'f1 of Y_r on Y_t: {f1_test: .4f}, on Y_d: {f1_deduc: .4f}, weighted: {w_data*f1_test + w_knowledge*f1_deduc: .4f}')
 
 
 
@@ -150,20 +148,20 @@ df_genes= pd.DataFrame(ann_data.var)
 
 go_annot_num = np.array([len(gene2go[g]) if g in gene2go else 0 for g in df_genes['gene_name']], dtype=np.float32)
 go_annot_num = go_annot_num / np.max(go_annot_num)
-#go_annot_num = np.max(go_annot_num - .3, np.zeros_like(go_annot_num))
-#print(go_annot_num)
-y_mask_go = np.where((go_annot_num > .01) & (go_annot_num <= 1.), Y_d, Y_p)
-print('f1 of Y_go_weight:', f1_score(Y_test.flatten(), y_mask_go.flatten(), average='macro'))
+##go_annot_num = np.max(go_annot_num - .3, np.zeros_like(go_annot_num))
+##print(go_annot_num)
+#y_mask_go = np.where((go_annot_num > .01) & (go_annot_num <= 1.), Y_d, Y_p)
+#print('f1 of Y_go_weight:', f1_score(Y_test.flatten(), y_mask_go.flatten(), average='macro'))
 
 
 ' weight with in-degree in GRN '
 regulatory = load_npz(f'rules/human/{data_name}_KB_P.npz').toarray()
 regulatory_num = np.sum(regulatory, axis=0)
 regulatory_num = regulatory_num / np.max(regulatory_num)
-#regulatory_num = np.max(regulatory_num - .3, np.zeros_like(regulatory_num))
-#print(regulatory_num)
-y_mask_regu = np.where((regulatory_num > .01) & (regulatory_num <= 1.), Y_d, Y_p)
-print('f1 of Y_grn_weight:', f1_score(Y_test.flatten(), y_mask_regu.flatten(), average='macro'))
+##regulatory_num = np.max(regulatory_num - .3, np.zeros_like(regulatory_num))
+##print(regulatory_num)
+#y_mask_regu = np.where((regulatory_num > .01) & (regulatory_num <= 1.), Y_d, Y_p)
+#print('f1 of Y_grn_weight:', f1_score(Y_test.flatten(), y_mask_regu.flatten(), average='macro'))
 
 
 ' get label weight '
@@ -181,7 +179,7 @@ np.save(f'dataset/human/{data_name}_label_weight.npy', weights)
 #np.save(f'scripts/test/rand_kb/{data_name}_label_weight.npy', weights)
 
 
-Y_w = np.where(weights>=.5, Y_d, Y_p)
-f1_test = f1_score(Y_test.flatten(), Y_w.flatten(), average='macro')
-f1_deduc = f1_score(Y_d.flatten(), Y_w.flatten(), average='macro')
-print(f'f1 of Y_w on Y_t: {f1_test: .4f}, on Y_d: {f1_deduc: .4f}, weighted: {w_data*f1_test + w_knowledge*f1_deduc: .4f}')
+#Y_w = np.where(weights>=.5, Y_d, Y_p)
+#f1_test = f1_score(Y_test.flatten(), Y_w.flatten(), average='macro')
+#f1_deduc = f1_score(Y_d.flatten(), Y_w.flatten(), average='macro')
+#print(f'f1 of Y_w on Y_t: {f1_test: .4f}, on Y_d: {f1_deduc: .4f}, weighted: {w_data*f1_test + w_knowledge*f1_deduc: .4f}')
