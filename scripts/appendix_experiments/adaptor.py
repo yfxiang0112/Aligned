@@ -1,3 +1,4 @@
+from logging import debug
 import torch
 import numpy as np
 from aligned.reasoner import RegulatoryKB
@@ -8,11 +9,13 @@ from scipy.stats import pearsonr
 from sklearn.metrics import f1_score
 
 data_name = 'norman'
-device = 'cuda:6'
+device = 'cuda'
+dim = 5045
 
 Y = torch.tensor(load_npz(f'dataset/human/{data_name}_Y.npz').toarray()).to(device).float()
 X = torch.tensor(load_npz(f'dataset/human/{data_name}_X.npz').toarray()).to(device).float()
 total = len(X)
+#X = torch.eye(dim).to(device).float()
 
 reasoner = RegulatoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz',
                   neg_trn_pth=f'rules/human/{data_name}_KB_N.npz',
@@ -20,8 +23,8 @@ reasoner = RegulatoryKB(pos_trn_pth=f'rules/human/{data_name}_KB_P.npz',
 reasoner.closure_(T=5, closure_type='weighted')
 
 adj_matrix = torch.round(torch.clamp(torch.abs(reasoner.Regu_N_0 + reasoner.Regu_P_0), 0,1))
-learner = AdaptorLearner(input_dim= X.shape[1],
-                         output_dim= Y.shape[1],
+learner = AdaptorLearner(input_dim= dim,
+                         output_dim= dim,
                          hidden_dim= 64,
                          base_learner_type= 'GNN',
                          adj_matrix= adj_matrix,
