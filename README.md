@@ -189,4 +189,5 @@ This project is licensed under the Creative Commons Attribution 4.0 Internationa
 
 ## Contact
 
-For questions or issues, please open an issue on GitHub or find my contact information on my GitHub profile.
+For questions, feedback, or bug reports, please open an issue on GitHub. 
+For direct inquiries, please find contact information on the GitHub profile.
