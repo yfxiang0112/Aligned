@@ -7,7 +7,7 @@ Official implementation of **ALIGNED** from the paper:
 
 > **Adaptive Data-Knowledge Alignment in Genetic Perturbation Prediction**  
 > Yuanfang Xiang, Lun Ai  
-> *arXiv preprint arXiv:2510.00512, 2025*  
+> *In proceedings of the 14th International Conference on Learning Representations, 2026*  
 > <!--[OpenReview](https://openreview.net/forum?id=CxLaZWbUjc)-->Accepted by ICLR 2026 | [arXiv](https://arxiv.org/abs/2510.00512)
 
 ## Overview
@@ -166,22 +166,15 @@ Aligned/
 If you use ALIGNED in your research, please cite:
 
 ```bibtex
-@article{xiang2024aligned,
-  title={Adaptive Data-Knowledge Alignment in Genetic Perturbation Prediction},
-  author={Xiang, Yuanfang and Ai, Lun},
-  journal={arXiv preprint arXiv:2510.00512},
-  year={2024}
-}
-```
-
-<!-- After official publication at ICLR 2026, please use:
 @inproceedings{xiang2026aligned,
   title={Adaptive Data-Knowledge Alignment in Genetic Perturbation Prediction},
   author={Xiang, Yuanfang and Ai, Lun},
-  booktitle={International Conference on Learning Representations (ICLR)},
+  booktitle={The 14th International Conference on Learning Representations (ICLR)},
   year={2026}
 }
--->
+```
+
+
 
 ## License
 
